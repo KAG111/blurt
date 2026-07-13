@@ -27,7 +27,8 @@ exports.handler = async function(event, context) {
         statusCode: 200,
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'text/plain'
+          'Content-Type': 'text/plain',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
         },
         body: val
       };
@@ -94,7 +95,8 @@ exports.handler = async function(event, context) {
         statusCode: 200,
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'text/plain'
+          'Content-Type': 'text/plain',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
         },
         body: newBucketId
       };

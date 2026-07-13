@@ -840,7 +840,7 @@ async function getBucketForRoom(code) {
   if (!code) return null;
   if (bucketCache[code]) return bucketCache[code];
   try {
-    const res = await fetch(`/.netlify/functions/room?action=get&code=${code}`);
+    const res = await fetch(`/.netlify/functions/room?action=get&code=${code}&_cb=${Date.now()}`);
     if (!res.ok) return null;
     const bucketId = (await res.text()).trim();
     if (bucketId) {
@@ -853,7 +853,7 @@ async function getBucketForRoom(code) {
 
 async function createAndRegisterBucket(code) {
   try {
-    const res = await fetch(`/.netlify/functions/room?action=create&code=${code}`, {
+    const res = await fetch(`/.netlify/functions/room?action=create&code=${code}&_cb=${Date.now()}`, {
       method: 'POST'
     });
     if (!res.ok) return null;
