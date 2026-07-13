@@ -843,7 +843,7 @@ function qrToSVGString(text, sizePx) {
    ========================================================================= */
 const SUPABASE_URL = 'https://qlrvlxcqlzntyasfivvn.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_OERR7S0ZN418zNPDrqaJFQ_SbkdUo7K';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function kvGet(key) {
   try {
@@ -851,7 +851,7 @@ async function kvGet(key) {
     const code = parts[1];
     const property = parts[2];
     
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('rooms')
       .select(property)
       .eq('code', code)
@@ -878,7 +878,7 @@ async function kvSet(key, value) {
     upsertData[property] = parsedValue;
     upsertData['updated_at'] = new Date().toISOString();
     
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('rooms')
       .upsert(upsertData, { onConflict: 'code' });
       
@@ -891,7 +891,7 @@ async function kvSet(key, value) {
 function setupRealtimeListener(roomCode, tickFunction) {
   tickFunction(); // Execute the layout logic once immediately on load
   
-  const channel = supabase
+  const channel = supabaseClient
     .channel(`room:${roomCode}`)
     .on('postgres_changes', { 
       event: 'UPDATE', 
@@ -904,7 +904,7 @@ function setupRealtimeListener(roomCode, tickFunction) {
     .subscribe();
     
   return {
-    close: () => supabase.removeChannel(channel)
+    close: () => supabaseClient.removeChannel(channel)
   };
 }
 
