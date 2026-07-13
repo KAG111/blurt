@@ -356,6 +356,8 @@
   }
   .brainstorm-post.mergeable, .brainstorm-chip.mergeable { cursor: pointer; }
   .brainstorm-post.merge-selected { border-color: var(--green); background: #E7FBF3; box-shadow: 3px 3px 0 var(--green); }
+  .brainstorm-post.movable { cursor: grab; border-style: dashed !important; border-color: var(--pink) !important; box-shadow: 4px 4px 0 var(--pink) !important; z-index: 10 !important; }
+  .brainstorm-post.movable:active { cursor: grabbing; }
   .brainstorm-chip.merge-selected { border-color: var(--green); background: #E7FBF3; }
   .merge-tick-box {
     display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px;
@@ -1092,11 +1094,11 @@ function renderBrainstormSetup() {
     state.loading = true; render();
     const code = generateCode();
     const revealMode = state.revealMode || 'live';
-    const config = { type: 'brainstorm', prompt: state.prompt.trim(), revealMode, revealed: revealMode === 'live', createdAt: Date.now() };
+    const config = { type: 'brainstorm', prompt: state.prompt.trim(), revealMode, revealed: revealMode === 'live', likesEnabled: false, createdAt: Date.now() };
     const ok = await kvSet('room:' + code + ':config', JSON.stringify(config));
     if (ok) {
       await kvSet('room:' + code + ':posts', JSON.stringify([]));
-      state = { screen: 'teacherLive', type: 'brainstorm', code, revealed: config.revealed, revealMode, prompt: config.prompt, posts: [] };
+      state = { screen: 'teacherLive', type: 'brainstorm', code, revealed: config.revealed, revealMode, prompt: config.prompt, likesEnabled: false, posts: [] };
       render();
     } else {
       state.loading = false;
@@ -1679,7 +1681,11 @@ function renderTeacherLive() {
         ${s.revealMode === 'manual' ? `<button class="${s.revealed ? 'btn-hide' : 'btn-reveal'} sans" id="btn-toggle-reveal">${s.revealed ? 'Hide answers' : 'Reveal answers'}</button>` : ''}
         <button class="btn-clear sans" id="btn-clear">${isPoll ? 'Clear this question' : (isBrainstorm ? 'Clear all ideas' : 'Clear all answers')}</button>
         ${isPoll && s.requireNames ? '<button class="btn-reveal sans" id="btn-finish-poll">🏁 Finish &amp; show results</button>' : ''}
-        ${isBrainstorm ? `<button class="${s.mergeMode ? 'btn-hide' : 'btn-nav'} sans" id="btn-toggle-merge">${s.mergeMode ? '✕ Cancel merging' : '🔀 Merge similar ideas'}</button>` : ''}
+        ${isBrainstorm ? `
+          <button class="${s.mergeMode ? 'btn-hide' : 'btn-nav'} sans" id="btn-toggle-merge">${s.mergeMode ? '✕ Cancel merging' : '🔀 Merge similar ideas'}</button>
+          <button class="${s.moveMode ? 'btn-hide' : 'btn-nav'} sans" id="btn-toggle-move">${s.moveMode ? '✕ Lock positions' : '🖐️ Move ideas'}</button>
+          <button class="${s.likesEnabled ? 'btn-reveal' : 'btn-clear'} sans" id="btn-toggle-likes">${s.likesEnabled ? '❤️ Liking: Enabled' : '🤍 Liking: Disabled'}</button>
+        ` : ''}
         <div class="count-note sans" id="submission-count">${teacherCountLabel(s)}</div>
       </div>
       <div class="cloud-stage" id="cloud-stage"></div>
@@ -1735,8 +1741,33 @@ function renderTeacherLive() {
   if (mergeToggleBtn) mergeToggleBtn.onclick = () => {
     s.mergeMode = !s.mergeMode;
     s.mergeSelectedIds = [];
+    if (s.mergeMode) s.moveMode = false;
     render();
   };
+  const toggleMoveBtn = document.getElementById('btn-toggle-move');
+  if (toggleMoveBtn) {
+    toggleMoveBtn.onclick = () => {
+      s.moveMode = !s.moveMode;
+      s.mergeSelectedIds = [];
+      if (s.moveMode) s.mergeMode = false;
+      render();
+    };
+  }
+  const toggleLikesBtn = document.getElementById('btn-toggle-likes');
+  if (toggleLikesBtn) {
+    toggleLikesBtn.onclick = async () => {
+      s.likesEnabled = !s.likesEnabled;
+      const raw = await kvGet('room:' + s.code + ':config');
+      if (raw) {
+        try {
+          const cfg = JSON.parse(raw);
+          cfg.likesEnabled = s.likesEnabled;
+          await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
+        } catch (e) {}
+      }
+      render();
+    };
+  }
 
   renderTeacherStage();
   stopPolling();
@@ -1985,8 +2016,14 @@ function renderBrainstormStage() {
   }
 
   stage.innerHTML = brainstormBoardHtml(s.prompt, posts, {
-    interactive: false, mergeMode: s.mergeMode, selectedIds: s.mergeSelectedIds
+    interactive: false, mergeMode: s.mergeMode, moveMode: s.moveMode, selectedIds: s.mergeSelectedIds
   });
+
+  if (s.moveMode) {
+    stage.querySelectorAll('.brainstorm-post').forEach(el => {
+      setupPostDragging(el, el.dataset.id);
+    });
+  }
 
   if (s.mergeMode) {
     stage.querySelectorAll('.brainstorm-post[data-id], .brainstorm-chip[data-id]').forEach(el => {
@@ -2082,6 +2119,80 @@ async function confirmMerge(selected) {
   if (document.getElementById('submission-count')) document.getElementById('submission-count').textContent = teacherCountLabel(s);
 }
 
+function setupPostDragging(el, postId) {
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let startLeft = 0;
+  let startTop = 0;
+
+  const onStart = (clientX, clientY) => {
+    isDragging = true;
+    startX = clientX;
+    startY = clientY;
+    startLeft = parseFloat(el.style.left) || 50;
+    startTop = parseFloat(el.style.top) || 50;
+    el.style.zIndex = 1000;
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+  };
+
+  const onMove = (clientX, clientY) => {
+    if (!isDragging) return;
+    const board = el.parentElement;
+    const rect = board.getBoundingClientRect();
+    const deltaX = clientX - startX;
+    const deltaY = clientY - startY;
+    const deltaLeft = (deltaX / rect.width) * 100;
+    const deltaTop = (deltaY / rect.height) * 100;
+    
+    let newLeft = Math.max(5, Math.min(95, startLeft + deltaLeft));
+    let newTop = Math.max(5, Math.min(95, startTop + deltaTop));
+    
+    el.style.left = newLeft + '%';
+    el.style.top = newTop + '%';
+  };
+
+  const onTouchMove = (e) => {
+    if (e.cancelable) e.preventDefault();
+    if (e.touches.length > 0) {
+      onMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+
+  const onEnd = async () => {
+    if (!isDragging) return;
+    isDragging = false;
+    el.style.zIndex = '';
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onEnd);
+    document.removeEventListener('touchmove', onTouchMove);
+    document.removeEventListener('touchend', onEnd);
+
+    const finalLeft = parseFloat(el.style.left);
+    const finalTop = parseFloat(el.style.top);
+    const post = state.posts.find(p => p.id === postId);
+    if (post) {
+      post.left = finalLeft;
+      post.top = finalTop;
+      await kvSet('room:' + state.code + ':posts', JSON.stringify(state.posts));
+    }
+  };
+
+  el.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return; // Only left click
+    onStart(e.clientX, e.clientY);
+  });
+  el.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 0) {
+      onStart(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: true });
+  el.addEventListener('dragstart', (e) => e.preventDefault());
+}
+
 function circlePositions(n) {
   const positions = [];
   if (n === 0) return positions;
@@ -2121,7 +2232,8 @@ function brainstormBoardHtml(prompt, posts, opts) {
   const positions = circlePositions(top.length);
 
   function postInner(post, small) {
-    const canLike = interactive && !mergeMode && (post.ownerSessionIds || []).indexOf(mySessionId) === -1 && likedPostIds.indexOf(post.id) === -1;
+    const likesEnabled = (opts.likesEnabled !== undefined) ? opts.likesEnabled : true;
+    const canLike = interactive && !mergeMode && likesEnabled && (post.ownerSessionIds || []).indexOf(mySessionId) === -1 && likedPostIds.indexOf(post.id) === -1;
     const countBadge = (post.count || 1) > 1 ? `<span class="brainstorm-count-badge" title="${post.count} people wrote this">×${post.count}</span>` : '';
     const likeEl = mergeMode
       ? ''
@@ -2135,10 +2247,12 @@ function brainstormBoardHtml(prompt, posts, opts) {
   html += '<div class="brainstorm-hub"><div class="brainstorm-hub-text">' + escapeHtml(prompt) + '</div></div>';
   top.forEach((post, i) => {
     const pos = positions[i];
+    const leftVal = (post.left !== undefined) ? post.left : pos.left;
+    const topVal = (post.top !== undefined) ? post.top : pos.top;
     const scale = maxW === minW ? 1 : (0.85 + 0.5 * ((postWeight(post) - minW) / (maxW - minW)));
     const { countBadge, likeEl } = postInner(post, false);
     const isSelected = selectedIds.indexOf(post.id) !== -1;
-    html += `<div class="brainstorm-post ${mergeMode ? 'mergeable' : ''} ${isSelected ? 'merge-selected' : ''}" data-id="${post.id}" style="left:${pos.left}%;top:${pos.top}%;transform:translate(-50%,-50%) scale(${scale.toFixed(2)});">
+    html += `<div class="brainstorm-post ${mergeMode ? 'mergeable' : ''} ${opts.moveMode ? 'movable' : ''} ${isSelected ? 'merge-selected' : ''}" data-id="${post.id}" style="left:${leftVal}%;top:${topVal}%;transform:translate(-50%,-50%) scale(${scale.toFixed(2)});">
       ${mergeMode ? `<span class="merge-tick-box">${isSelected ? '✓' : ''}</span>` : ''}
       <div class="brainstorm-post-text">${escapeHtml(post.text)} ${countBadge}</div>
       ${likeEl}
@@ -2248,6 +2362,7 @@ function renderStudentJoin() {
     } else {
       state = {
         screen: 'studentRoom', code: clean, type: cfg.type || 'wordcloud', prompt: cfg.prompt, revealed: cfg.revealed,
+        likesEnabled: !!cfg.likesEnabled,
         answer: '', words: [], options: cfg.options || [], allowMultiple: !!cfg.allowMultiple,
         correctIndex: (cfg.correctIndex === undefined) ? null : cfg.correctIndex, votes: (cfg.options || []).map(() => 0),
         selected: [], hasVoted: false, posts: []
@@ -2392,7 +2507,13 @@ function renderStudentRoomBrainstorm() {
   stopPolling();
   const tick = async () => {
     const cfgRaw = await kvGet('room:' + s.code + ':config');
-    if (cfgRaw) { try { s.revealed = JSON.parse(cfgRaw).revealed; } catch (e) {} }
+    if (cfgRaw) {
+      try {
+        const cfg = JSON.parse(cfgRaw);
+        s.revealed = cfg.revealed;
+        s.likesEnabled = !!cfg.likesEnabled;
+      } catch (e) {}
+    }
     const raw = await kvGet('room:' + s.code + ':posts');
     if (raw) { try { s.posts = JSON.parse(raw); } catch (e) {} }
     renderBoard();
@@ -2407,7 +2528,7 @@ function renderStudentRoomBrainstorm() {
       wrap.innerHTML = "<div class=\"hidden-note sans\" style=\"font-size:0.9rem;\">Your teacher hasn't revealed ideas yet.</div>";
       return;
     }
-    wrap.innerHTML = brainstormBoardHtml(s.prompt, s.posts || [], { interactive: true, mySessionId: s.mySessionId, likedPostIds: s.likedPostIds });
+    wrap.innerHTML = brainstormBoardHtml(s.prompt, s.posts || [], { interactive: true, mySessionId: s.mySessionId, likedPostIds: s.likedPostIds, likesEnabled: s.likesEnabled });
     wrap.querySelectorAll('.brainstorm-like-btn, .brainstorm-like-btn-sm').forEach(el => {
       el.onclick = () => likePost(el.dataset.id);
     });
