@@ -830,66 +830,24 @@ function qrToSVGString(text, sizePx) {
 }
 
 /* =========================================================================
-   Backend: free, no-signup JSON storage (extendsclass.com)
-   No teacher or student account needed for this to work.
+   Backend: free, no-signup JSON storage (extendsclass.com) proxied via
+   Netlify Functions to bypass browser CORS preflight (OPTIONS) restrictions.
    ========================================================================= */
-const MASTER_REGISTRY_URL = 'https://extendsclass.com/api/json-storage/bin/bacfaca';
 const bucketCache = {};
 
 async function getBucketForRoom(code) {
   if (!code) return null;
   if (bucketCache[code]) return bucketCache[code];
-  try {
-    const res = await fetch(`${MASTER_REGISTRY_URL}?_cb=${Date.now()}`);
-    if (!res.ok) return null;
-    const registry = await res.json();
-    const val = registry[code];
-    if (val) {
-      bucketCache[code] = val;
-      return val;
-    }
-  } catch (e) {}
-  return null;
-}
-
-async function registerRoomBucket(code, bucketId) {
-  bucketCache[code] = bucketId;
-  for (let attempt = 0; attempt < 5; attempt++) {
-    try {
-      const getRes = await fetch(`${MASTER_REGISTRY_URL}?_cb=${Date.now()}`);
-      if (!getRes.ok) throw new Error();
-      const registry = await getRes.json();
-      registry[code] = bucketId;
-
-      // Keep registry size pruned (last 200 keys)
-      const keys = Object.keys(registry);
-      if (keys.length > 200) {
-        for (let i = 0; i < 50; i++) {
-          delete registry[keys[i]];
-        }
-      }
-
-      const putRes = await fetch(MASTER_REGISTRY_URL, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registry)
-      });
-      if (putRes.ok) return true;
-    } catch (err) {
-      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
-    }
-  }
-  return false;
+  return code;
 }
 
 async function kvGet(key) {
   try {
     const parts = key.split(':');
     const code = parts[1];
-    const property = parts[2]; // e.g. "config", "words", "votes", "posts", "responses", "roster"
-    const binId = await getBucketForRoom(code);
-    if (!binId) return null;
-    const res = await fetch(`https://extendsclass.com/api/json-storage/bin/${binId}?_cb=${Date.now()}`);
+    const property = parts[2];
+    
+    const res = await fetch(`/.netlify/functions/room?action=get&code=${code}&_cb=${Date.now()}`);
     if (!res.ok) return null;
     const data = await res.json();
     const val = data[property];
@@ -903,67 +861,20 @@ async function kvSet(key, value) {
     const parts = key.split(':');
     const code = parts[1];
     const property = parts[2];
-    let binId = await getBucketForRoom(code);
-    if (!binId) {
-      if (property === 'config') {
-        // Create a new room bin on ExtendsClass
-        const initialData = {
-          config: JSON.parse(value),
-          words: [],
-          posts: [],
-          votes: [],
-          responses: [],
-          roster: []
-        };
-        const res = await fetch('https://extendsclass.com/api/json-storage/bin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(initialData)
-        });
-        if (!res.ok) return false;
-        const resJson = await res.json();
-        binId = resJson.id;
-        
-        // Register in the master registry
-        const registered = await registerRoomBucket(code, binId);
-        if (!registered) return false;
-        return true;
-      } else {
-        return false;
-      }
-    }
 
-    // Otherwise, fetch the existing data, update the property, and put it back
-    let updated = false;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      try {
-        const getRes = await fetch(`https://extendsclass.com/api/json-storage/bin/${binId}?_cb=${Date.now()}`);
-        if (!getRes.ok) throw new Error();
-        const data = await getRes.json();
-        
-        // Parse the value if it is a JSON string, otherwise store it as is
-        let parsedVal;
-        try {
-          parsedVal = JSON.parse(value);
-        } catch (e) {
-          parsedVal = value;
-        }
-        data[property] = parsedVal;
-
-        const putRes = await fetch(`https://extendsclass.com/api/json-storage/bin/${binId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        if (putRes.ok) {
-          updated = true;
-          break;
-        }
-      } catch (err) {
-        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
-      }
+    if (property === 'config') {
+      const res = await fetch(`/.netlify/functions/room?action=create&code=${code}&_cb=${Date.now()}`, {
+        method: 'POST',
+        body: value
+      });
+      return res.ok;
+    } else {
+      const res = await fetch(`/.netlify/functions/room?action=update&code=${code}&property=${property}&_cb=${Date.now()}`, {
+        method: 'POST',
+        body: value
+      });
+      return res.ok;
     }
-    return updated;
   } catch (e) { return false; }
 }
 
