@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root {
     --stage: #2B2145;
@@ -379,6 +381,10 @@
     border: 2px solid var(--line); margin-bottom: 0.5rem; cursor: pointer; font-size: 0.9rem; color: var(--ink);
   }
   .merge-option-row.picked { border-color: var(--green); background: #E7FBF3; font-weight: 700; }
+  .download-dropdown-wrap { position: relative; display: inline-block; }
+  .download-dropdown-menu { position: absolute; top: 105%; left: 0; background: #fff; border: 2.25px solid var(--ink); border-radius: 8px; box-shadow: 3px 3px 0 var(--shadow); z-index: 1000; min-width: 160px; display: flex; flex-direction: column; overflow: hidden; }
+  .download-menu-item { background: transparent; border: none; padding: 0.6rem 1rem; text-align: left; font-size: 0.9rem; font-weight: 600; color: var(--ink); cursor: pointer; width: 100%; font-family: 'Space Grotesk', sans-serif; }
+  .download-menu-item:hover { background: var(--paper-soft); color: var(--pink); }
 </style>
 </head>
 </head>
@@ -979,7 +985,7 @@ function renderActivityPicker() {
   app.innerHTML = `
     <div class="screen">
       <button class="back-btn sans" id="btn-back">← back</button>
-      <div style="font-size:1.6rem;font-weight:700;">What kind of activity?</div>
+      <div style="font-size:1.6rem;font-weight:700;">Choose your Blurt Board</div>
       <div class="activity-grid">
         <button class="activity-card sans" id="pick-wordcloud">
           <div class="activity-card-title">Word Cloud</div>
@@ -1686,6 +1692,15 @@ function renderTeacherLive() {
           <button class="${s.moveMode ? 'btn-hide' : 'btn-nav'} sans" id="btn-toggle-move">${s.moveMode ? '✕ Lock positions' : '🖐️ Move ideas'}</button>
           <button class="${s.likesEnabled ? 'btn-reveal' : 'btn-clear'} sans" id="btn-toggle-likes">${s.likesEnabled ? '❤️ Liking: Enabled' : '🤍 Liking: Disabled'}</button>
         ` : ''}
+        ${s.type === 'wordcloud' || s.type === 'brainstorm' ? `
+          <div class="download-dropdown-wrap">
+            <button class="btn-nav sans" id="btn-download-board">⬇️ Download Blurt Board</button>
+            <div class="download-dropdown-menu sans" id="download-menu" style="display:none;">
+              <button class="download-menu-item" id="download-pdf">Export as PDF</button>
+              <button class="download-menu-item" id="download-jpeg">Export as JPEG</button>
+            </div>
+          </div>
+        ` : ''}
         <div class="count-note sans" id="submission-count">${teacherCountLabel(s)}</div>
       </div>
       <div class="cloud-stage" id="cloud-stage"></div>
@@ -1767,6 +1782,20 @@ function renderTeacherLive() {
       }
       render();
     };
+  }
+
+  const downloadBtn = document.getElementById('btn-download-board');
+  const downloadMenu = document.getElementById('download-menu');
+  if (downloadBtn && downloadMenu) {
+    downloadBtn.onclick = (e) => {
+      e.stopPropagation();
+      downloadMenu.style.display = downloadMenu.style.display === 'none' ? 'flex' : 'none';
+    };
+    document.addEventListener('click', () => {
+      downloadMenu.style.display = 'none';
+    });
+    document.getElementById('download-pdf').onclick = () => exportBoard('pdf');
+    document.getElementById('download-jpeg').onclick = () => exportBoard('jpeg');
   }
 
   renderTeacherStage();
@@ -2528,7 +2557,32 @@ function renderStudentRoomBrainstorm() {
       wrap.innerHTML = "<div class=\"hidden-note sans\" style=\"font-size:0.9rem;\">Your teacher hasn't revealed ideas yet.</div>";
       return;
     }
-    wrap.innerHTML = brainstormBoardHtml(s.prompt, s.posts || [], { interactive: true, mySessionId: s.mySessionId, likedPostIds: s.likedPostIds, likesEnabled: s.likesEnabled });
+    wrap.innerHTML = `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:0.8rem;">
+        <div class="download-dropdown-wrap">
+          <button class="btn-nav sans" id="btn-download-board" style="padding:0.4rem 0.8rem;font-size:0.8rem;">⬇️ Download Board</button>
+          <div class="download-dropdown-menu sans" id="download-menu" style="display:none;right:0;left:auto;">
+            <button class="download-menu-item" id="download-pdf">Export as PDF</button>
+            <button class="download-menu-item" id="download-jpeg">Export as JPEG</button>
+          </div>
+        </div>
+      </div>
+    ` + brainstormBoardHtml(s.prompt, s.posts || [], { interactive: true, mySessionId: s.mySessionId, likedPostIds: s.likedPostIds, likesEnabled: s.likesEnabled });
+
+    const downloadBtn = wrap.querySelector('#btn-download-board');
+    const downloadMenu = wrap.querySelector('#download-menu');
+    if (downloadBtn && downloadMenu) {
+      downloadBtn.onclick = (e) => {
+        e.stopPropagation();
+        downloadMenu.style.display = downloadMenu.style.display === 'none' ? 'flex' : 'none';
+      };
+      document.addEventListener('click', () => {
+        downloadMenu.style.display = 'none';
+      });
+      wrap.querySelector('#download-pdf').onclick = () => exportBoard('pdf');
+      wrap.querySelector('#download-jpeg').onclick = () => exportBoard('jpeg');
+    }
+
     wrap.querySelectorAll('.brainstorm-like-btn, .brainstorm-like-btn-sm').forEach(el => {
       el.onclick = () => likePost(el.dataset.id);
     });
@@ -2813,7 +2867,72 @@ function renderStudentCloud() {
     wrap.innerHTML = "<div class=\"hidden-note sans\" style=\"font-size:0.9rem;\">Your teacher hasn't revealed the answers yet.</div>";
     return;
   }
-  wrap.innerHTML = cloudHtml(s.words, true);
+  wrap.innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:0.8rem;">
+      <div class="download-dropdown-wrap">
+        <button class="btn-nav sans" id="btn-download-board" style="padding:0.4rem 0.8rem;font-size:0.8rem;">⬇️ Download Board</button>
+        <div class="download-dropdown-menu sans" id="download-menu" style="display:none;right:0;left:auto;">
+          <button class="download-menu-item" id="download-pdf">Export as PDF</button>
+          <button class="download-menu-item" id="download-jpeg">Export as JPEG</button>
+        </div>
+      </div>
+    </div>
+  ` + cloudHtml(s.words, true);
+
+  const downloadBtn = wrap.querySelector('#btn-download-board');
+  const downloadMenu = wrap.querySelector('#download-menu');
+  if (downloadBtn && downloadMenu) {
+    downloadBtn.onclick = (e) => {
+      e.stopPropagation();
+      downloadMenu.style.display = downloadMenu.style.display === 'none' ? 'flex' : 'none';
+    };
+    document.addEventListener('click', () => {
+      downloadMenu.style.display = 'none';
+    });
+    wrap.querySelector('#download-pdf').onclick = () => exportBoard('pdf');
+    wrap.querySelector('#download-jpeg').onclick = () => exportBoard('jpeg');
+  }
+}
+
+function exportBoard(format) {
+  const target = document.getElementById('cloud-stage') || 
+                 document.getElementById('brainstorm-board-wrap') || 
+                 document.getElementById('student-cloud-wrap');
+  if (!target) {
+    alert("Could not find the board element to export.");
+    return;
+  }
+
+  const originalCursor = document.body.style.cursor;
+  document.body.style.cursor = 'wait';
+
+  html2canvas(target, {
+    backgroundColor: '#2B2145',
+    scale: 2,
+    logging: false,
+    useCORS: true
+  }).then(canvas => {
+    document.body.style.cursor = originalCursor;
+    if (format === 'jpeg') {
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `blurt-board-${state.code}.jpg`;
+      a.click();
+    } else if (format === 'pdf') {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`blurt-board-${state.code}.pdf`);
+    }
+  }).catch(err => {
+    document.body.style.cursor = originalCursor;
+    alert("Export failed: " + err.message);
+  });
 }
 
 /* Auto-join if the URL contains ?join=CODE (used by the QR code) */
