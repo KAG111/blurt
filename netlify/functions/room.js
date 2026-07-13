@@ -19,7 +19,7 @@ exports.handler = async function(event, context) {
   if (action === 'get') {
     if (!code) return { statusCode: 400, body: 'Missing code' };
     try {
-      const res = await fetch(MASTER_REGISTRY_URL);
+      const res = await fetch(`${MASTER_REGISTRY_URL}?_cb=${Date.now()}`);
       if (!res.ok) return { statusCode: res.status, body: '' };
       const registry = await res.json();
       const val = registry[code] || '';
@@ -56,7 +56,7 @@ exports.handler = async function(event, context) {
       let registered = false;
       for (let attempt = 0; attempt < 5; attempt++) {
         try {
-          const getRes = await fetch(MASTER_REGISTRY_URL);
+          const getRes = await fetch(`${MASTER_REGISTRY_URL}?_cb=${Date.now()}`);
           if (!getRes.ok) throw new Error('Failed to read registry');
           const registry = await getRes.json();
           
