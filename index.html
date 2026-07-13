@@ -831,29 +831,16 @@ function qrToSVGString(text, sizePx) {
 
 /* =========================================================================
    Backend: free, no-signup key/value store (kvdb.io) combined with a
-   no-signup global mapping registry (keyvalue.immanuel.co).
+   no-signup global mapping registry resolved via a Netlify function.
    No teacher or student account needed for this to work.
    ========================================================================= */
-const REGISTRY_APP_KEY = '4k3nlfhm';
 const bucketCache = {};
-
-async function createBucket() {
-  try {
-    const res = await fetch('/.netlify/functions/create-bucket', {
-      method: 'POST'
-    });
-    if (!res.ok) return null;
-    return (await res.text()).trim();
-  } catch (e) {
-    return null;
-  }
-}
 
 async function getBucketForRoom(code) {
   if (!code) return null;
   if (bucketCache[code]) return bucketCache[code];
   try {
-    const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/${REGISTRY_APP_KEY}/room_bucket_${code}`);
+    const res = await fetch(`/.netlify/functions/room?action=get&code=${code}`);
     if (!res.ok) return null;
     const bucketId = (await res.text()).trim();
     if (bucketId) {
@@ -864,16 +851,19 @@ async function getBucketForRoom(code) {
   return null;
 }
 
-async function registerRoomBucket(code, bucketId) {
-  bucketCache[code] = bucketId;
+async function createAndRegisterBucket(code) {
   try {
-    const res = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/${REGISTRY_APP_KEY}/room_bucket_${code}/${bucketId}`, {
+    const res = await fetch(`/.netlify/functions/room?action=create&code=${code}`, {
       method: 'POST'
     });
-    return res.ok || (await res.text()) === 'True';
-  } catch (e) {
-    return false;
-  }
+    if (!res.ok) return null;
+    const bucketId = (await res.text()).trim();
+    if (bucketId) {
+      bucketCache[code] = bucketId;
+      return bucketId;
+    }
+  } catch (e) {}
+  return null;
 }
 
 async function kvGet(key) {
@@ -897,10 +887,8 @@ async function kvSet(key, value) {
     if (!bucketId) {
       // If we don't have a bucket for this room yet, and we are setting config, we create one
       if (parts[2] === 'config') {
-        bucketId = await createBucket();
+        bucketId = await createAndRegisterBucket(code);
         if (!bucketId) return false;
-        const registered = await registerRoomBucket(code, bucketId);
-        if (!registered) return false;
       } else {
         return false;
       }
