@@ -830,52 +830,71 @@ function qrToSVGString(text, sizePx) {
 }
 
 /* =========================================================================
-   Backend: free, no-signup key/value store (kvdb.io) combined with a
-   no-signup global mapping registry resolved via a Netlify function.
+   Backend: free, no-signup JSON storage (extendsclass.com)
    No teacher or student account needed for this to work.
    ========================================================================= */
+const MASTER_REGISTRY_URL = 'https://extendsclass.com/api/json-storage/bin/bacfaca';
 const bucketCache = {};
 
 async function getBucketForRoom(code) {
   if (!code) return null;
   if (bucketCache[code]) return bucketCache[code];
   try {
-    const res = await fetch(`/.netlify/functions/room?action=get&code=${code}&_cb=${Date.now()}`);
+    const res = await fetch(`${MASTER_REGISTRY_URL}?_cb=${Date.now()}`);
     if (!res.ok) return null;
-    const bucketId = (await res.text()).trim();
-    if (bucketId) {
-      bucketCache[code] = bucketId;
-      return bucketId;
+    const registry = await res.json();
+    const val = registry[code];
+    if (val) {
+      bucketCache[code] = val;
+      return val;
     }
   } catch (e) {}
   return null;
 }
 
-async function createAndRegisterBucket(code) {
-  try {
-    const res = await fetch(`/.netlify/functions/room?action=create&code=${code}&_cb=${Date.now()}`, {
-      method: 'POST'
-    });
-    if (!res.ok) return null;
-    const bucketId = (await res.text()).trim();
-    if (bucketId) {
-      bucketCache[code] = bucketId;
-      return bucketId;
+async function registerRoomBucket(code, bucketId) {
+  bucketCache[code] = bucketId;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const getRes = await fetch(`${MASTER_REGISTRY_URL}?_cb=${Date.now()}`);
+      if (!getRes.ok) throw new Error();
+      const registry = await getRes.json();
+      registry[code] = bucketId;
+
+      // Keep registry size pruned (last 200 keys)
+      const keys = Object.keys(registry);
+      if (keys.length > 200) {
+        for (let i = 0; i < 50; i++) {
+          delete registry[keys[i]];
+        }
+      }
+
+      const putRes = await fetch(MASTER_REGISTRY_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registry)
+      });
+      if (putRes.ok) return true;
+    } catch (err) {
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
     }
-  } catch (e) {}
-  return null;
+  }
+  return false;
 }
 
 async function kvGet(key) {
   try {
     const parts = key.split(':');
     const code = parts[1];
-    const bucketId = await getBucketForRoom(code);
-    if (!bucketId) return null;
-    const res = await fetch(`https://kvdb.io/${bucketId}/${encodeURIComponent(key)}`);
-    if (res.status === 404) return null;
+    const property = parts[2]; // e.g. "config", "words", "votes", "posts", "responses", "roster"
+    const binId = await getBucketForRoom(code);
+    if (!binId) return null;
+    const res = await fetch(`https://extendsclass.com/api/json-storage/bin/${binId}?_cb=${Date.now()}`);
     if (!res.ok) return null;
-    return await res.text();
+    const data = await res.json();
+    const val = data[property];
+    if (val === undefined) return null;
+    return typeof val === 'string' ? val : JSON.stringify(val);
   } catch (e) { return null; }
 }
 
@@ -883,22 +902,68 @@ async function kvSet(key, value) {
   try {
     const parts = key.split(':');
     const code = parts[1];
-    let bucketId = await getBucketForRoom(code);
-    if (!bucketId) {
-      // If we don't have a bucket for this room yet, and we are setting config, we create one
-      if (parts[2] === 'config') {
-        bucketId = await createAndRegisterBucket(code);
-        if (!bucketId) return false;
+    const property = parts[2];
+    let binId = await getBucketForRoom(code);
+    if (!binId) {
+      if (property === 'config') {
+        // Create a new room bin on ExtendsClass
+        const initialData = {
+          config: JSON.parse(value),
+          words: [],
+          posts: [],
+          votes: [],
+          responses: [],
+          roster: []
+        };
+        const res = await fetch('https://extendsclass.com/api/json-storage/bin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(initialData)
+        });
+        if (!res.ok) return false;
+        const resJson = await res.json();
+        binId = resJson.id;
+        
+        // Register in the master registry
+        const registered = await registerRoomBucket(code, binId);
+        if (!registered) return false;
+        return true;
       } else {
         return false;
       }
     }
-    const res = await fetch(`https://kvdb.io/${bucketId}/${encodeURIComponent(key)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'text/plain' },
-      body: value
-    });
-    return res.ok;
+
+    // Otherwise, fetch the existing data, update the property, and put it back
+    let updated = false;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const getRes = await fetch(`https://extendsclass.com/api/json-storage/bin/${binId}?_cb=${Date.now()}`);
+        if (!getRes.ok) throw new Error();
+        const data = await getRes.json();
+        
+        // Parse the value if it is a JSON string, otherwise store it as is
+        let parsedVal;
+        try {
+          parsedVal = JSON.parse(value);
+        } catch (e) {
+          parsedVal = value;
+        }
+        data[property] = parsedVal;
+
+        const putRes = await fetch(`https://extendsclass.com/api/json-storage/bin/${binId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (putRes.ok) {
+          updated = true;
+          break;
+        }
+      } catch (err) {
+        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      }
+    }
+    return updated;
   } catch (e) { return false; }
 }
 
