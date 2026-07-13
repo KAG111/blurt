@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --stage: #2B2145;
@@ -838,16 +839,11 @@ function qrToSVGString(text, sizePx) {
 }
 
 /* =========================================================================
-   Backend: free, no-signup JSON storage (extendsclass.com) proxied via
-   Netlify Functions to bypass browser CORS preflight (OPTIONS) restrictions.
+   Backend Setup: Supabase Realtime Architecture
    ========================================================================= */
-const bucketCache = {};
-
-async function getBucketForRoom(code) {
-  if (!code) return null;
-  if (bucketCache[code]) return bucketCache[code];
-  return code;
-}
+const SUPABASE_URL = 'https://qlrvlxcqlzntyasfivvn.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_OERR7S0ZN418zNPDrqaJFQ_SbkdUo7K';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function kvGet(key) {
   try {
@@ -855,13 +851,20 @@ async function kvGet(key) {
     const code = parts[1];
     const property = parts[2];
     
-    const res = await fetch(`/.netlify/functions/room?action=get&code=${code}&_cb=${Date.now()}`);
-    if (!res.ok) return null;
-    const data = await res.json();
+    const { data, error } = await supabase
+      .from('rooms')
+      .select(property)
+      .eq('code', code)
+      .maybeSingle();
+      
+    if (error || !data) return null;
+    
     const val = data[property];
-    if (val === undefined) return null;
+    if (val === undefined || val === null) return null;
     return typeof val === 'string' ? val : JSON.stringify(val);
-  } catch (e) { return null; }
+  } catch (e) {
+    return null;
+  }
 }
 
 async function kvSet(key, value) {
@@ -869,21 +872,40 @@ async function kvSet(key, value) {
     const parts = key.split(':');
     const code = parts[1];
     const property = parts[2];
+    const parsedValue = JSON.parse(value);
+    
+    const upsertData = { code };
+    upsertData[property] = parsedValue;
+    upsertData['updated_at'] = new Date().toISOString();
+    
+    const { error } = await supabase
+      .from('rooms')
+      .upsert(upsertData, { onConflict: 'code' });
+      
+    return !error;
+  } catch (e) {
+    return false;
+  }
+}
 
-    if (property === 'config') {
-      const res = await fetch(`/.netlify/functions/room?action=create&code=${code}&_cb=${Date.now()}`, {
-        method: 'POST',
-        body: value
-      });
-      return res.ok;
-    } else {
-      const res = await fetch(`/.netlify/functions/room?action=update&code=${code}&property=${property}&_cb=${Date.now()}`, {
-        method: 'POST',
-        body: value
-      });
-      return res.ok;
-    }
-  } catch (e) { return false; }
+function setupRealtimeListener(roomCode, tickFunction) {
+  tickFunction(); // Execute the layout logic once immediately on load
+  
+  const channel = supabase
+    .channel(`room:${roomCode}`)
+    .on('postgres_changes', { 
+      event: 'UPDATE', 
+      schema: 'public', 
+      table: 'rooms', 
+      filter: `code=eq.${roomCode}` 
+    }, () => {
+      tickFunction(); // Instantly re-render charts when data changes
+    })
+    .subscribe();
+    
+  return {
+    close: () => supabase.removeChannel(channel)
+  };
 }
 
 /* =========================================================================
@@ -929,7 +951,16 @@ const app = document.getElementById('app');
 let state = { screen: 'landing' };
 let pollTimer = null;
 
-function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+function stopPolling() {
+  if (pollTimer) {
+    if (pollTimer.close) {
+      pollTimer.close();
+    } else {
+      clearInterval(pollTimer);
+    }
+    pollTimer = null;
+  }
+}
 
 function render() {
   if (state.screen === 'landing') return renderLanding();
@@ -1652,8 +1683,7 @@ function renderTeacherLobby() {
     const raw = await kvGet('room:' + s.code + ':roster');
     if (raw) { try { s.roster = JSON.parse(raw); renderRoster(); } catch (e) {} }
   };
-  tick();
-  pollTimer = setInterval(tick, 2000);
+  pollTimer = setupRealtimeListener(s.code, tick);
 }
 
 function renderTeacherLive() {
@@ -1814,8 +1844,7 @@ function renderTeacherLive() {
     if (document.getElementById('submission-count')) document.getElementById('submission-count').textContent = teacherCountLabel(s);
     renderTeacherStage();
   };
-  tick();
-  pollTimer = setInterval(tick, 2500);
+  pollTimer = setupRealtimeListener(s.code, tick);
 }
 
 async function pollGoTo(newIndex) {
@@ -2496,8 +2525,7 @@ function renderStudentWaitingRoom() {
       } catch (e) {}
     }
   };
-  tick();
-  pollTimer = setInterval(tick, 2000);
+  pollTimer = setupRealtimeListener(s.code, tick);
 }
 
 function renderStudentRoom() {
@@ -2547,8 +2575,7 @@ function renderStudentRoomBrainstorm() {
     if (raw) { try { s.posts = JSON.parse(raw); } catch (e) {} }
     renderBoard();
   };
-  tick();
-  pollTimer = setInterval(tick, 2500);
+  pollTimer = setupRealtimeListener(s.code, tick);
 
   function renderBoard() {
     const wrap = document.getElementById('brainstorm-board-wrap');
@@ -2674,8 +2701,7 @@ function renderStudentRoomWordCloud() {
     if (raw) { try { s.words = JSON.parse(raw); } catch (e) {} }
     renderStudentCloud();
   };
-  tick();
-  pollTimer = setInterval(tick, 2500);
+  pollTimer = setupRealtimeListener(s.code, tick);
 
   async function submitAnswer() {
     const clean = normalize(input.value);
@@ -2761,8 +2787,7 @@ function renderStudentRoomMC() {
     }
     renderMCStudentResults();
   };
-  tick();
-  pollTimer = setInterval(tick, 2500);
+  pollTimer = setupRealtimeListener(s.code, tick);
 }
 
 function renderMCOptions() {
