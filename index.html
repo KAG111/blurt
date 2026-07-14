@@ -857,12 +857,17 @@ async function kvGet(key) {
       .eq('code', code)
       .maybeSingle();
       
-    if (error || !data) return null;
+    if (error) {
+      console.error("Supabase kvGet error:", error);
+      return null;
+    }
+    if (!data) return null;
     
     const val = data[property];
     if (val === undefined || val === null) return null;
     return typeof val === 'string' ? val : JSON.stringify(val);
   } catch (e) {
+    console.error("kvGet Exception:", e);
     return null;
   }
 }
@@ -882,8 +887,13 @@ async function kvSet(key, value) {
       .from('rooms')
       .upsert(upsertData, { onConflict: 'code' });
       
-    return !error;
+    if (error) {
+      console.error("Supabase kvSet error:", error);
+      return false;
+    }
+    return true;
   } catch (e) {
+    console.error("kvSet Exception:", e);
     return false;
   }
 }
