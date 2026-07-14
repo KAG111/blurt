@@ -450,6 +450,112 @@
   .note-action-btn.btn-delete:hover { background: var(--pink); color: #fff; }
   .note-action-btn.btn-edit:hover { background: var(--yellow); }
   .color-dot.selected { border-color: var(--ink) !important; transform: scale(1.15); }
+  body.board-mode-active {
+    background: var(--stage-dark) !important;
+    overflow: hidden !important;
+  }
+  body.board-mode-active .live-header,
+  body.board-mode-active .controls-row,
+  body.board-mode-active .brand-bar,
+  body.board-mode-active .back-btn {
+    display: none !important;
+  }
+  body.board-mode-active .live-wrap {
+    padding: 1.5rem !important;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+  body.board-mode-active .prompt-label {
+    text-align: center;
+    margin: 0.5rem auto 1.5rem !important;
+    font-size: 2.2rem !important;
+    max-width: 90% !important;
+    line-height: 1.2;
+  }
+  body.board-mode-active .cloud-stage {
+    flex: 1;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    border-radius: 12px;
+    padding: 2.5rem !important;
+  }
+  body.board-mode-active .cloud-word {
+    font-size: calc(1.4 * var(--size-rem, 1rem)) !important;
+    margin: 0.7rem 1.1rem !important;
+  }
+  body.board-mode-active .cork-board {
+    flex: 1;
+    width: 100% !important;
+    max-width: none !important;
+    aspect-ratio: auto !important;
+    height: 100% !important;
+    box-shadow: none !important;
+  }
+  body.board-mode-active .sticky-note {
+    width: clamp(120px, 20%, 180px) !important;
+    font-size: 1.05rem !important;
+  }
+  body.board-mode-active .sticky-note-text {
+    font-size: 0.9rem !important;
+  }
+  body.board-mode-active .brainstorm-board {
+    height: calc(100vh - 140px) !important;
+    width: auto !important;
+    aspect-ratio: 1 / 1 !important;
+    max-width: 90vw !important;
+    margin: 0 auto !important;
+  }
+  body.board-mode-active .brainstorm-post {
+    font-size: 1.15rem !important;
+    width: clamp(110px, 22%, 160px) !important;
+  }
+  body.board-mode-active .brainstorm-post-text {
+    font-size: clamp(0.85rem, 2.5vw, 1.05rem) !important;
+  }
+  body.board-mode-active .mc-bar-row {
+    margin-bottom: 2rem !important;
+  }
+  body.board-mode-active .mc-bar-label {
+    font-size: 1.5rem !important;
+  }
+  body.board-mode-active .mc-bar-track {
+    height: 48px !important;
+  }
+  body.board-mode-active .mc-bar-count {
+    font-size: 1.3rem !important;
+  }
+  
+  .btn-exit-board-mode {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--pink);
+    color: #fff;
+    border: 2.5px solid var(--ink);
+    border-radius: 8px;
+    padding: 0.65rem 1.3rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    box-shadow: 4px 4px 0 var(--shadow);
+    cursor: pointer;
+    z-index: 10000;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .btn-exit-board-mode:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--shadow);
+  }
+  .btn-exit-board-mode:active {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 var(--shadow);
+  }
 </style>
 </head>
 </head>
@@ -1069,6 +1175,13 @@ function stopPolling() {
 }
 
 function render() {
+  if (state.boardMode && state.screen === 'teacherLive') {
+    document.body.classList.add('board-mode-active');
+  } else {
+    state.boardMode = false;
+    document.body.classList.remove('board-mode-active');
+  }
+
   if (state.screen === 'landing') return renderLanding();
   if (state.screen === 'activityPicker') return renderActivityPicker();
   if (state.screen === 'teacherSetup') return renderTeacherSetup();
@@ -1881,6 +1994,7 @@ function renderTeacherLive() {
           <button class="${s.moveMode ? 'btn-hide' : 'btn-nav'} sans" id="btn-toggle-move">${s.moveMode ? '✕ Lock positions' : '🖐️ Move ideas'}</button>
           <button class="${s.likesEnabled ? 'btn-reveal' : 'btn-clear'} sans" id="btn-toggle-likes">${s.likesEnabled ? '❤️ Liking: Enabled' : '🤍 Liking: Disabled'}</button>
         ` : ''}
+        <button class="btn-nav sans" id="btn-toggle-boardmode">🖥️ Board Mode</button>
         ${s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' ? `
           <div class="download-dropdown-wrap">
             <button class="btn-nav sans" id="btn-download-board">⬇️ Download Blurt Board</button>
@@ -1893,7 +2007,8 @@ function renderTeacherLive() {
         <div class="count-note sans" id="submission-count">${teacherCountLabel(s)}</div>
       </div>
       <div class="cloud-stage" id="cloud-stage"></div>
-    </div>`;
+    </div>
+    ${s.boardMode ? `<button class="btn-exit-board-mode sans" id="btn-exit-boardmode">✕ Exit Board Mode</button>` : ''}`;
   const finishBtn = document.getElementById('btn-finish-poll');
   if (finishBtn) finishBtn.onclick = async () => {
     stopPolling();
@@ -1985,6 +2100,21 @@ function renderTeacherLive() {
     });
     document.getElementById('download-pdf').onclick = () => exportBoard('pdf');
     document.getElementById('download-jpeg').onclick = () => exportBoard('jpeg');
+  }
+
+  const toggleBoardModeBtn = document.getElementById('btn-toggle-boardmode');
+  if (toggleBoardModeBtn) {
+    toggleBoardModeBtn.onclick = () => {
+      s.boardMode = true;
+      render();
+    };
+  }
+  const exitBoardModeBtn = document.getElementById('btn-exit-boardmode');
+  if (exitBoardModeBtn) {
+    exitBoardModeBtn.onclick = () => {
+      s.boardMode = false;
+      render();
+    };
   }
 
   renderTeacherStage();
@@ -2635,7 +2765,7 @@ function cloudHtml(words, compact) {
   sorted.forEach((w, i) => {
     const scale = max === min ? 0.6 : (w.count - min) / (max - min);
     const size = compact ? (0.9 + scale * 1.6) : (1.1 + scale * 2.8);
-    html += `<span class="cloud-word" style="font-size:${size}rem;color:${colorFor(i)};" title="${w.count} submission${w.count > 1 ? 's' : ''}">${escapeHtml(w.text)}</span>`;
+    html += `<span class="cloud-word" style="--size-rem:${size}rem;font-size:${size}rem;color:${colorFor(i)};" title="${w.count} submission${w.count > 1 ? 's' : ''}">${escapeHtml(w.text)}</span>`;
   });
   html += '</div>';
   return html;
