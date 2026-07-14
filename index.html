@@ -843,9 +843,35 @@ function qrToSVGString(text, sizePx) {
    ========================================================================= */
 const SUPABASE_URL = 'https://qlrvlxcqlzntyasfivvn.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_OERR7S0ZN418zNPDrqaJFQ_SbkdUo7K';
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabaseClient;
+try {
+  if (!window.supabase) {
+    throw new Error("Supabase library not loaded. This is usually caused by an adblocker or firewall blocking 'cdn.jsdelivr.net'.");
+  }
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch (err) {
+  console.error("Database initialization failed:", err);
+  document.addEventListener("DOMContentLoaded", () => {
+    const appEl = document.getElementById('app');
+    if (appEl) {
+      appEl.innerHTML = `
+        <div class="screen" style="max-width:500px;margin:2rem auto;text-align:center;">
+          <div style="font-size:1.5rem;font-weight:700;color:var(--pink);margin-bottom:1rem;">⚠️ Connection Error</div>
+          <div class="sans" style="color:#fff;line-height:1.6;font-size:0.95rem;">
+            Failed to load the real-time database library. This usually happens if:
+            <ul style="text-align:left;margin-top:0.8rem;padding-left:1.5rem;">
+              <li style="margin-bottom:0.4rem;">An ad blocker or browser extension is blocking <code>cdn.jsdelivr.net</code>.</li>
+              <li style="margin-bottom:0.4rem;">Your school or organization network firewall is blocking the library connection.</li>
+            </ul>
+            Please try disabling your ad blocker, opening the page on a personal device/cellular connection, or reloading.
+          </div>
+        </div>`;
+    }
+  });
+}
 
 async function kvGet(key) {
+  if (!supabaseClient) return null;
   try {
     const parts = key.split(':');
     const code = parts[1];
@@ -873,6 +899,7 @@ async function kvGet(key) {
 }
 
 async function kvSet(key, value) {
+  if (!supabaseClient) return false;
   try {
     const parts = key.split(':');
     const code = parts[1];
@@ -899,6 +926,10 @@ async function kvSet(key, value) {
 }
 
 function setupRealtimeListener(roomCode, tickFunction) {
+  if (!supabaseClient) {
+    tickFunction();
+    return { close: () => {} };
+  }
   tickFunction(); // Execute the layout logic once immediately on load
   
   const channel = supabaseClient
@@ -912,6 +943,7 @@ function setupRealtimeListener(roomCode, tickFunction) {
       tickFunction(); // Instantly re-render charts when data changes
     })
     .subscribe();
+
     
   return {
     close: () => supabaseClient.removeChannel(channel)
