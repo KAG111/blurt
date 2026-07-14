@@ -213,10 +213,14 @@
   .activity-card:nth-of-type(1) { box-shadow: 5px 5px 0 var(--blue); }
   .activity-card:nth-of-type(2) { box-shadow: 5px 5px 0 var(--pink); }
   .activity-card:nth-of-type(3) { box-shadow: 5px 5px 0 var(--yellow); }
+  .activity-card:nth-of-type(4) { box-shadow: 5px 5px 0 var(--green); }
+  .activity-card:nth-of-type(5) { box-shadow: 5px 5px 0 var(--blue); }
   .activity-card:hover { transform: translate(-3px, -3px); }
   .activity-card:nth-of-type(1):hover { box-shadow: 8px 8px 0 var(--blue); }
   .activity-card:nth-of-type(2):hover { box-shadow: 8px 8px 0 var(--pink); }
   .activity-card:nth-of-type(3):hover { box-shadow: 8px 8px 0 var(--yellow); }
+  .activity-card:nth-of-type(4):hover { box-shadow: 8px 8px 0 var(--green); }
+  .activity-card:nth-of-type(5):hover { box-shadow: 8px 8px 0 var(--blue); }
   .activity-card-title { font-size: 1.25rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
   .activity-card-desc { font-size: 0.87rem; color: var(--muted); line-height: 1.45; }
 
@@ -386,6 +390,66 @@
   .download-dropdown-menu { position: absolute; top: 105%; left: 0; background: #fff; border: 2.25px solid var(--ink); border-radius: 8px; box-shadow: 3px 3px 0 var(--shadow); z-index: 1000; min-width: 160px; display: flex; flex-direction: column; overflow: hidden; }
   .download-menu-item { background: transparent; border: none; padding: 0.6rem 1rem; text-align: left; font-size: 0.9rem; font-weight: 600; color: var(--ink); cursor: pointer; width: 100%; font-family: 'Space Grotesk', sans-serif; }
   .download-menu-item:hover { background: var(--paper-soft); color: var(--pink); }
+  .cork-board {
+    position: relative; width: 100%; aspect-ratio: 1.15 / 1; max-width: 780px; margin: 0 auto;
+    background: #E8D3C3;
+    background-image: 
+      radial-gradient(rgba(139, 90, 43, 0.15) 1.5px, transparent 0),
+      radial-gradient(rgba(139, 90, 43, 0.1) 1.5px, transparent 0);
+    background-size: 12px 12px;
+    border: 12px solid #8B5A2B; border-radius: 12px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.15), 6px 6px 0 var(--shadow);
+    overflow: hidden; padding: 1.5rem; user-select: none;
+  }
+  .sticky-note {
+    position: absolute; width: clamp(100px, 25%, 150px); aspect-ratio: 1 / 1;
+    border: 2px solid var(--ink); padding: 0.6rem; box-shadow: 4px 4px 0 var(--shadow);
+    display: flex; flex-direction: column; justify-content: space-between;
+    transition: transform 0.15s, box-shadow 0.15s; user-select: none;
+    border-radius: 4px; border-bottom-right-radius: 24px 8px;
+    background-image: 
+      linear-gradient(135deg, rgba(0,0,0,0.035) 25%, transparent 25%),
+      linear-gradient(225deg, rgba(0,0,0,0.035) 25%, transparent 25%),
+      linear-gradient(45deg, rgba(0,0,0,0.035) 25%, transparent 25%),
+      linear-gradient(315deg, rgba(0,0,0,0.035) 25%, transparent 25%);
+    background-size: 40px 40px;
+  }
+  .sticky-note.movable { cursor: grab; }
+  .sticky-note.movable:active {
+    cursor: grabbing;
+    transform: translate(-50%, -50%) scale(1.05) !important;
+    box-shadow: 8px 8px 0 var(--shadow);
+  }
+  .pushpin {
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    width: 14px; height: 14px; background: var(--pink);
+    border-radius: 50%; border: 2px solid var(--ink);
+    box-shadow: 2px 2px 0 var(--shadow); z-index: 10;
+  }
+  .pushpin::after {
+    content: ''; position: absolute; bottom: -6px; left: 4px;
+    width: 2px; height: 6px; background: #777; transform: rotate(-15deg);
+  }
+  .sticky-note-text {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.75rem;
+    color: var(--ink); line-height: 1.25; word-break: break-word;
+    overflow-y: auto; max-height: 100%;
+  }
+  .sticky-note-img {
+    width: 100%; height: 52%; object-fit: cover;
+    border: 1.5px solid var(--ink); border-radius: 4px; margin-top: 0.3rem;
+  }
+  .note-actions { position: absolute; top: -8px; right: -8px; display: flex; gap: 3px; z-index: 15; }
+  .note-action-btn {
+    width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--ink);
+    background: #fff; color: var(--ink); font-size: 0.65rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    box-shadow: 1px 1px 0 var(--shadow);
+  }
+  .note-action-btn:hover { transform: scale(1.1); }
+  .note-action-btn.btn-delete:hover { background: var(--pink); color: #fff; }
+  .note-action-btn.btn-edit:hover { background: var(--yellow); }
+  .color-dot.selected { border-color: var(--ink) !important; transform: scale(1.15); }
 </style>
 </head>
 </head>
@@ -1076,6 +1140,10 @@ function renderActivityPicker() {
           <div class="activity-card-title">Brainstorm</div>
           <div class="activity-card-desc">Students post ideas around a central question. Everyone can like their favorites.</div>
         </button>
+        <button class="activity-card sans" id="pick-sticky">
+          <div class="activity-card-title">Sticky Notes</div>
+          <div class="activity-card-desc">Students write notes and optionally upload photos onto a virtual cork board.</div>
+        </button>
       </div>
     </div>`;
   document.getElementById('btn-back').onclick = () => { state = { screen: 'landing' }; render(); };
@@ -1083,6 +1151,7 @@ function renderActivityPicker() {
   document.getElementById('pick-mc').onclick = () => { state = { screen: 'teacherSetup', activityType: 'mc', options: ['', ''], allowMultiple: false, correctIndex: null }; render(); };
   document.getElementById('pick-poll').onclick = () => { state = { screen: 'teacherSetup', activityType: 'poll', pollStage: 'count', numQuestions: 3, questions: [], revealMode: 'live' }; render(); };
   document.getElementById('pick-brainstorm').onclick = () => { state = { screen: 'teacherSetup', activityType: 'brainstorm' }; render(); };
+  document.getElementById('pick-sticky').onclick = () => { state = { screen: 'teacherSetup', activityType: 'sticky' }; render(); };
 }
 
 function renderTeacherSetup() {
@@ -1090,6 +1159,7 @@ function renderTeacherSetup() {
   if (state.activityType === 'mc') return renderMCSetup();
   if (state.activityType === 'poll') return renderPollSetup();
   if (state.activityType === 'brainstorm') return renderBrainstormSetup();
+  if (state.activityType === 'sticky') return renderStickySetup();
   return renderWordCloudSetup();
 }
 
@@ -1178,6 +1248,53 @@ function renderBrainstormSetup() {
     if (ok) {
       await kvSet('room:' + code + ':posts', JSON.stringify([]));
       state = { screen: 'teacherLive', type: 'brainstorm', code, revealed: config.revealed, revealMode, prompt: config.prompt, likesEnabled: false, posts: [] };
+      render();
+    } else {
+      state.loading = false;
+      alert("Couldn't create the room — check your internet connection and try again.");
+      render();
+    }
+  };
+}
+
+function renderStickySetup() {
+  stopPolling();
+  const s = state;
+  app.innerHTML = `
+    <div class="screen">
+      <button class="back-btn sans" id="btn-back">← back</button>
+      <div class="field-wrap">
+        <div style="font-size:1.6rem;font-weight:700;">Set up your cork board</div>
+        <div>
+          <label class="field-label sans">What's the topic or prompt?</label>
+          <textarea id="prompt-input" rows="3" placeholder="e.g. Share your feedback on today's session...">${s.prompt ? escapeHtml(s.prompt) : ''}</textarea>
+        </div>
+        <div>
+          <label class="field-label sans">How should notes appear?</label>
+          <div class="toggle-row">
+            <button class="toggle-btn sans ${(s.revealMode || 'live') === 'live' ? 'active' : ''}" id="mode-live">Live — as they post</button>
+            <button class="toggle-btn sans ${s.revealMode === 'manual' ? 'active' : ''}" id="mode-manual">On reveal — I control it</button>
+          </div>
+        </div>
+        <button class="btn-primary sans" id="btn-create" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
+          ${s.loading ? 'Creating room…' : 'Create room code'}
+        </button>
+      </div>
+    </div>`;
+  document.getElementById('btn-back').onclick = () => { state = { screen: 'activityPicker' }; render(); };
+  document.getElementById('prompt-input').oninput = (e) => { state.prompt = e.target.value; document.getElementById('btn-create').disabled = !e.target.value.trim(); };
+  document.getElementById('mode-live').onclick = () => { state.revealMode = 'live'; render(); };
+  document.getElementById('mode-manual').onclick = () => { state.revealMode = 'manual'; render(); };
+  document.getElementById('btn-create').onclick = async () => {
+    if (!state.prompt || !state.prompt.trim()) return;
+    state.loading = true; render();
+    const code = generateCode();
+    const revealMode = state.revealMode || 'live';
+    const config = { type: 'sticky', prompt: state.prompt.trim(), revealMode, revealed: revealMode === 'live', likesEnabled: false, createdAt: Date.now() };
+    const ok = await kvSet('room:' + code + ':config', JSON.stringify(config));
+    if (ok) {
+      await kvSet('room:' + code + ':posts', JSON.stringify([]));
+      state = { screen: 'teacherLive', type: 'sticky', code, revealed: config.revealed, revealMode, prompt: config.prompt, likesEnabled: false, posts: [] };
       render();
     } else {
       state.loading = false;
@@ -1733,11 +1850,11 @@ function renderTeacherLive() {
   const joinUrl = window.location.href.split('#')[0].split('?')[0] + '?join=' + s.code;
   const isChoice = s.type === 'mc' || s.type === 'poll';
   const isPoll = s.type === 'poll';
-  const isBrainstorm = s.type === 'brainstorm';
+  const isBrainstorm = s.type === 'brainstorm' || s.type === 'sticky';
   app.innerHTML = `
     <div class="live-wrap">
       <div class="live-header">
-        <div class="sans" style="font-size:0.85rem;color:var(--muted);">${isPoll ? 'Question ' + (currentIndexOf(s) + 1) + ' of ' + numQuestionsOf(s) : (isBrainstorm ? 'Central question' : 'Question')}</div>
+        <div class="sans" style="font-size:0.85rem;color:var(--muted);">${isPoll ? 'Question ' + (currentIndexOf(s) + 1) + ' of ' + numQuestionsOf(s) : (s.type === 'sticky' ? 'Cork board topic' : (isBrainstorm ? 'Central question' : 'Question'))}</div>
         <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
           <div class="room-badge">
             <div class="room-badge-label sans">ROOM CODE</div>
@@ -1757,14 +1874,14 @@ function renderTeacherLive() {
             <button class="btn-nav sans" id="btn-poll-next-live" ${currentIndexOf(s) === numQuestionsOf(s) - 1 ? 'disabled' : ''}>Next →</button>
           </div>` : ''}
         ${s.revealMode === 'manual' ? `<button class="${s.revealed ? 'btn-hide' : 'btn-reveal'} sans" id="btn-toggle-reveal">${s.revealed ? 'Hide answers' : 'Reveal answers'}</button>` : ''}
-        <button class="btn-clear sans" id="btn-clear">${isPoll ? 'Clear this question' : (isBrainstorm ? 'Clear all ideas' : 'Clear all answers')}</button>
+        <button class="btn-clear sans" id="btn-clear">${isPoll ? 'Clear this question' : (s.type === 'sticky' ? 'Clear all notes' : (isBrainstorm ? 'Clear all ideas' : 'Clear all answers'))}</button>
         ${isPoll && s.requireNames ? '<button class="btn-reveal sans" id="btn-finish-poll">🏁 Finish &amp; show results</button>' : ''}
         ${isBrainstorm ? `
           <button class="${s.mergeMode ? 'btn-hide' : 'btn-nav'} sans" id="btn-toggle-merge">${s.mergeMode ? '✕ Cancel merging' : '🔀 Merge similar ideas'}</button>
           <button class="${s.moveMode ? 'btn-hide' : 'btn-nav'} sans" id="btn-toggle-move">${s.moveMode ? '✕ Lock positions' : '🖐️ Move ideas'}</button>
           <button class="${s.likesEnabled ? 'btn-reveal' : 'btn-clear'} sans" id="btn-toggle-likes">${s.likesEnabled ? '❤️ Liking: Enabled' : '🤍 Liking: Disabled'}</button>
         ` : ''}
-        ${s.type === 'wordcloud' || s.type === 'brainstorm' ? `
+        ${s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' ? `
           <div class="download-dropdown-wrap">
             <button class="btn-nav sans" id="btn-download-board">⬇️ Download Blurt Board</button>
             <div class="download-dropdown-menu sans" id="download-menu" style="display:none;">
@@ -2043,9 +2160,10 @@ function teacherCountLabel(s) {
     const total = getCurrentVotes(s).reduce((a, v) => a + v, 0);
     return total + ' vote' + (total === 1 ? '' : 's');
   }
-  if (s.type === 'brainstorm') {
+  if (s.type === 'brainstorm' || s.type === 'sticky') {
     const count = (s.posts || []).length;
-    return count + ' idea' + (count === 1 ? '' : 's');
+    const labelWord = s.type === 'sticky' ? 'note' : 'idea';
+    return count + ' ' + labelWord + (count === 1 ? '' : 's');
   }
   return totalCount(s.words) + ' submissions';
 }
@@ -2053,7 +2171,48 @@ function teacherCountLabel(s) {
 function renderTeacherStage() {
   if (state.type === 'mc' || state.type === 'poll') return renderMCStage();
   if (state.type === 'brainstorm') return renderBrainstormStage();
+  if (state.type === 'sticky') return renderStickyStage();
   return renderCloudStage();
+}
+
+function renderStickyStage() {
+  const stage = document.getElementById('cloud-stage');
+  if (!stage) return;
+  const s = state;
+  const posts = s.posts || [];
+  s.mergeSelectedIds = s.mergeSelectedIds || [];
+  if (s.revealMode === 'manual' && !s.revealed) {
+    stage.innerHTML = `
+      <div class="hidden-note sans">
+        <div class="hidden-note-main">Pinned cards are hidden from view.</div>
+        <div>${posts.length} card${posts.length === 1 ? '' : 's'} collected so far — hit "Reveal answers" when ready.</div>
+      </div>`;
+    return;
+  }
+  
+  stage.innerHTML = corkBoardHtml(s.prompt, posts, {
+    isTeacher: true,
+    interactive: false,
+    mergeMode: s.mergeMode,
+    selectedIds: s.mergeSelectedIds,
+    likesEnabled: s.likesEnabled
+  });
+
+  stage.querySelectorAll('.sticky-note').forEach(el => {
+    setupPostDragging(el, el.dataset.id);
+  });
+
+  if (s.mergeMode) {
+    stage.querySelectorAll('.sticky-note[data-id]').forEach(el => {
+      el.onclick = () => {
+        const id = el.dataset.id;
+        const idx = s.mergeSelectedIds.indexOf(id);
+        if (idx === -1) s.mergeSelectedIds.push(id); else s.mergeSelectedIds.splice(idx, 1);
+        renderStickyStage();
+      };
+    });
+    renderMergeControls(stage, posts);
+  }
 }
 
 function totalCount(words) { return (words || []).reduce((a, w) => a + w.count, 0); }
@@ -2380,6 +2539,76 @@ function normalizeBrainstorm(text) {
   return text.trim().replace(/\s+/g, ' ').slice(0, 80);
 }
 
+function corkBoardHtml(prompt, posts, opts) {
+  opts = opts || {};
+  const interactive = !!opts.interactive;
+  const mergeMode = !!opts.mergeMode;
+  const mySessionId = opts.mySessionId;
+  const likedPostIds = opts.likedPostIds || [];
+  const selectedIds = opts.selectedIds || [];
+  const likesEnabled = (opts.likesEnabled !== undefined) ? opts.likesEnabled : true;
+
+  if (!posts || posts.length === 0) {
+    return `
+      <div class="cork-board" style="display:flex;align-items:center;justify-content:center;min-height:480px;">
+        <div class="sans" style="color:#5C4033;font-weight:700;font-size:1.1rem;text-align:center;">No pinned cards yet — waiting for posts…</div>
+      </div>`;
+  }
+
+  let html = '<div class="cork-board">';
+  posts.forEach(post => {
+    const leftVal = (post.left !== undefined) ? post.left : 50;
+    const topVal = (post.top !== undefined) ? post.top : 50;
+    const angle = post.angle || 0;
+    const color = post.color || '#FFE57F';
+    const textHtml = escapeHtml(post.text);
+    const imgHtml = post.image ? `<img src="${post.image}" class="sticky-note-img" draggable="false" />` : '';
+    
+    const canLike = interactive && !mergeMode && likesEnabled && (post.ownerSessionIds || []).indexOf(mySessionId) === -1 && likedPostIds.indexOf(post.id) === -1;
+    const isSelected = selectedIds.indexOf(post.id) !== -1;
+    
+    const likeEl = mergeMode
+      ? ''
+      : (interactive
+          ? `<button class="brainstorm-like-btn-sm" data-id="${post.id}" ${canLike ? '' : 'disabled'} style="align-self:flex-start;margin-top:0.3rem;">❤️ ${post.likes || 0}</button>`
+          : `<div class="brainstorm-like-count-sm" style="align-self:flex-start;margin-top:0.3rem;">❤️ ${post.likes || 0}</div>`);
+          
+    html += `
+      <div class="sticky-note ${opts.isTeacher ? 'movable' : ''} ${mergeMode ? 'mergeable' : ''} ${isSelected ? 'merge-selected' : ''}" data-id="${post.id}" style="left:${leftVal}%;top:${topVal}%;transform:translate(-50%,-50%) rotate(${angle}deg);background-color:${color};">
+        <div class="pushpin"></div>
+        ${opts.isTeacher ? `
+          <div class="note-actions">
+            <button class="note-action-btn btn-edit" title="Edit text" onclick="editSticky('${post.id}')">✏️</button>
+            <button class="note-action-btn btn-delete" title="Delete note" onclick="deleteSticky('${post.id}')">✕</button>
+          </div>
+        ` : ''}
+        ${mergeMode ? `<span class="merge-tick-box" style="position:absolute;bottom:4px;right:4px;margin:0;">${isSelected ? '✓' : ''}</span>` : ''}
+        <div class="sticky-note-text" style="${post.image ? 'max-height:42%' : 'max-height:85%'}">${textHtml}</div>
+        ${imgHtml}
+        ${likeEl}
+      </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+window.deleteSticky = async (id) => {
+  if (!confirm("Are you sure you want to delete this pinned card?")) return;
+  state.posts = state.posts.filter(p => p.id !== id);
+  const ok = await kvSet('room:' + state.code + ':posts', JSON.stringify(state.posts));
+  if (ok) render();
+};
+
+window.editSticky = async (id) => {
+  const post = state.posts.find(p => p.id === id);
+  if (!post) return;
+  const newText = prompt("Edit pinned card text:", post.text);
+  if (newText === null) return;
+  post.text = normalizeBrainstorm(newText);
+  const ok = await kvSet('room:' + state.code + ':posts', JSON.stringify(state.posts));
+  if (ok) render();
+};
+
 function renderCloudStage() {
   const stage = document.getElementById('cloud-stage');
   if (!stage) return;
@@ -2573,6 +2802,7 @@ function renderStudentWaitingRoom() {
 function renderStudentRoom() {
   if (state.type === 'mc' || state.type === 'poll') return renderStudentRoomMC();
   if (state.type === 'brainstorm') return renderStudentRoomBrainstorm();
+  if (state.type === 'sticky') return renderStudentRoomSticky();
   return renderStudentRoomWordCloud();
 }
 
@@ -2691,6 +2921,230 @@ function renderStudentRoomBrainstorm() {
     flash.classList.add('show');
     setTimeout(() => { inputEl.classList.remove('flash'); flash.classList.remove('show'); }, 900);
     renderBoard();
+  }
+
+  async function likePost(id) {
+    if (s.likedPostIds.indexOf(id) !== -1) return;
+    s.likedPostIds.push(id);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const raw = await kvGet('room:' + s.code + ':posts');
+      let list = [];
+      if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
+      const post = list.find(p => p.id === id);
+      if (post) post.likes = (post.likes || 0) + 1;
+      const ok = await kvSet('room:' + s.code + ':posts', JSON.stringify(list));
+      if (ok) { s.posts = list; break; }
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    }
+    renderBoard();
+  }
+}
+
+function compressImage(file, callback) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 300;
+      const MAX_HEIGHT = 300;
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      callback(dataUrl);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderStudentRoomSticky() {
+  const s = state;
+  if (!s.mySessionId) s.mySessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  if (!s.likedPostIds) s.likedPostIds = [];
+  s.color = s.color || '#FFE57F';
+  
+  app.innerHTML = `
+    <div class="student-wrap">
+      <div class="student-header">
+        <div class="student-room-code sans">Room ${s.code}</div>
+        <div class="student-prompt">${escapeHtml(s.prompt)}</div>
+      </div>
+      <div class="answer-form">
+        <textarea class="answer-input" id="answer-input" rows="2" placeholder="Write a note..." maxlength="120" style="width:100%;font-family:sans-serif;padding:0.6rem;border-radius:8px;border:2.5px solid var(--ink);margin-bottom:0.6rem;text-align:left;"></textarea>
+        
+        <div style="margin-bottom:0.8rem;text-align:left;">
+          <label class="field-label sans" style="display:block;margin-bottom:0.3rem;">Choose color</label>
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            ${['#FFE57F', '#FF8A80', '#80D8FF', '#A7FFEB', '#FFD180', '#EA80FC'].map(col => `
+              <div class="color-dot ${s.color === col ? 'selected' : ''}" data-color="${col}" style="background-color:${col};width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;box-shadow:1px 1px 0 var(--shadow);transition:transform 0.1s;"></div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div style="margin-bottom:0.8rem;text-align:left;">
+          <label class="field-label sans" style="display:block;margin-bottom:0.3rem;">Attach photo (optional)</label>
+          <input type="file" id="image-upload" accept="image/*" style="font-size:0.8rem;width:100%;" />
+        </div>
+
+        <div class="error-text sans" id="answer-error"></div>
+        <button class="btn-submit sans" id="btn-submit-answer">Post note</button>
+        <div class="flash-note sans" id="flash-note">✓ Pinned note — keep going</div>
+      </div>
+      <div style="width:100%;margin-top:1.5rem;" id="sticky-board-wrap"></div>
+    </div>`;
+
+  const input = document.getElementById('answer-input');
+  const fileInput = document.getElementById('image-upload');
+  const btn = document.getElementById('btn-submit-answer');
+  
+  document.querySelectorAll('.color-dot').forEach(dot => {
+    dot.onclick = () => {
+      s.color = dot.dataset.color;
+      renderStudentRoomSticky();
+    };
+  });
+
+  btn.onclick = async () => {
+    const text = input.value.trim();
+    if (!text && !fileInput.files[0]) {
+      document.getElementById('answer-error').textContent = "Please write something or attach a photo first!";
+      return;
+    }
+    document.getElementById('answer-error').textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Posting...';
+
+    const cleanText = normalizeBrainstorm(text);
+    if (cleanText && !isClean(cleanText)) {
+      document.getElementById('answer-error').textContent = "That word can't be posted here.";
+      btn.disabled = false;
+      btn.textContent = 'Post note';
+      return;
+    }
+
+    const postNote = (imageData) => {
+      submitStickyNote(cleanText, s.color, imageData);
+    };
+
+    if (fileInput.files[0]) {
+      compressImage(fileInput.files[0], postNote);
+    } else {
+      postNote(null);
+    }
+  };
+
+  async function submitStickyNote(text, color, image) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const raw = await kvGet('room:' + s.code + ':posts');
+      let list = [];
+      if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
+      
+      const newNote = {
+        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+        text,
+        color,
+        image,
+        left: 20 + Math.random() * 60,
+        top: 20 + Math.random() * 60,
+        angle: -5 + Math.random() * 10,
+        likes: 0,
+        ownerSessionIds: [s.mySessionId]
+      };
+      list.push(newNote);
+
+      const ok = await kvSet('room:' + s.code + ':posts', JSON.stringify(list));
+      if (ok) { s.posts = list; break; }
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    }
+
+    input.value = '';
+    fileInput.value = '';
+    btn.disabled = false;
+    btn.textContent = 'Post note';
+    
+    const flash = document.getElementById('flash-note');
+    flash.classList.add('show');
+    setTimeout(() => { flash.classList.remove('show'); }, 900);
+    renderBoard();
+  }
+
+  renderBoard();
+  stopPolling();
+  const tick = async () => {
+    const cfgRaw = await kvGet('room:' + s.code + ':config');
+    if (cfgRaw) {
+      try {
+        const cfg = JSON.parse(cfgRaw);
+        s.revealed = cfg.revealed;
+        s.likesEnabled = !!cfg.likesEnabled;
+      } catch (e) {}
+    }
+    const raw = await kvGet('room:' + s.code + ':posts');
+    if (raw) { try { s.posts = JSON.parse(raw); } catch (e) {} }
+    renderBoard();
+  };
+  pollTimer = setupRealtimeListener(s.code, tick);
+
+  function renderBoard() {
+    const wrap = document.getElementById('sticky-board-wrap');
+    if (!wrap) return;
+    if (!s.revealed) {
+      wrap.innerHTML = "<div class=\"hidden-note sans\" style=\"font-size:0.9rem;\">Your teacher hasn't revealed the board yet.</div>";
+      return;
+    }
+    wrap.innerHTML = `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:0.8rem;">
+        <div class="download-dropdown-wrap">
+          <button class="btn-nav sans" id="btn-download-board" style="padding:0.4rem 0.8rem;font-size:0.8rem;">⬇️ Download Board</button>
+          <div class="download-dropdown-menu sans" id="download-menu" style="display:none;right:0;left:auto;">
+            <button class="download-menu-item" id="download-pdf">Export as PDF</button>
+            <button class="download-menu-item" id="download-jpeg">Export as JPEG</button>
+          </div>
+        </div>
+      </div>
+    ` + corkBoardHtml(s.prompt, s.posts || [], {
+      interactive: true,
+      mySessionId: s.mySessionId,
+      likedPostIds: s.likedPostIds,
+      likesEnabled: s.likesEnabled
+    });
+
+    const downloadBtn = wrap.querySelector('#btn-download-board');
+    const downloadMenu = wrap.querySelector('#download-menu');
+    if (downloadBtn && downloadMenu) {
+      downloadBtn.onclick = (e) => {
+        e.stopPropagation();
+        downloadMenu.style.display = downloadMenu.style.display === 'none' ? 'flex' : 'none';
+      };
+      document.addEventListener('click', () => {
+        downloadMenu.style.display = 'none';
+      });
+      wrap.querySelector('#download-pdf').onclick = () => exportBoard('pdf');
+      wrap.querySelector('#download-jpeg').onclick = () => exportBoard('jpeg');
+    }
+
+    wrap.querySelectorAll('.brainstorm-like-btn-sm').forEach(el => {
+      el.onclick = () => likePost(el.dataset.id);
+    });
   }
 
   async function likePost(id) {
