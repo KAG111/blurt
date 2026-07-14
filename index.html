@@ -215,12 +215,14 @@
   .activity-card:nth-of-type(3) { box-shadow: 5px 5px 0 var(--yellow); }
   .activity-card:nth-of-type(4) { box-shadow: 5px 5px 0 var(--green); }
   .activity-card:nth-of-type(5) { box-shadow: 5px 5px 0 var(--blue); }
+  .activity-card:nth-of-type(6) { box-shadow: 5px 5px 0 var(--yellow); }
   .activity-card:hover { transform: translate(-3px, -3px); }
   .activity-card:nth-of-type(1):hover { box-shadow: 8px 8px 0 var(--blue); }
   .activity-card:nth-of-type(2):hover { box-shadow: 8px 8px 0 var(--pink); }
   .activity-card:nth-of-type(3):hover { box-shadow: 8px 8px 0 var(--yellow); }
   .activity-card:nth-of-type(4):hover { box-shadow: 8px 8px 0 var(--green); }
   .activity-card:nth-of-type(5):hover { box-shadow: 8px 8px 0 var(--blue); }
+  .activity-card:nth-of-type(6):hover { box-shadow: 8px 8px 0 var(--yellow); }
   .activity-card-title { font-size: 1.25rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
   .activity-card-desc { font-size: 0.87rem; color: var(--muted); line-height: 1.45; }
 
@@ -556,6 +558,38 @@
     transform: translate(1px, 1px);
     box-shadow: 2px 2px 0 var(--shadow);
   }
+  .ranking-list { display: flex; flex-direction: column; gap: 0.65rem; width: 100%; margin-bottom: 1.2rem; }
+  .ranking-item-card {
+    display: flex; align-items: center; justify-content: space-between; background: #fff;
+    border: 2.25px solid var(--ink); border-radius: 10px; padding: 0.75rem 1rem;
+    box-shadow: 3px 3px 0 var(--shadow); transition: transform 0.15s, box-shadow 0.15s; user-select: none;
+  }
+  .ranking-item-card:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--shadow); }
+  .ranking-label-wrap { display: flex; align-items: center; gap: 0.8rem; }
+  .ranking-badge-idx {
+    width: 24px; height: 24px; border-radius: 50%; background: var(--paper-soft); border: 2px solid var(--ink);
+    display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; color: var(--ink);
+  }
+  .ranking-item-text { font-weight: 700; color: var(--ink); font-size: 0.95rem; }
+  .ranking-controls { display: flex; gap: 0.35rem; }
+  .ranking-ctrl-btn {
+    width: 28px; height: 28px; border-radius: 6px; border: 2px solid var(--ink); background: #fff; color: var(--ink);
+    font-size: 0.65rem; font-weight: 800; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    box-shadow: 1px 1px 0 var(--shadow); transition: transform 0.08s;
+  }
+  .ranking-ctrl-btn:hover { transform: scale(1.08); }
+  .ranking-ctrl-btn:active { transform: translate(1px, 1px); box-shadow: none; }
+  .ranking-ctrl-btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+  .ranking-bar-row { position: relative; cursor: pointer; transition: transform 0.2s; }
+  .ranking-bar-row.locked { background: #f1f1f1 !important; border-color: #aaa !important; box-shadow: none !important; }
+  .ranking-bar-row.locked .mc-bar-label { filter: blur(4px); user-select: none; }
+  .ranking-bar-row.locked .mc-bar-count { display: none; }
+  .ranking-locked-overlay {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 0.85rem; font-weight: 700; color: #888; pointer-events: none; font-family: 'Space Grotesk', sans-serif;
+  }
+  body.board-mode-active .ranking-item-card { padding: 1.1rem 1.5rem !important; }
+  body.board-mode-active .ranking-item-text { font-size: 1.25rem !important; }
 </style>
 </head>
 </head>
@@ -1257,6 +1291,10 @@ function renderActivityPicker() {
           <div class="activity-card-title">Sticky Notes</div>
           <div class="activity-card-desc">Students write notes and optionally upload photos onto a virtual cork board.</div>
         </button>
+        <button class="activity-card sans" id="pick-ranking">
+          <div class="activity-card-title">Ranking Task</div>
+          <div class="activity-card-desc">Students rank multiple items. The graph shows the class consensus using Borda points.</div>
+        </button>
       </div>
     </div>`;
   document.getElementById('btn-back').onclick = () => { state = { screen: 'landing' }; render(); };
@@ -1265,6 +1303,7 @@ function renderActivityPicker() {
   document.getElementById('pick-poll').onclick = () => { state = { screen: 'teacherSetup', activityType: 'poll', pollStage: 'count', numQuestions: 3, questions: [], revealMode: 'live' }; render(); };
   document.getElementById('pick-brainstorm').onclick = () => { state = { screen: 'teacherSetup', activityType: 'brainstorm' }; render(); };
   document.getElementById('pick-sticky').onclick = () => { state = { screen: 'teacherSetup', activityType: 'sticky' }; render(); };
+  document.getElementById('pick-ranking').onclick = () => { state = { screen: 'teacherSetup', activityType: 'ranking', options: ['', '', ''] }; render(); };
 }
 
 function renderTeacherSetup() {
@@ -1273,6 +1312,7 @@ function renderTeacherSetup() {
   if (state.activityType === 'poll') return renderPollSetup();
   if (state.activityType === 'brainstorm') return renderBrainstormSetup();
   if (state.activityType === 'sticky') return renderStickySetup();
+  if (state.activityType === 'ranking') return renderRankingSetup();
   return renderWordCloudSetup();
 }
 
@@ -1408,6 +1448,116 @@ function renderStickySetup() {
     if (ok) {
       await kvSet('room:' + code + ':posts', JSON.stringify([]));
       state = { screen: 'teacherLive', type: 'sticky', code, revealed: config.revealed, revealMode, prompt: config.prompt, likesEnabled: false, posts: [] };
+      render();
+    } else {
+      state.loading = false;
+      alert("Couldn't create the room — check your internet connection and try again.");
+      render();
+    }
+  };
+}
+
+function renderRankingSetup() {
+  stopPolling();
+  const s = state;
+  const options = s.options || ['', '', ''];
+  const optionRows = options.map((opt, i) => `
+    <div class="option-row">
+      <input type="text" class="ans-opt sans" data-idx="${i}" placeholder="Option ${i+1}" value="${escapeHtml(opt)}" maxlength="60" />
+      ${options.length > 2 ? `<button class="option-remove" data-idx="${i}">✕</button>` : ''}
+    </div>
+  `).join('');
+
+  app.innerHTML = `
+    <div class="screen">
+      <button class="back-btn sans" id="btn-back">← back</button>
+      <div class="field-wrap">
+        <div style="font-size:1.6rem;font-weight:700;">Set up your ranking task</div>
+        <div>
+          <label class="field-label sans">What's the ranking prompt or question?</label>
+          <textarea id="prompt-input" rows="2" placeholder="e.g. Rank these energy options from cleanest to most polluting...">${s.prompt ? escapeHtml(s.prompt) : ''}</textarea>
+        </div>
+        <div>
+          <label class="field-label sans">Items to rank (2 to 6 options)</label>
+          <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.8rem;">
+            ${optionRows}
+          </div>
+          ${options.length < 6 ? '<button class="btn-outline sans" id="btn-add-option" style="padding:0.4rem 0.8rem;font-size:0.85rem;">+ Add item</button>' : ''}
+        </div>
+        <div>
+          <label class="field-label sans">How should results appear?</label>
+          <div class="toggle-row">
+            <button class="toggle-btn sans ${(s.revealMode || 'live') === 'live' ? 'active' : ''}" id="mode-live">Live — as they rank</button>
+            <button class="toggle-btn sans ${s.revealMode === 'manual' ? 'active' : ''}" id="mode-manual">On reveal — I control it</button>
+          </div>
+        </div>
+        <button class="btn-primary sans" id="btn-create" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
+          ${s.loading ? 'Creating room…' : 'Create room code'}
+        </button>
+      </div>
+    </div>`;
+
+  document.getElementById('btn-back').onclick = () => { state = { screen: 'activityPicker' }; render(); };
+  document.getElementById('prompt-input').oninput = (e) => { state.prompt = e.target.value; document.getElementById('btn-create').disabled = !e.target.value.trim(); };
+  
+  document.querySelectorAll('.ans-opt').forEach(el => {
+    el.oninput = (e) => {
+      const idx = parseInt(el.dataset.idx, 10);
+      s.options[idx] = e.target.value;
+    };
+  });
+
+  document.querySelectorAll('.option-remove').forEach(el => {
+    el.onclick = () => {
+      const idx = parseInt(el.dataset.idx, 10);
+      s.options.splice(idx, 1);
+      render();
+    };
+  });
+
+  const addBtn = document.getElementById('btn-add-option');
+  if (addBtn) {
+    addBtn.onclick = () => {
+      s.options.push('');
+      render();
+    };
+  }
+
+  document.getElementById('mode-live').onclick = () => { state.revealMode = 'live'; render(); };
+  document.getElementById('mode-manual').onclick = () => { state.revealMode = 'manual'; render(); };
+
+  document.getElementById('btn-create').onclick = async () => {
+    if (!state.prompt || !state.prompt.trim()) return;
+    const cleanOpts = (state.options || []).map(o => o.trim()).filter(o => o !== '');
+    if (cleanOpts.length < 2) {
+      alert("Please provide at least 2 non-empty items to rank!");
+      return;
+    }
+    state.loading = true; render();
+    const code = generateCode();
+    const revealMode = state.revealMode || 'live';
+    const config = {
+      type: 'ranking',
+      prompt: state.prompt.trim(),
+      options: cleanOpts,
+      revealMode,
+      revealed: revealMode === 'live',
+      createdAt: Date.now()
+    };
+    const ok = await kvSet('room:' + code + ':config', JSON.stringify(config));
+    if (ok) {
+      await kvSet('room:' + code + ':votes', JSON.stringify([]));
+      state = {
+        screen: 'teacherLive',
+        type: 'ranking',
+        code,
+        revealed: config.revealed,
+        revealMode,
+        prompt: config.prompt,
+        options: cleanOpts,
+        rankingRevealedPlaces: [],
+        votes: []
+      };
       render();
     } else {
       state.loading = false;
@@ -1967,7 +2117,7 @@ function renderTeacherLive() {
   app.innerHTML = `
     <div class="live-wrap">
       <div class="live-header">
-        <div class="sans" style="font-size:0.85rem;color:var(--muted);">${isPoll ? 'Question ' + (currentIndexOf(s) + 1) + ' of ' + numQuestionsOf(s) : (s.type === 'sticky' ? 'Cork board topic' : (isBrainstorm ? 'Central question' : 'Question'))}</div>
+        <div class="sans" style="font-size:0.85rem;color:var(--muted);">${isPoll ? 'Question ' + (currentIndexOf(s) + 1) + ' of ' + numQuestionsOf(s) : (s.type === 'ranking' ? 'Ranking prompt' : (s.type === 'sticky' ? 'Cork board topic' : (isBrainstorm ? 'Central question' : 'Question')))}</div>
         <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
           <div class="room-badge">
             <div class="room-badge-label sans">ROOM CODE</div>
@@ -1987,15 +2137,18 @@ function renderTeacherLive() {
             <button class="btn-nav sans" id="btn-poll-next-live" ${currentIndexOf(s) === numQuestionsOf(s) - 1 ? 'disabled' : ''}>Next →</button>
           </div>` : ''}
         ${s.revealMode === 'manual' ? `<button class="${s.revealed ? 'btn-hide' : 'btn-reveal'} sans" id="btn-toggle-reveal">${s.revealed ? 'Hide answers' : 'Reveal answers'}</button>` : ''}
-        <button class="btn-clear sans" id="btn-clear">${isPoll ? 'Clear this question' : (s.type === 'sticky' ? 'Clear all notes' : (isBrainstorm ? 'Clear all ideas' : 'Clear all answers'))}</button>
+        <button class="btn-clear sans" id="btn-clear">${isPoll ? 'Clear this question' : (s.type === 'ranking' ? 'Clear all rankings' : (s.type === 'sticky' ? 'Clear all notes' : (isBrainstorm ? 'Clear all ideas' : 'Clear all answers')))}</button>
         ${isPoll && s.requireNames ? '<button class="btn-reveal sans" id="btn-finish-poll">🏁 Finish &amp; show results</button>' : ''}
         ${isBrainstorm ? `
           <button class="${s.mergeMode ? 'btn-hide' : 'btn-nav'} sans" id="btn-toggle-merge">${s.mergeMode ? '✕ Cancel merging' : '🔀 Merge similar ideas'}</button>
           <button class="${s.moveMode ? 'btn-hide' : 'btn-nav'} sans" id="btn-toggle-move">${s.moveMode ? '✕ Lock positions' : '🖐️ Move ideas'}</button>
           <button class="${s.likesEnabled ? 'btn-reveal' : 'btn-clear'} sans" id="btn-toggle-likes">${s.likesEnabled ? '❤️ Liking: Enabled' : '🤍 Liking: Disabled'}</button>
         ` : ''}
+        ${s.type === 'ranking' ? `
+          <button class="btn-reveal sans" id="btn-reveal-all-ranks">🔓 Reveal all ranks</button>
+        ` : ''}
         <button class="btn-nav sans" id="btn-toggle-boardmode">🖥️ Board Mode</button>
-        ${s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' ? `
+        ${s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' || s.type === 'ranking' ? `
           <div class="download-dropdown-wrap">
             <button class="btn-nav sans" id="btn-download-board">⬇️ Download Blurt Board</button>
             <div class="download-dropdown-menu sans" id="download-menu" style="display:none;">
@@ -2031,6 +2184,10 @@ function renderTeacherLive() {
         s.votes = currentOptions(s).map(() => 0);
       }
       await kvSet('room:' + s.code + ':votes', JSON.stringify(s.votes));
+    } else if (s.type === 'ranking') {
+      s.votes = [];
+      s.rankingRevealedPlaces = [];
+      await kvSet('room:' + s.code + ':votes', JSON.stringify([]));
     } else if (isBrainstorm) {
       s.posts = [];
       await kvSet('room:' + s.code + ':posts', JSON.stringify([]));
@@ -2116,11 +2273,21 @@ function renderTeacherLive() {
       render();
     };
   }
+  const revealRanksBtn = document.getElementById('btn-reveal-all-ranks');
+  if (revealRanksBtn) {
+    revealRanksBtn.onclick = () => {
+      s.rankingRevealedPlaces = s.options.map((_, i) => i);
+      renderRankingStage();
+    };
+  }
 
   renderTeacherStage();
   stopPolling();
   const tick = async () => {
     if (isChoice) {
+      const raw = await kvGet('room:' + s.code + ':votes');
+      if (raw) { try { s.votes = JSON.parse(raw); } catch (e) {} }
+    } else if (s.type === 'ranking') {
       const raw = await kvGet('room:' + s.code + ':votes');
       if (raw) { try { s.votes = JSON.parse(raw); } catch (e) {} }
     } else if (isBrainstorm) {
@@ -2290,6 +2457,10 @@ function teacherCountLabel(s) {
     const total = getCurrentVotes(s).reduce((a, v) => a + v, 0);
     return total + ' vote' + (total === 1 ? '' : 's');
   }
+  if (s.type === 'ranking') {
+    const count = (s.votes || []).length;
+    return count + ' ranking' + (count === 1 ? '' : 's');
+  }
   if (s.type === 'brainstorm' || s.type === 'sticky') {
     const count = (s.posts || []).length;
     const labelWord = s.type === 'sticky' ? 'note' : 'idea';
@@ -2302,7 +2473,82 @@ function renderTeacherStage() {
   if (state.type === 'mc' || state.type === 'poll') return renderMCStage();
   if (state.type === 'brainstorm') return renderBrainstormStage();
   if (state.type === 'sticky') return renderStickyStage();
+  if (state.type === 'ranking') return renderRankingStage();
   return renderCloudStage();
+}
+
+function renderRankingStage() {
+  const stage = document.getElementById('cloud-stage');
+  if (!stage) return;
+  const s = state;
+  const votes = s.votes || [];
+  s.rankingRevealedPlaces = s.rankingRevealedPlaces || [];
+  
+  if (s.revealMode === 'manual' && !s.revealed) {
+    stage.innerHTML = `
+      <div class="hidden-note sans">
+        <div class="hidden-note-main">Ranking results are hidden from view.</div>
+        <div>${votes.length} submission${votes.length === 1 ? '' : 's'} collected so far — hit "Reveal answers" when ready.</div>
+      </div>`;
+    return;
+  }
+
+  const N = s.options.length;
+  const scores = {};
+  s.options.forEach(opt => { scores[opt] = 0; });
+  
+  votes.forEach(sub => {
+    sub.forEach((opt, idx) => {
+      if (scores[opt] !== undefined) {
+        scores[opt] += (N - idx);
+      }
+    });
+  });
+
+  const sorted = s.options.map(opt => ({
+    text: opt,
+    points: scores[opt]
+  })).sort((a, b) => b.points - a.points);
+
+  let html = `<div style="width:100%;max-width:640px;margin:0 auto;text-align:left;">`;
+  
+  if (!s.boardMode) {
+    html += `<div class="sans" style="font-size:0.85rem;color:var(--muted);margin-bottom:0.8rem;text-align:center;">
+      💡 Tip: Click on any ranked position below to reveal it step-by-step!
+    </div>`;
+  }
+
+  const maxVal = Math.max(...sorted.map(x => x.points)) || 1;
+
+  sorted.forEach((item, idx) => {
+    const isRevealed = s.rankingRevealedPlaces.indexOf(idx) !== -1;
+    const pct = maxVal > 0 ? Math.round((item.points / maxVal) * 100) : 0;
+    
+    html += `
+      <div class="mc-bar-row ranking-bar-row ${isRevealed ? '' : 'locked'}" data-place="${idx}">
+        ${isRevealed ? '' : `<div class="ranking-locked-overlay">🔒 Click to reveal #${idx + 1}</div>`}
+        <div style="display:flex;justify-content:space-between;margin-bottom:0.3rem;">
+          <div class="mc-bar-label sans">
+            <span style="font-weight:800;color:var(--pink);margin-right:0.4rem;">#${idx + 1}</span>
+            <span>${escapeHtml(item.text)}</span>
+          </div>
+          <div class="mc-bar-count sans">${item.points} pts</div>
+        </div>
+        <div class="mc-bar-track">
+          <div class="mc-bar-fill" style="width:${pct}%;background-color:${colorFor(idx)};"></div>
+        </div>
+      </div>`;
+  });
+  html += `</div>`;
+  stage.innerHTML = html;
+
+  stage.querySelectorAll('.ranking-bar-row.locked').forEach(el => {
+    el.onclick = () => {
+      const idx = parseInt(el.dataset.place, 10);
+      s.rankingRevealedPlaces.push(idx);
+      renderRankingStage();
+    };
+  });
 }
 
 function renderStickyStage() {
@@ -2933,7 +3179,110 @@ function renderStudentRoom() {
   if (state.type === 'mc' || state.type === 'poll') return renderStudentRoomMC();
   if (state.type === 'brainstorm') return renderStudentRoomBrainstorm();
   if (state.type === 'sticky') return renderStudentRoomSticky();
+  if (state.type === 'ranking') return renderStudentRoomRanking();
   return renderStudentRoomWordCloud();
+}
+
+function renderStudentRoomRanking() {
+  const s = state;
+  if (!s.rankingOrder) {
+    s.rankingOrder = [...(s.options || [])];
+  }
+  
+  app.innerHTML = `
+    <div class="student-wrap">
+      <div class="student-header">
+        <div class="student-room-code sans">Room ${s.code}</div>
+        <div class="student-prompt">${escapeHtml(s.prompt)}</div>
+      </div>
+      <div class="answer-form" id="ranking-form-stage">
+        ${s.hasVoted ? `
+          <div class="sans" style="text-align:center;font-size:1.1rem;font-weight:700;color:var(--green);margin:1.5rem 0;">
+            ✓ Ranking submitted!<br>
+            <span style="font-size:0.9rem;font-weight:500;color:#fff;margin-top:0.4rem;display:inline-block;">Wait for your teacher to reveal the results.</span>
+          </div>
+        ` : `
+          <div class="sans" style="font-size:0.85rem;color:rgba(255,255,255,0.7);text-align:left;margin-bottom:0.8rem;">
+            Order items from top (1st place) to bottom. Use the arrows to move them:
+          </div>
+          <div class="ranking-list" id="ranking-list-container">
+            ${s.rankingOrder.map((item, idx) => `
+              <div class="ranking-item-card" data-idx="${idx}">
+                <div class="ranking-label-wrap">
+                  <div class="ranking-badge-idx">${idx + 1}</div>
+                  <span class="ranking-item-text">${escapeHtml(item)}</span>
+                </div>
+                <div class="ranking-controls">
+                  <button class="ranking-ctrl-btn" data-action="up" data-idx="${idx}" ${idx === 0 ? 'disabled' : ''}>▲</button>
+                  <button class="ranking-ctrl-btn" data-action="down" data-idx="${idx}" ${idx === s.rankingOrder.length - 1 ? 'disabled' : ''}>▼</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="error-text sans" id="answer-error"></div>
+          <button class="btn-submit sans" id="btn-submit-ranking">Submit ranking</button>
+        `}
+      </div>
+    </div>`;
+
+  if (s.hasVoted) {
+    stopPolling();
+    const tick = async () => {
+      const cfgRaw = await kvGet('room:' + s.code + ':config');
+      if (cfgRaw) {
+        try {
+          const cfg = JSON.parse(cfgRaw);
+          s.revealed = cfg.revealed;
+        } catch (e) {}
+      }
+    };
+    pollTimer = setupRealtimeListener(s.code, tick);
+    return;
+  }
+
+  document.querySelectorAll('.ranking-ctrl-btn').forEach(btn => {
+    btn.onclick = () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      const action = btn.dataset.action;
+      
+      if (action === 'up' && idx > 0) {
+        const temp = s.rankingOrder[idx];
+        s.rankingOrder[idx] = s.rankingOrder[idx - 1];
+        s.rankingOrder[idx - 1] = temp;
+      } else if (action === 'down' && idx < s.rankingOrder.length - 1) {
+        const temp = s.rankingOrder[idx];
+        s.rankingOrder[idx] = s.rankingOrder[idx + 1];
+        s.rankingOrder[idx + 1] = temp;
+      }
+      
+      renderStudentRoomRanking();
+    };
+  });
+
+  const submitBtn = document.getElementById('btn-submit-ranking');
+  if (submitBtn) {
+    submitBtn.onclick = async () => {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+      
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const raw = await kvGet('room:' + s.code + ':votes');
+        let list = [];
+        if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
+        
+        list.push([...s.rankingOrder]);
+        
+        const ok = await kvSet('room:' + s.code + ':votes', JSON.stringify(list));
+        if (ok) {
+          s.hasVoted = true;
+          break;
+        }
+        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      }
+      
+      renderStudentRoomRanking();
+    };
+  }
 }
 
 function renderStudentRoomBrainstorm() {
