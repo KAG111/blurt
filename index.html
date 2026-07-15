@@ -1291,7 +1291,7 @@ async function startDemoSession(type) {
       id: "demo_sticky_" + idx,
       text: txt,
       color: colors[idx % colors.length],
-      image: idx === 2 ? 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23FF3E7F"/><polygon points="50,15 90,85 10,85" fill="%23FFE57F"/></svg>' : null,
+      image: idx === 2 ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNGRjNFLTdGIi8+PHBvbHlnb24gcG9pbnRzPSI1MCwxNSA5MCw4NSAxMCw4NSIgZmlsbD0iI0ZGRTU3RiIvPjwvc3ZnPg==' : null,
       left: 10 + (idx * 18),
       top: 30 + Math.random() * 30,
       angle: -5 + Math.random() * 10,
@@ -2790,13 +2790,16 @@ function renderStickyStage() {
     isTeacher: true,
     interactive: false,
     mergeMode: s.mergeMode,
+    moveMode: s.moveMode,
     selectedIds: s.mergeSelectedIds,
     likesEnabled: s.likesEnabled
   });
 
-  stage.querySelectorAll('.sticky-note').forEach(el => {
-    setupPostDragging(el, el.dataset.id);
-  });
+  if (s.moveMode) {
+    stage.querySelectorAll('.sticky-note').forEach(el => {
+      setupPostDragging(el, el.dataset.id);
+    });
+  }
 
   if (s.mergeMode) {
     stage.querySelectorAll('.sticky-note[data-id]').forEach(el => {
@@ -2920,10 +2923,10 @@ function renderMergeControls(stage, posts) {
     stage.appendChild(container);
 
     panel.querySelectorAll('.merge-option-row').forEach((row, i) => {
-      row.onclick = () => { s.mergePickText = selected[i].text; s.mergeCustomText = ''; renderBrainstormStage(); };
+      row.onclick = () => { s.mergePickText = selected[i].text; s.mergeCustomText = ''; renderTeacherStage(); };
     });
     document.getElementById('merge-custom-text').oninput = (e) => { s.mergeCustomText = e.target.value; };
-    document.getElementById('btn-merge-cancel').onclick = () => { s.mergePickText = undefined; s.mergeCustomText = ''; renderBrainstormStage(); };
+    document.getElementById('btn-merge-cancel').onclick = () => { s.mergePickText = undefined; s.mergeCustomText = ''; renderTeacherStage(); };
     document.getElementById('btn-merge-confirm').onclick = () => confirmMerge(selected);
   } else {
     const bar = document.createElement('div');
@@ -2937,7 +2940,7 @@ function renderMergeControls(stage, posts) {
     if (nextBtn) nextBtn.onclick = () => {
       s.mergePickText = selected[0].text;
       s.mergeCustomText = '';
-      renderBrainstormStage();
+      renderTeacherStage();
     };
   }
 }
@@ -2988,7 +2991,7 @@ function setupPostDragging(el, postId) {
     startLeft = parseFloat(el.style.left) || 50;
     startTop = parseFloat(el.style.top) || 50;
     el.style.zIndex = 1000;
-    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onEnd);
     document.addEventListener('touchmove', onTouchMove, { passive: false });
     document.addEventListener('touchend', onEnd);
@@ -3010,6 +3013,10 @@ function setupPostDragging(el, postId) {
     el.style.top = newTop + '%';
   };
 
+  const onMouseMove = (e) => {
+    onMove(e.clientX, e.clientY);
+  };
+
   const onTouchMove = (e) => {
     if (e.cancelable) e.preventDefault();
     if (e.touches.length > 0) {
@@ -3021,7 +3028,7 @@ function setupPostDragging(el, postId) {
     if (!isDragging) return;
     isDragging = false;
     el.style.zIndex = '';
-    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onEnd);
     document.removeEventListener('touchmove', onTouchMove);
     document.removeEventListener('touchend', onEnd);
@@ -3170,7 +3177,7 @@ function corkBoardHtml(prompt, posts, opts) {
           : `<div class="brainstorm-like-count-sm" style="align-self:flex-start;margin-top:0.3rem;">❤️ ${post.likes || 0}</div>`);
           
     html += `
-      <div class="sticky-note ${opts.isTeacher ? 'movable' : ''} ${mergeMode ? 'mergeable' : ''} ${isSelected ? 'merge-selected' : ''}" data-id="${post.id}" style="left:${leftVal}%;top:${topVal}%;transform:translate(-50%,-50%) rotate(${angle}deg);background-color:${color};">
+      <div class="sticky-note ${opts.moveMode ? 'movable' : ''} ${mergeMode ? 'mergeable' : ''} ${isSelected ? 'merge-selected' : ''}" data-id="${post.id}" style="left:${leftVal}%;top:${topVal}%;transform:translate(-50%,-50%) rotate(${angle}deg);background-color:${color};">
         <div class="pushpin"></div>
         ${opts.isTeacher ? `
           <div class="note-actions">
