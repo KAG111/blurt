@@ -2364,6 +2364,17 @@ function renderTeacherLive() {
           </div>
         </div>
       </div>
+    ` : ''}
+    ${s.zoomedImage ? `
+      <div class="qr-modal-overlay" id="img-zoom-modal" style="z-index:30000;cursor:zoom-out;">
+        <div class="qr-modal-content" style="max-width:90vw;max-height:85vh;">
+          <button class="qr-modal-close" id="btn-close-img-zoom" style="top:-35px;right:-10px;">✕</button>
+          <div style="background:#fff; padding:1rem; border-radius:12px; border:3.5px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); max-height:80vh; display:flex; flex-direction:column; align-items:center; justify-content:center;cursor:default;">
+            <img src="${s.zoomedImage}" style="max-width:100%; max-height:70vh; object-fit:contain; border-radius:4px; border:2px solid var(--ink);" />
+            ${s.zoomedImageCaption ? `<div class="sans" style="margin-top:0.8rem; font-weight:700; color:var(--ink); font-size:1.05rem; text-align:center; max-width:500px; word-break:break-word;">${escapeHtml(s.zoomedImageCaption)}</div>` : ''}
+          </div>
+        </div>
+      </div>
     ` : ''}`;
   const finishBtn = document.getElementById('btn-finish-poll');
   if (finishBtn) finishBtn.onclick = async () => {
@@ -2496,6 +2507,24 @@ function renderTeacherLive() {
     closeBtn.onclick = () => {
       s.qrExpanded = false;
       render();
+    };
+  }
+  const closeImgZoomBtn = document.getElementById('btn-close-img-zoom');
+  if (closeImgZoomBtn) {
+    closeImgZoomBtn.onclick = () => {
+      s.zoomedImage = null;
+      s.zoomedImageCaption = null;
+      render();
+    };
+  }
+  const imgZoomModal = document.getElementById('img-zoom-modal');
+  if (imgZoomModal) {
+    imgZoomModal.onclick = (e) => {
+      if (e.target === imgZoomModal) {
+        s.zoomedImage = null;
+        s.zoomedImageCaption = null;
+        render();
+      }
     };
   }
 
@@ -2798,6 +2827,20 @@ function renderStickyStage() {
       setupPostDragging(el, el.dataset.id);
     });
   }
+
+  stage.querySelectorAll('.sticky-note-img').forEach(img => {
+    img.style.cursor = 'zoom-in';
+    img.onclick = (e) => {
+      e.stopPropagation();
+      const postId = img.closest('.sticky-note').dataset.id;
+      const post = s.posts.find(p => p.id === postId);
+      if (post && post.image) {
+        s.zoomedImage = post.image;
+        s.zoomedImageCaption = post.text;
+        render();
+      }
+    };
+  });
 
   if (s.mergeMode) {
     stage.querySelectorAll('.sticky-note[data-id]').forEach(el => {
