@@ -1185,6 +1185,129 @@ function generateCode() {
   return c;
 }
 
+async function startDemoSession(type) {
+  const s = state;
+  let prompt = (s.prompt || '').trim();
+  if (!prompt) {
+    if (type === 'wordcloud') prompt = "What are your thoughts on Blurt?";
+    else if (type === 'mc') prompt = "Which feature of Blurt do you like most?";
+    else if (type === 'poll') prompt = "Feedback Poll";
+    else if (type === 'brainstorm') prompt = "How can we improve virtual learning?";
+    else if (type === 'sticky') prompt = "Share your feedback & upload project photos!";
+    else if (type === 'ranking') prompt = "Rank these learning methods by student engagement";
+  }
+  
+  let options = s.options || [];
+  if (type === 'mc' && options.filter(o => o.trim()).length < 2) {
+    options = ["Real-time speed", "Beautiful neubrutalist UI", "No student accounts required"];
+  }
+  if (type === 'ranking' && options.filter(o => o.trim()).length < 2) {
+    options = ["Hands-on experiments", "Group brainstorming", "Interactive game quizzes", "Lectures & slide decks"];
+  }
+
+  let questions = s.questions || [];
+  if (type === 'poll' && questions.length === 0) {
+    questions = [
+      { prompt: "Rate your overall workshop satisfaction", options: ["Excellent", "Good", "Average", "Poor"], allowMultiple: false, correctIndex: null },
+      { prompt: "How easy was Blurt to join?", options: ["Super easy", "Easy enough", "A bit confusing"], allowMultiple: false, correctIndex: null },
+      { prompt: "Would you use Blurt in your class?", options: ["Definitely", "Maybe", "Unlikely"], allowMultiple: false, correctIndex: null }
+    ];
+  }
+
+  // Create unique room code
+  const code = "DEMO-" + generateCode();
+  const revealMode = s.revealMode || 'live';
+  
+  const config = {
+    type,
+    prompt,
+    options,
+    questions,
+    revealMode,
+    revealed: true,
+    likesEnabled: true,
+    createdAt: Date.now(),
+    isDemo: true
+  };
+
+  // Write config
+  await kvSet('room:' + code + ':config', JSON.stringify(config));
+
+  // Write mock data based on type
+  if (type === 'wordcloud') {
+    const mockWords = [
+      { text: "collaboration", count: 6 },
+      { text: "active", count: 5 },
+      { text: "fun", count: 4 },
+      { text: "engagement", count: 4 },
+      { text: "learning", count: 3 },
+      { text: "interactive", count: 3 },
+      { text: "creative", count: 2 },
+      { text: "flexible", count: 2 },
+      { text: "awesome", count: 1 }
+    ];
+    await kvSet('room:' + code + ':words', JSON.stringify(mockWords));
+    state = { screen: 'teacherLive', type, code, revealed: true, revealMode, prompt, words: mockWords };
+  } else if (type === 'mc') {
+    const mockVotes = options.map(() => Math.floor(Math.random() * 8) + 3);
+    await kvSet('room:' + code + ':votes', JSON.stringify(mockVotes));
+    state = { screen: 'teacherLive', type, code, revealed: true, revealMode, prompt, options, correctIndex: null, votes: mockVotes };
+  } else if (type === 'poll') {
+    const mockVotes = questions.map(q => q.options.map(() => Math.floor(Math.random() * 6) + 2));
+    await kvSet('room:' + code + ':votes', JSON.stringify(mockVotes));
+    state = { screen: 'teacherLive', type, code, revealed: true, revealMode, questions, currentIndex: 0, requireNames: false, votes: mockVotes };
+  } else if (type === 'brainstorm') {
+    const ideas = [
+      "Launch a peer tutoring network.",
+      "Install solar panels on school rooftops.",
+      "Reduce food waste in the cafeteria.",
+      "Create more green study spaces.",
+      "Organize an annual student project exhibition."
+    ];
+    const mockPosts = ideas.map((txt, idx) => ({
+      id: "demo_post_" + idx,
+      text: txt,
+      left: 15 + (idx * 16) + Math.random() * 8,
+      top: 35 + Math.random() * 25,
+      likes: Math.floor(Math.random() * 7),
+      ownerSessionIds: ["demo_owner_" + idx]
+    }));
+    await kvSet('room:' + code + ':posts', JSON.stringify(mockPosts));
+    state = { screen: 'teacherLive', type, code, revealed: true, revealMode, prompt, likesEnabled: true, posts: mockPosts };
+  } else if (type === 'sticky') {
+    const colors = ['#FFE57F', '#FF8A80', '#80D8FF', '#A7FFEB', '#FFD180'];
+    const stickies = [
+      "Real-time feedback is very helpful!",
+      "Need more group collaboration tools.",
+      "Check out this screenshot prototype:",
+      "Let's implement peer grading.",
+      "Excellent neubrutalist UI design!"
+    ];
+    const mockStickyPosts = stickies.map((txt, idx) => ({
+      id: "demo_sticky_" + idx,
+      text: txt,
+      color: colors[idx % colors.length],
+      image: idx === 2 ? 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23FF3E7F"/><polygon points="50,15 90,85 10,85" fill="%23FFE57F"/></svg>' : null,
+      left: 10 + (idx * 18),
+      top: 30 + Math.random() * 30,
+      angle: -5 + Math.random() * 10,
+      likes: Math.floor(Math.random() * 6),
+      ownerSessionIds: ["demo_owner_" + idx]
+    }));
+    await kvSet('room:' + code + ':posts', JSON.stringify(mockStickyPosts));
+    state = { screen: 'teacherLive', type, code, revealed: true, revealMode, prompt, likesEnabled: true, posts: mockStickyPosts };
+  } else if (type === 'ranking') {
+    const mockRankings = [];
+    for (let i = 0; i < 9; i++) {
+      mockRankings.push([...options].sort(() => Math.random() - 0.5));
+    }
+    await kvSet('room:' + code + ':votes', JSON.stringify(mockRankings));
+    state = { screen: 'teacherLive', type, code, revealed: true, revealMode, prompt, options, rankingRevealedPlaces: [0, 1, 2, 3, 4, 5], votes: mockRankings };
+  }
+
+  render();
+}
+
 /* Unified accessors so 'mc' (a single question) and 'poll' (many questions,
    navigated by the teacher) can share the same voting/rendering logic. */
 function currentQuestion(s) {
@@ -1348,15 +1471,19 @@ function renderWordCloudSetup() {
             <button class="toggle-btn sans ${s.revealMode === 'manual' ? 'active' : ''}" id="mode-manual">On reveal — I control it</button>
           </div>
         </div>
-        <button class="btn-primary sans" id="btn-create" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
-          ${s.loading ? 'Creating room…' : 'Create room code'}
-        </button>
+        <div style="display:flex;gap:0.8rem;margin-top:1.5rem;">
+          <button class="btn-primary sans" id="btn-create" style="flex:1;" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
+            ${s.loading ? 'Creating room…' : 'Create room'}
+          </button>
+          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--yellow);color:var(--yellow);font-weight:700;">✨ Try Demo</button>
+        </div>
       </div>
     </div>`;
   document.getElementById('btn-back').onclick = () => { state = { screen: 'activityPicker' }; render(); };
   document.getElementById('prompt-input').oninput = (e) => { state.prompt = e.target.value; document.getElementById('btn-create').disabled = !e.target.value.trim(); };
   document.getElementById('mode-live').onclick = () => { state.revealMode = 'live'; render(); };
   document.getElementById('mode-manual').onclick = () => { state.revealMode = 'manual'; render(); };
+  document.getElementById('btn-demo').onclick = () => startDemoSession('wordcloud');
   document.getElementById('btn-create').onclick = async () => {
     if (!state.prompt || !state.prompt.trim()) return;
     state.loading = true; render();
@@ -1395,15 +1522,19 @@ function renderBrainstormSetup() {
             <button class="toggle-btn sans ${s.revealMode === 'manual' ? 'active' : ''}" id="mode-manual">On reveal — I control it</button>
           </div>
         </div>
-        <button class="btn-primary sans" id="btn-create" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
-          ${s.loading ? 'Creating room…' : 'Create room code'}
-        </button>
+        <div style="display:flex;gap:0.8rem;margin-top:1.5rem;">
+          <button class="btn-primary sans" id="btn-create" style="flex:1;" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
+            ${s.loading ? 'Creating room…' : 'Create room'}
+          </button>
+          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--yellow);color:var(--yellow);font-weight:700;">✨ Try Demo</button>
+        </div>
       </div>
     </div>`;
   document.getElementById('btn-back').onclick = () => { state = { screen: 'activityPicker' }; render(); };
   document.getElementById('prompt-input').oninput = (e) => { state.prompt = e.target.value; document.getElementById('btn-create').disabled = !e.target.value.trim(); };
   document.getElementById('mode-live').onclick = () => { state.revealMode = 'live'; render(); };
   document.getElementById('mode-manual').onclick = () => { state.revealMode = 'manual'; render(); };
+  document.getElementById('btn-demo').onclick = () => startDemoSession('brainstorm');
   document.getElementById('btn-create').onclick = async () => {
     if (!state.prompt || !state.prompt.trim()) return;
     state.loading = true; render();
@@ -1442,15 +1573,19 @@ function renderStickySetup() {
             <button class="toggle-btn sans ${s.revealMode === 'manual' ? 'active' : ''}" id="mode-manual">On reveal — I control it</button>
           </div>
         </div>
-        <button class="btn-primary sans" id="btn-create" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
-          ${s.loading ? 'Creating room…' : 'Create room code'}
-        </button>
+        <div style="display:flex;gap:0.8rem;margin-top:1.5rem;">
+          <button class="btn-primary sans" id="btn-create" style="flex:1;" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
+            ${s.loading ? 'Creating room…' : 'Create room'}
+          </button>
+          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--yellow);color:var(--yellow);font-weight:700;">✨ Try Demo</button>
+        </div>
       </div>
     </div>`;
   document.getElementById('btn-back').onclick = () => { state = { screen: 'activityPicker' }; render(); };
   document.getElementById('prompt-input').oninput = (e) => { state.prompt = e.target.value; document.getElementById('btn-create').disabled = !e.target.value.trim(); };
   document.getElementById('mode-live').onclick = () => { state.revealMode = 'live'; render(); };
   document.getElementById('mode-manual').onclick = () => { state.revealMode = 'manual'; render(); };
+  document.getElementById('btn-demo').onclick = () => startDemoSession('sticky');
   document.getElementById('btn-create').onclick = async () => {
     if (!state.prompt || !state.prompt.trim()) return;
     state.loading = true; render();
@@ -1504,9 +1639,12 @@ function renderRankingSetup() {
             <button class="toggle-btn sans ${s.revealMode === 'manual' ? 'active' : ''}" id="mode-manual">On reveal — I control it</button>
           </div>
         </div>
-        <button class="btn-primary sans" id="btn-create" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
-          ${s.loading ? 'Creating room…' : 'Create room code'}
-        </button>
+        <div style="display:flex;gap:0.8rem;margin-top:1.5rem;">
+          <button class="btn-primary sans" id="btn-create" style="flex:1;" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
+            ${s.loading ? 'Creating room…' : 'Create room'}
+          </button>
+          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--yellow);color:var(--yellow);font-weight:700;">✨ Try Demo</button>
+        </div>
       </div>
     </div>`;
 
@@ -1538,6 +1676,7 @@ function renderRankingSetup() {
 
   document.getElementById('mode-live').onclick = () => { state.revealMode = 'live'; render(); };
   document.getElementById('mode-manual').onclick = () => { state.revealMode = 'manual'; render(); };
+  document.getElementById('btn-demo').onclick = () => startDemoSession('ranking');
 
   document.getElementById('btn-create').onclick = async () => {
     if (!state.prompt || !state.prompt.trim()) return;
@@ -1626,9 +1765,12 @@ function renderMCSetup() {
             <button class="toggle-btn sans ${s.revealMode === 'manual' ? 'active' : ''}" id="mode-manual">On reveal — I control it</button>
           </div>
         </div>
-        <button class="btn-primary sans" id="btn-create" ${!canCreateMC(s) ? 'disabled' : ''}>
-          ${s.loading ? 'Creating room…' : 'Create room code'}
-        </button>
+        <div style="display:flex;gap:0.8rem;margin-top:1.5rem;">
+          <button class="btn-primary sans" id="btn-create" style="flex:1;" ${!canCreateMC(s) ? 'disabled' : ''}>
+            ${s.loading ? 'Creating room…' : 'Create room'}
+          </button>
+          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--yellow);color:var(--yellow);font-weight:700;">✨ Try Demo</button>
+        </div>
         <button class="btn-add-option sans" id="btn-go-paste-mc" style="width:100%;">📋 Or paste in one or more questions</button>
       </div>
     </div>`;
@@ -1669,6 +1811,7 @@ function renderMCSetup() {
   if (clearCorrectBtn) clearCorrectBtn.onclick = () => { state.correctIndex = null; render(); };
   document.getElementById('mode-live').onclick = () => { state.revealMode = 'live'; render(); };
   document.getElementById('mode-manual').onclick = () => { state.revealMode = 'manual'; render(); };
+  document.getElementById('btn-demo').onclick = () => startDemoSession('mc');
   document.getElementById('btn-create').onclick = async () => {
     if (!canCreateMC(state)) return;
     state.loading = true; render();
@@ -1735,8 +1878,11 @@ function renderPollCountStage() {
           <input type="checkbox" id="require-names" ${(s.requireNames === undefined || s.requireNames) ? 'checked' : ''} />
           <label for="require-names">Ask for a nickname (enables a podium). You'll be able to see and remove any before the quiz starts. Nothing is downloaded or saved anywhere.</label>
         </div>
-        <button class="btn-primary sans" id="btn-continue">Continue to build questions</button>
-        <button class="btn-add-option sans" id="btn-go-paste" style="width:100%;">📋 Or paste in a list of questions instead</button>
+        <div style="display:flex;gap:0.8rem;width:100%;margin-top:1rem;">
+          <button class="btn-primary sans" id="btn-continue" style="flex:1;">Continue to build questions</button>
+          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--yellow);color:var(--yellow);font-weight:700;">✨ Try Demo</button>
+        </div>
+        <button class="btn-add-option sans" id="btn-go-paste" style="width:100%;margin-top:0.5rem;">📋 Or paste in a list of questions instead</button>
       </div>
     </div>`;
   document.getElementById('btn-back').onclick = () => { state = { screen: 'activityPicker' }; render(); };
@@ -1746,6 +1892,7 @@ function renderPollCountStage() {
   document.getElementById('mode-manual').onclick = () => { s.revealMode = 'manual'; render(); };
   document.getElementById('require-names').onchange = (e) => { s.requireNames = e.target.checked; };
   document.getElementById('btn-go-paste').onclick = () => { s.pasteMode = true; s.pasteText = s.pasteText || ''; s.pasteError = ''; render(); };
+  document.getElementById('btn-demo').onclick = () => startDemoSession('poll');
   document.getElementById('btn-continue').onclick = () => {
     const existing = s.questions || [];
     const next = [];
