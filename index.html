@@ -480,13 +480,17 @@
     line-height: 1.2;
   }
   body.board-mode-active .cloud-stage {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
     flex: 1;
     width: 100% !important;
     height: 100% !important;
     max-width: none !important;
     box-shadow: none !important;
     border-radius: 12px;
-    padding: 2.5rem !important;
+    padding: 1.5rem !important;
   }
   body.board-mode-active .cloud-word {
     font-size: calc(1.4 * var(--size-rem, 1rem)) !important;
