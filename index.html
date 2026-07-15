@@ -457,10 +457,16 @@
     overflow: hidden !important;
   }
   body.board-mode-active .live-header,
-  body.board-mode-active .controls-row,
   body.board-mode-active .brand-bar,
   body.board-mode-active .back-btn {
     display: none !important;
+  }
+  body.board-mode-active .controls-row {
+    display: flex !important;
+    justify-content: center !important;
+    gap: 0.6rem !important;
+    margin-bottom: 1rem !important;
+    z-index: 1000;
   }
   body.board-mode-active .live-wrap {
     padding: 1.5rem !important;
@@ -2337,7 +2343,7 @@ function renderTeacherLive() {
         ${s.type === 'ranking' ? `
           <button class="btn-reveal sans" id="btn-reveal-all-ranks">🔓 Reveal all ranks</button>
         ` : ''}
-        <button class="btn-nav sans" id="btn-toggle-boardmode">🖥️ Board Mode</button>
+        <button class="btn-nav sans" id="btn-toggle-boardmode" style="${s.boardMode ? 'background:var(--pink) !important;color:#fff !important;' : ''}">${s.boardMode ? '✕ Exit Board Mode' : '🖥️ Board Mode'}</button>
         ${s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' || s.type === 'ranking' ? `
           <div class="download-dropdown-wrap">
             <button class="btn-nav sans" id="btn-download-board">⬇️ Download Blurt Board</button>
@@ -2351,7 +2357,7 @@ function renderTeacherLive() {
       </div>
       <div class="cloud-stage" id="cloud-stage"></div>
     </div>
-    ${s.boardMode ? `<button class="btn-exit-board-mode sans" id="btn-exit-boardmode">✕ Exit Board Mode</button>` : ''}
+
     ${s.qrExpanded ? `
       <div class="qr-modal-overlay" id="qr-modal">
         <div class="qr-modal-content">
@@ -2476,14 +2482,7 @@ function renderTeacherLive() {
   const toggleBoardModeBtn = document.getElementById('btn-toggle-boardmode');
   if (toggleBoardModeBtn) {
     toggleBoardModeBtn.onclick = () => {
-      s.boardMode = true;
-      render();
-    };
-  }
-  const exitBoardModeBtn = document.getElementById('btn-exit-boardmode');
-  if (exitBoardModeBtn) {
-    exitBoardModeBtn.onclick = () => {
-      s.boardMode = false;
+      s.boardMode = !s.boardMode;
       render();
     };
   }
