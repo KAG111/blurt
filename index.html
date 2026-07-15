@@ -1271,8 +1271,6 @@ async function startDemoSession(type) {
     const mockPosts = ideas.map((txt, idx) => ({
       id: "demo_post_" + idx,
       text: txt,
-      left: 15 + (idx * 16) + Math.random() * 8,
-      top: 35 + Math.random() * 25,
       likes: Math.floor(Math.random() * 7),
       ownerSessionIds: ["demo_owner_" + idx]
     }));
