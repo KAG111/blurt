@@ -590,6 +590,19 @@
   }
   body.board-mode-active .ranking-item-card { padding: 1.1rem 1.5rem !important; }
   body.board-mode-active .ranking-item-text { font-size: 1.25rem !important; }
+  .qr-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center;
+    z-index: 20000;
+  }
+  .qr-modal-content { position: relative; display: flex; flex-direction: column; align-items: center; }
+  .qr-modal-close {
+    position: absolute; top: -45px; right: 0; background: var(--pink); color: #fff;
+    border: 2.25px solid var(--ink); border-radius: 50%; width: 34px; height: 34px;
+    font-size: 0.95rem; font-weight: 700; cursor: pointer; box-shadow: 2px 2px 0 var(--shadow);
+    display: flex; align-items: center; justify-content: center; transition: transform 0.1s;
+  }
+  .qr-modal-close:hover { transform: scale(1.1); }
 </style>
 </head>
 </head>
@@ -2045,9 +2058,9 @@ function renderTeacherLobby() {
             <div class="room-badge-label sans">ROOM CODE</div>
             <div class="room-badge-code">${s.code}</div>
           </div>
-          <div class="qr-panel">
+          <div class="qr-panel" id="btn-zoom-qr" style="cursor:pointer;position:relative;">
             ${qrToSVGString(joinUrl, 140)}
-            <div class="qr-caption sans">Scan to join room ${s.code}</div>
+            <div class="qr-caption sans">🔍 Click to zoom QR</div>
           </div>
         </div>
       </div>
@@ -2057,7 +2070,20 @@ function renderTeacherLobby() {
       </div>
       <div id="roster-wrap" class="roster-list"></div>
       <button class="btn-primary sans" id="btn-start-quiz" style="margin-top:1.5rem;max-width:280px;">▶ Start quiz</button>
-    </div>`;
+    </div>
+    ${s.qrExpanded ? `
+      <div class="qr-modal-overlay" id="qr-modal">
+        <div class="qr-modal-content">
+          <button class="qr-modal-close" id="btn-close-qr">✕</button>
+          <div style="background:#fff; padding:1.5rem; border-radius:12px; border:3px solid var(--ink); box-shadow:6px 6px 0 var(--shadow);">
+            ${qrToSVGString(joinUrl, 320)}
+          </div>
+          <div class="sans" style="margin-top:1rem; font-size:1.25rem; font-weight:700; color:#fff; text-align:center;">
+            Scan to join Room <span style="color:var(--yellow); font-size:1.6rem; font-weight:800;">${s.code}</span>
+          </div>
+        </div>
+      </div>
+    ` : ''}`;
 
   function renderRoster() {
     const wrap = document.getElementById('roster-wrap');
@@ -2101,6 +2127,21 @@ function renderTeacherLobby() {
     render();
   };
 
+  const zoomBtn = document.getElementById('btn-zoom-qr');
+  if (zoomBtn) {
+    zoomBtn.onclick = () => {
+      s.qrExpanded = true;
+      render();
+    };
+  }
+  const closeBtn = document.getElementById('btn-close-qr');
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      s.qrExpanded = false;
+      render();
+    };
+  }
+
   const tick = async () => {
     const raw = await kvGet('room:' + s.code + ':roster');
     if (raw) { try { s.roster = JSON.parse(raw); renderRoster(); } catch (e) {} }
@@ -2123,9 +2164,9 @@ function renderTeacherLive() {
             <div class="room-badge-label sans">ROOM CODE</div>
             <div class="room-badge-code">${s.code}</div>
           </div>
-          <div class="qr-panel">
+          <div class="qr-panel" id="btn-zoom-qr" style="cursor:pointer;position:relative;">
             ${qrToSVGString(joinUrl, 140)}
-            <div class="qr-caption sans">Scan to join room ${s.code}</div>
+            <div class="qr-caption sans">🔍 Click to zoom QR</div>
           </div>
         </div>
       </div>
@@ -2161,7 +2202,20 @@ function renderTeacherLive() {
       </div>
       <div class="cloud-stage" id="cloud-stage"></div>
     </div>
-    ${s.boardMode ? `<button class="btn-exit-board-mode sans" id="btn-exit-boardmode">✕ Exit Board Mode</button>` : ''}`;
+    ${s.boardMode ? `<button class="btn-exit-board-mode sans" id="btn-exit-boardmode">✕ Exit Board Mode</button>` : ''}
+    ${s.qrExpanded ? `
+      <div class="qr-modal-overlay" id="qr-modal">
+        <div class="qr-modal-content">
+          <button class="qr-modal-close" id="btn-close-qr">✕</button>
+          <div style="background:#fff; padding:1.5rem; border-radius:12px; border:3px solid var(--ink); box-shadow:6px 6px 0 var(--shadow);">
+            ${qrToSVGString(joinUrl, 320)}
+          </div>
+          <div class="sans" style="margin-top:1rem; font-size:1.25rem; font-weight:700; color:#fff; text-align:center;">
+            Scan to join Room <span style="color:var(--yellow); font-size:1.6rem; font-weight:800;">${s.code}</span>
+          </div>
+        </div>
+      </div>
+    ` : ''}`;
   const finishBtn = document.getElementById('btn-finish-poll');
   if (finishBtn) finishBtn.onclick = async () => {
     stopPolling();
@@ -2278,6 +2332,21 @@ function renderTeacherLive() {
     revealRanksBtn.onclick = () => {
       s.rankingRevealedPlaces = s.options.map((_, i) => i);
       renderRankingStage();
+    };
+  }
+
+  const zoomBtn = document.getElementById('btn-zoom-qr');
+  if (zoomBtn) {
+    zoomBtn.onclick = () => {
+      s.qrExpanded = true;
+      render();
+    };
+  }
+  const closeBtn = document.getElementById('btn-close-qr');
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      s.qrExpanded = false;
+      render();
     };
   }
 
