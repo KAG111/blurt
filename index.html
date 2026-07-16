@@ -1579,11 +1579,14 @@ function renderLanding() {
     <div class="landing-container">
       <!-- Left Column: Main Copy & CTAs -->
       <div class="hero-main">
-        <div class="hero-logo-wrap">
+        <div class="hero-logo-wrap" style="display:flex; flex-direction:column; gap:16px;">
           <img src="logo.png" class="sticker-logo" alt="bowerboard logo" />
+          <div style="font-family:'Outfit', sans-serif; font-size:1.45rem; font-weight:900; color:#fff; letter-spacing:0.01em; margin-top:-0.5rem;">
+            Gather the pieces. Build the picture.
+          </div>
         </div>
         
-        <h1 style="font-family:'Outfit', sans-serif; font-size:3rem; font-weight:900; line-height:1.15; color:#fff; margin:0; letter-spacing:-0.02em;">
+        <h1 style="font-family:'Outfit', sans-serif; font-size:2.8rem; font-weight:900; line-height:1.15; color:#fff; margin:0.5rem 0 0; letter-spacing:-0.02em;">
           Every idea in the room, on the board.
         </h1>
         
@@ -1604,17 +1607,23 @@ function renderLanding() {
       
       <!-- Right Column: Integrated Definition Card -->
       <div class="hero-sidebar">
-        <div class="bower-definition-box sans" style="max-width:250px; font-size:0.8rem; padding:0.95rem; border:3px solid var(--ink); box-shadow:4px 4px 0 var(--shadow); background:#fff; border-radius:12px; color:var(--ink); transform: rotate(-2.5deg); transition: transform 0.2s ease;">
-          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.25rem;">
-            <span style="font-weight:900; font-size:1.2rem; color:var(--ink); font-family:'Outfit', sans-serif;">bower</span>
-            <span style="font-size:0.75rem; color:var(--muted); font-style:italic; font-family:sans-serif;">/ˈbaʊ.ər/</span>
+        <div class="bower-definition-box sans" style="max-width:270px; font-size:0.8rem; padding:0.95rem; border:3px solid var(--ink); box-shadow:4px 4px 0 var(--shadow); background:#fff; border-radius:12px; color:var(--ink); transform: rotate(-2.5deg); transition: transform 0.2s ease;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.2rem;">
+            <span style="font-weight:900; font-size:1.15rem; color:var(--ink); font-family:'Outfit', sans-serif;">bower</span>
+            <span style="font-size:0.75rem; color:var(--muted); font-style:italic; font-family:sans-serif;">/ˈbaʊ.ə/</span>
+            <span style="font-size:0.75rem; color:var(--muted); font-weight:700;">n.</span>
           </div>
-          <div style="font-size:0.7rem; color:var(--muted); margin-bottom:0.4rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">noun</div>
-          <div style="font-size:0.8rem; line-height:1.45; color:var(--ink); margin-bottom:0.5rem;">
-            A decorated structure built by a bowerbird using a variety of articles.
+          <div style="font-size:0.8rem; line-height:1.4; color:var(--ink); margin-bottom:0.8rem; border-bottom:1.5px dashed var(--ink); padding-bottom:0.5rem;">
+            the stage a bowerbird builds from everything it collects.
           </div>
-          <div style="border-top:1.5px dashed var(--ink); padding-top:0.4rem; font-size:0.75rem; line-height:1.4; color:var(--muted); font-style:italic;">
-            "Like the bowerbird, we gather student ideas, feedback, and notes to build a collaborative space."
+          
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.2rem;">
+            <span style="font-weight:900; font-size:1.15rem; color:var(--ink); font-family:'Outfit', sans-serif;">bowerboard</span>
+            <span style="font-size:0.75rem; color:var(--muted); font-style:italic; font-family:sans-serif;">/ˈbaʊ.ə.bɔːd/</span>
+            <span style="font-size:0.75rem; color:var(--muted); font-weight:700;">n.</span>
+          </div>
+          <div style="font-size:0.8rem; line-height:1.4; color:var(--ink);">
+            the stage your room builds from everything it thinks.
           </div>
         </div>
       </div>
@@ -1642,18 +1651,27 @@ function renderLanding() {
           <div style="width:40px;"></div>
         </div>
         
-        <!-- Live Board Stage Preview -->
-        <div style="background:var(--stage); padding:2rem 1.5rem; min-height:220px; display:flex; flex-wrap:wrap; align-content:center; justify-content:center; gap:0.6rem; position:relative; overflow:hidden; box-sizing:border-box;">
-          <div style="position:absolute; top:0; left:0; width:100%; height:100%; background-image:radial-gradient(rgba(255,255,255,0.03) 1.5px, transparent 1.5px); background-size:18px 18px; pointer-events:none;"></div>
+        <!-- Live Board Stage Preview: Corkboard Theme -->
+        <div style="background:#DCC3AD; padding:2.5rem 1.5rem; min-height:240px; display:flex; flex-wrap:wrap; align-content:center; justify-content:center; gap:1.2rem; position:relative; overflow:hidden; box-sizing:border-box;">
+          <!-- Cork texture pattern -->
+          <div style="position:absolute; top:0; left:0; width:100%; height:100%; background-image:radial-gradient(rgba(0,0,0,0.06) 1px, transparent 1px); background-size:8px 8px; pointer-events:none;"></div>
           
-          <span style="font-family:'Outfit', sans-serif; font-size:2.8rem; font-weight:900; color:var(--pink); text-shadow:2px 2px 0 var(--ink); transform:rotate(-2deg); margin:0.4rem; display:inline-block;">Collaborative</span>
-          <span style="font-family:'Outfit', sans-serif; font-size:1.8rem; font-weight:900; color:var(--yellow); text-shadow:1.5px 1.5px 0 var(--ink); transform:rotate(3deg); margin:0.4rem; display:inline-block;">Engagement</span>
-          <span style="font-family:'Space Grotesk', sans-serif; font-size:2rem; font-weight:700; color:#fff; text-shadow:1.5px 1.5px 0 var(--ink); transform:rotate(-1deg); margin:0.4rem; display:inline-block;">Bowerbird</span>
-          <span style="font-family:'Space Grotesk', sans-serif; font-size:1.3rem; font-weight:700; color:#8c7ae6; margin:0.4rem; display:inline-block;">Interactive</span>
-          <span style="font-family:'Outfit', sans-serif; font-size:1.5rem; font-weight:900; color:#4cd137; text-shadow:1px 1px 0 var(--ink); transform:rotate(-3deg); margin:0.4rem; display:inline-block;">Real-time</span>
-          <span style="font-family:'Space Grotesk', sans-serif; font-size:1.1rem; font-weight:700; color:#e1b12c; margin:0.4rem; display:inline-block;">Fun</span>
-          <span style="font-family:'Outfit', sans-serif; font-size:1.6rem; font-weight:900; color:#00a8ff; text-shadow:1px 1px 0 var(--ink); transform:rotate(1deg); margin:0.4rem; display:inline-block;">Feedback</span>
-          <span style="font-family:'Space Grotesk', sans-serif; font-size:1.2rem; font-weight:700; color:#D4CCE6; margin:0.4rem; display:inline-block;">Simple</span>
+          <!-- Mock Sticky Notes -->
+          <div class="sans" style="width:145px; background:#FF85A7; border:2.5px solid var(--ink); box-shadow:3px 3px 0 var(--ink); padding:0.75rem; font-size:0.8rem; font-weight:700; transform:rotate(-2deg); box-sizing:border-box;">
+            📌 Gathering pieces...
+          </div>
+          
+          <div class="sans" style="width:150px; background:#FFE885; border:2.5px solid var(--ink); box-shadow:3px 3px 0 var(--ink); padding:0.75rem; font-size:0.8rem; font-weight:700; transform:rotate(3deg); box-sizing:border-box;">
+            ⚡ Love the real-time speed! No accounts is perfect.
+          </div>
+          
+          <div class="sans" style="width:160px; background:#85FFE8; border:2.5px solid var(--ink); box-shadow:3px 3px 0 var(--ink); padding:0.75rem; font-size:0.8rem; font-weight:700; transform:rotate(-1deg); box-sizing:border-box;">
+            💬 Anonymous responses get everyone participating.
+          </div>
+          
+          <div class="sans" style="width:130px; background:#F2F0F7; border:2.5px solid var(--ink); box-shadow:3px 3px 0 var(--ink); padding:0.75rem; font-size:0.8rem; font-weight:700; transform:rotate(2deg); box-sizing:border-box;">
+            🎨 Build the picture!
+          </div>
         </div>
       </div>
     </div>
@@ -1667,8 +1685,6 @@ function renderLanding() {
         </div>
         <div style="display:flex; gap:1.5rem; font-weight:500;">
           <a href="#" style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">Contact Support</a>
-          <a href="#" style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">Privacy Policy</a>
-          <a href="bowerboard-manifest.xml" download style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">PowerPoint Add-in</a>
         </div>
       </div>
     </footer>
