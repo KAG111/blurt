@@ -1,0 +1,64 @@
+========================================================================
+             BOWERBOARD POWERPOINT ADD-IN INSTALLATION GUIDE
+========================================================================
+
+Bowerboard is a real-time classroom feedback platform. By installing this 
+Add-in, you can run interactive word clouds, sticky note boards, polls, 
+and ranking tasks directly inside your PowerPoint slides.
+
+To run Bowerboard on your slides, you need to "sideload" the manifest XML 
+file included in this package.
+
+------------------------------------------------------------------------
+STEP-BY-STEP SIDELOADING INSTRUCTIONS (WINDOWS)
+------------------------------------------------------------------------
+
+1. CREATE A SHARED FOLDER:
+   - Create a new folder on your computer (e.g., C:\BowerboardAddin).
+   - Move the "bowerboard-manifest.xml" file into this folder.
+   - Right-click the folder, select "Properties", go to the "Sharing" tab, 
+     and click "Share...".
+   - Add yourself (or Everyone) and click "Share". 
+   - Copy the network path generated (e.g., \\YourComputer\BowerboardAddin).
+
+2. REGISTER THE CATALOG IN POWERPOINT:
+   - Open Microsoft PowerPoint.
+   - Go to "File" -> "Options" -> "Trust Center" -> "Trust Center Settings...".
+   - Click "Trusted Add-in Catalogs" in the left panel.
+   - In the "Catalog Url" field, paste your shared network path.
+   - Click "Add Catalog".
+   - Select the newly added catalog row, and check the "Show in Menu" box.
+   - Click "OK" on all windows and restart PowerPoint.
+
+3. INSERT BOWERBOARD INTO YOUR SLIDE:
+   - Go to the "Insert" tab on the ribbon menu.
+   - Click "My Add-ins" (or "Add-ins" -> "My Add-ins").
+   - Click the "Shared Folder" tab at the top.
+   - You will see the "Bowerboard" add-in list. Double-click it to insert!
+   - You can now size the bowerboard pane to fill your slide.
+
+------------------------------------------------------------------------
+STEP-BY-STEP SIDELOADING INSTRUCTIONS (MAC)
+------------------------------------------------------------------------
+
+1. Open Finder and press Command+Shift+G to open the "Go to Folder" dialog.
+2. Enter the following path:
+   ~/Library/Containers/com.microsoft.Powerpoint/Data/Documents/wef/
+   (If the "wef" folder does not exist, create it inside Documents).
+3. Copy the "bowerboard-manifest.xml" file into this "wef" folder.
+4. Open PowerPoint on your Mac.
+5. Go to the "Insert" tab -> "My Add-ins" arrow -> select "Bowerboard".
+
+------------------------------------------------------------------------
+STEP-BY-STEP SIDELOADING INSTRUCTIONS (OFFICE FOR WEB)
+------------------------------------------------------------------------
+
+1. Open your presentation in PowerPoint on the Web (Office 365).
+2. Go to the "Insert" tab -> "Add-ins".
+3. Click "Manage My Add-ins" -> "Upload My Add-in".
+4. Browse and select the "bowerboard-manifest.xml" file.
+5. Click "Upload" to insert Bowerboard into your slide.
+
+========================================================================
+Need help? Contact bowerboard support at: support@bowerboard.com
+========================================================================
