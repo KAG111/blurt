@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Blurt — get the whole room talking</title>
+<title>bowerboard — Gather the pieces. Build the picture.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -55,6 +55,29 @@
     color: #fff; letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.4rem;
   }
   .brand-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--pink); display: inline-block; }
+
+  .bower-definition-box {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    max-width: 320px;
+    background: #fff;
+    border: 3.5px solid var(--ink);
+    border-radius: 12px;
+    box-shadow: 4px 4px 0 var(--shadow);
+    padding: 1.1rem;
+    text-align: left;
+    z-index: 100;
+  }
+  @media (max-width: 900px) {
+    .bower-definition-box {
+      position: static;
+      margin: 1.5rem auto 0;
+      max-width: 100%;
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
 
   .screen {
     flex: 1; display: flex; flex-direction: column; align-items: center;
@@ -1163,7 +1186,7 @@ function setupRealtimeListener(roomCode, tickFunction) {
   const channel = supabaseClient
     .channel(`room:${roomCode}`)
     .on('postgres_changes', { 
-      event: 'UPDATE', 
+      event: '*', 
       schema: 'public', 
       table: 'rooms', 
       filter: `code=eq.${roomCode}` 
@@ -1196,12 +1219,33 @@ function generateCode() {
   return c;
 }
 
+function getTargetRoom(s) {
+  return (s.presentationMode && s.presentationMode !== 'classic') ? 'MOD-' + s.code : s.code;
+}
+
+function isBlockedSession() {
+  return state.blockedSessions && state.mySessionId && state.blockedSessions.indexOf(state.mySessionId) !== -1;
+}
+
+function renderBlockedScreen() {
+  stopPolling();
+  app.innerHTML = `
+    <div class="student-wrap" style="max-width:500px;margin:3rem auto;text-align:center;box-sizing:border-box;padding:1rem;">
+      <div class="sans" style="text-align:center;font-size:1.3rem;font-weight:800;color:var(--pink);background:#fff;padding:2.5rem 2rem;border-radius:12px;border:3.5px solid var(--ink);box-shadow:6px 6px 0 var(--shadow);">
+        🚫 Device Muted
+        <div style="font-size:0.95rem;font-weight:500;color:var(--ink);margin-top:0.8rem;line-height:1.5;">
+          Your device has been muted by the teacher for this session. You can still watch the presentation on the main screen.
+        </div>
+      </div>
+    </div>`;
+}
+
 async function startDemoSession(type) {
   const s = state;
   let prompt = (s.prompt || '').trim();
   if (!prompt) {
-    if (type === 'wordcloud') prompt = "What are your thoughts on Blurt?";
-    else if (type === 'mc') prompt = "Which feature of Blurt do you like most?";
+    if (type === 'wordcloud') prompt = "What are your thoughts on bowerboard?";
+    else if (type === 'mc') prompt = "Which feature of bowerboard do you like most?";
     else if (type === 'poll') prompt = "Feedback Poll";
     else if (type === 'brainstorm') prompt = "How can we improve virtual learning?";
     else if (type === 'sticky') prompt = "Share your feedback & upload project photos!";
@@ -1220,8 +1264,8 @@ async function startDemoSession(type) {
   if (type === 'poll' && questions.length === 0) {
     questions = [
       { prompt: "Rate your overall workshop satisfaction", options: ["Excellent", "Good", "Average", "Poor"], allowMultiple: false, correctIndex: null },
-      { prompt: "How easy was Blurt to join?", options: ["Super easy", "Easy enough", "A bit confusing"], allowMultiple: false, correctIndex: null },
-      { prompt: "Would you use Blurt in your class?", options: ["Definitely", "Maybe", "Unlikely"], allowMultiple: false, correctIndex: null }
+      { prompt: "How easy was bowerboard to join?", options: ["Super easy", "Easy enough", "A bit confusing"], allowMultiple: false, correctIndex: null },
+      { prompt: "Would you use bowerboard in your class?", options: ["Definitely", "Maybe", "Unlikely"], allowMultiple: false, correctIndex: null }
     ];
   }
 
@@ -1341,6 +1385,7 @@ function emptyVotesStructure(s) {
 const app = document.getElementById('app');
 let state = { screen: 'landing' };
 let pollTimer = null;
+let shadowTimer = null;
 
 function stopPolling() {
   if (pollTimer) {
@@ -1351,10 +1396,18 @@ function stopPolling() {
     }
     pollTimer = null;
   }
+  if (shadowTimer) {
+    if (shadowTimer.close) {
+      shadowTimer.close();
+    } else {
+      clearInterval(shadowTimer);
+    }
+    shadowTimer = null;
+  }
 }
 
 function render() {
-  if (state.boardMode && state.screen === 'teacherLive') {
+  if ((state.boardMode && state.screen === 'teacherLive') || state.screen === 'displayView') {
     document.body.classList.add('board-mode-active');
   } else {
     state.boardMode = false;
@@ -1372,36 +1425,49 @@ function render() {
   if (state.screen === 'studentWaitingRoom') return renderStudentWaitingRoom();
   if (state.screen === 'studentQuizResults') return renderStudentQuizResults();
   if (state.screen === 'studentRoom') return renderStudentRoom();
+  if (state.screen === 'displayView') return renderDisplayView();
+  if (state.screen === 'phoneRemote') return renderPhoneRemote();
 }
 
 function renderLanding() {
   stopPolling();
   app.innerHTML = `
-    <div class="brand-bar">
-      <div class="brand-mark"><span class="brand-dot"></span>blurt</div>
-    </div>
-    <div class="screen">
-      <div class="hero-stage">
-        <div class="wave-row">
-          <div class="wave-bar" style="height:22px; animation-delay:0s;"></div>
-          <div class="wave-bar" style="height:40px; animation-delay:0.1s;"></div>
-          <div class="wave-bar" style="height:58px; animation-delay:0.2s;"></div>
-          <div class="wave-bar" style="height:34px; animation-delay:0.3s;"></div>
-          <div class="wave-bar" style="height:16px; animation-delay:0.4s;"></div>
-        </div>
-        <div class="title-xl display">Blurt.</div>
-        <div class="wave-row">
-          <div class="wave-bar" style="height:18px; animation-delay:0.5s;"></div>
-          <div class="wave-bar" style="height:46px; animation-delay:0.6s;"></div>
-          <div class="wave-bar" style="height:28px; animation-delay:0.7s;"></div>
-          <div class="wave-bar" style="height:54px; animation-delay:0.8s;"></div>
-          <div class="wave-bar" style="height:24px; animation-delay:0.9s;"></div>
-        </div>
+    <div class="brand-bar" style="display:flex; justify-content:space-between; align-items:center; width:100%; max-width:800px; padding:1.5rem 1.2rem 0; box-sizing:border-box;">
+      <div class="brand-mark" style="display:flex; align-items:center;">
+        <img src="logo.png" style="height:48px; width:auto;" alt="bowerboard logo" />
       </div>
-      <div class="subtitle sans">Get the whole room talking. Word clouds, polls, and quizzes — no logins, no apps to install.</div>
-      <div class="btn-row">
-        <button class="btn-primary sans" id="btn-teacher">Start a session</button>
-        <button class="btn-outline sans" id="btn-student">Join with a code</button>
+    </div>
+    
+    <div class="bower-definition-box sans">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.4rem;">
+        <span style="font-weight:900; font-size:1.25rem; color:var(--ink);">bower</span>
+        <span style="font-size:0.85rem; color:var(--muted); font-style:italic; font-family:sans-serif;">/ˈbaʊ.ər/</span>
+      </div>
+      <div style="font-size:0.75rem; color:var(--muted); margin-bottom:0.5rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">noun</div>
+      <div style="font-size:0.85rem; line-height:1.45; color:var(--ink); margin-bottom:0.6rem;">
+        A construct built by a male bowerbird, intricately decorated with a variety of colorful articles (shells, flowers, glass, plastics) to attract others.
+      </div>
+      <div style="border-top:1.5px dashed var(--ink); padding-top:0.5rem; font-size:0.8rem; line-height:1.45; color:var(--muted); font-style:italic;">
+        "Just like the bowerbird, we gather feedback, ideas, and notes to build a beautiful, collaborative space."
+      </div>
+    </div>
+
+    <div class="screen" style="position:relative; z-index:10; max-width:600px; margin:0 auto;">
+      <div class="hero-stage" style="margin-top:1.5rem; margin-bottom:1rem; display:flex; justify-content:center;">
+        <img src="logo.png" style="max-width:100%; height:130px; width:auto; filter: drop-shadow(4px 4px 0px rgba(0,0,0,0.15));" alt="bowerboard logo" />
+      </div>
+      
+      <div class="subtitle sans" style="font-size:1.3rem; font-weight:800; color:var(--ink); margin-bottom:0.8rem; text-transform:uppercase; letter-spacing:-0.01em;">
+        Gather the pieces. Build the picture.
+      </div>
+      
+      <div class="subtitle sans" style="margin-top:0px; font-size:0.95rem; line-height:1.5; color:var(--muted); margin-bottom:2rem;">
+        Interactive word clouds, sticky note boards, multiple choice polls, and ranking lists. No logins, no accounts to install.
+      </div>
+      
+      <div class="btn-row" style="width:100%; display:flex; justify-content:center; gap:1rem; margin-bottom:1.5rem;">
+        <button class="btn-primary sans" id="btn-teacher" style="flex:1; max-width:200px;">Start a session</button>
+        <button class="btn-outline sans" id="btn-student" style="flex:1; max-width:200px;">Join with a code</button>
       </div>
       <div class="footnote sans">No accounts, no sign-in. Answers are just words — nothing is linked to a name.</div>
     </div>`;
@@ -1414,7 +1480,7 @@ function renderActivityPicker() {
   app.innerHTML = `
     <div class="screen">
       <button class="back-btn sans" id="btn-back">← back</button>
-      <div style="font-size:1.6rem;font-weight:700;">Choose your Blurt Board</div>
+      <div style="font-size:1.6rem;font-weight:700;">Choose the bower you want to create</div>
       <div class="activity-grid">
         <button class="activity-card sans" id="pick-wordcloud">
           <div class="activity-card-title">Word Cloud</div>
@@ -2305,8 +2371,481 @@ function renderTeacherLobby() {
   pollTimer = setupRealtimeListener(s.code, tick);
 }
 
+async function mergeShadowIntoMain(code) {
+  const s = state;
+  // 1. Posts (Brainstorm / Sticky)
+  const pendingPostsRaw = await kvGet('room:MOD-' + code + ':posts');
+  if (pendingPostsRaw) {
+    try {
+      const pending = JSON.parse(pendingPostsRaw);
+      if (pending && pending.length > 0) {
+        const mainRaw = await kvGet('room:' + code + ':posts');
+        let main = [];
+        if (mainRaw) main = JSON.parse(mainRaw);
+        main = [...main, ...pending];
+        await kvSet('room:' + code + ':posts', JSON.stringify(main));
+        await kvSet('room:MOD-' + code + ':posts', JSON.stringify([]));
+        s.posts = main;
+      }
+    } catch (e) {}
+  }
+  // 2. Words (Word Cloud)
+  const pendingWordsRaw = await kvGet('room:MOD-' + code + ':words');
+  if (pendingWordsRaw) {
+    try {
+      const pending = JSON.parse(pendingWordsRaw);
+      if (pending && pending.length > 0) {
+        const mainRaw = await kvGet('room:' + code + ':words');
+        let main = [];
+        if (mainRaw) main = JSON.parse(mainRaw);
+        pending.forEach(pw => {
+          const match = main.find(mw => mw.text.toLowerCase() === pw.text.toLowerCase());
+          if (match) match.count += pw.count; else main.push(pw);
+        });
+        await kvSet('room:' + code + ':words', JSON.stringify(main));
+        await kvSet('room:MOD-' + code + ':words', JSON.stringify([]));
+        s.words = main;
+      }
+    } catch (e) {}
+  }
+  // 3. Votes (MC / Poll / Ranking)
+  const pendingVotesRaw = await kvGet('room:MOD-' + code + ':votes');
+  if (pendingVotesRaw) {
+    try {
+      const pending = JSON.parse(pendingVotesRaw);
+      const mainRaw = await kvGet('room:' + code + ':votes');
+      if (s.type === 'ranking') {
+        let main = [];
+        if (mainRaw) main = JSON.parse(mainRaw);
+        if (pending && pending.length > 0) {
+          main = [...main, ...pending];
+          await kvSet('room:' + code + ':votes', JSON.stringify(main));
+          s.votes = main;
+        }
+      } else if (s.type === 'poll') {
+        let main = [];
+        if (mainRaw) main = JSON.parse(mainRaw);
+        if (pending && pending.length > 0) {
+          pending.forEach((qVotes, qIdx) => {
+            if (!main[qIdx]) main[qIdx] = qVotes.map(() => 0);
+            qVotes.forEach((val, optIdx) => {
+              main[qIdx][optIdx] = (main[qIdx][optIdx] || 0) + val;
+            });
+          });
+          await kvSet('room:' + code + ':votes', JSON.stringify(main));
+          s.votes = main;
+        }
+      } else { // MC
+        let main = [];
+        if (mainRaw) main = JSON.parse(mainRaw);
+        if (pending && pending.length > 0) {
+          if (main.length === 0) main = pending.map(() => 0);
+          pending.forEach((val, idx) => {
+            main[idx] = (main[idx] || 0) + val;
+          });
+          await kvSet('room:' + code + ':votes', JSON.stringify(main));
+          s.votes = main;
+        }
+      }
+      await kvSet('room:MOD-' + code + ':votes', JSON.stringify([]));
+    } catch (e) {}
+  }
+  // 4. Responses (Poll individual name responses)
+  const pendingRespRaw = await kvGet('room:MOD-' + code + ':responses');
+  if (pendingRespRaw) {
+    try {
+      const pending = JSON.parse(pendingRespRaw);
+      if (pending && pending.length > 0) {
+        const mainRaw = await kvGet('room:' + code + ':responses');
+        let main = [];
+        if (mainRaw) main = JSON.parse(mainRaw);
+        pending.forEach(pr => {
+          const match = main.find(mr => mr.name.toLowerCase() === pr.name.toLowerCase());
+          if (match) {
+            pr.answers.forEach((ans, idx) => {
+              if (ans !== null) match.answers[idx] = ans;
+            });
+          } else {
+            main.push(pr);
+          }
+        });
+        await kvSet('room:' + code + ':responses', JSON.stringify(main));
+        await kvSet('room:MOD-' + code + ':responses', JSON.stringify([]));
+        s.responses = main;
+      }
+    } catch (e) {}
+  }
+}
+
+async function approveSubmission(item) {
+  const s = state;
+  const code = s.code;
+  
+  if (s.type === 'brainstorm' || s.type === 'sticky') {
+    s.pendingPosts = (s.pendingPosts || []).filter(p => p.id !== item.id);
+    await kvSet('room:MOD-' + code + ':posts', JSON.stringify(s.pendingPosts));
+    
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const raw = await kvGet('room:' + code + ':posts');
+      let mainList = [];
+      if (raw) { try { mainList = JSON.parse(raw); } catch (e) {} }
+      
+      if (s.type === 'brainstorm') {
+        const existing = mainList.find(p => p.text.toLowerCase() === item.text.toLowerCase());
+        if (existing) {
+          existing.count = (existing.count || 1) + (item.count || 1);
+          existing.ownerSessionIds = existing.ownerSessionIds || [];
+          (item.ownerSessionIds || []).forEach(id => {
+            if (existing.ownerSessionIds.indexOf(id) === -1) existing.ownerSessionIds.push(id);
+          });
+        } else {
+          mainList.push(item);
+        }
+      } else {
+        mainList.push(item);
+      }
+      
+      const ok = await kvSet('room:' + code + ':posts', JSON.stringify(mainList));
+      if (ok) { s.posts = mainList; break; }
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    }
+  } else if (s.type === 'wordcloud') {
+    s.pendingWords = (s.pendingWords || []).filter(w => w.id !== item.id);
+    await kvSet('room:MOD-' + code + ':words', JSON.stringify(s.pendingWords));
+    
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const raw = await kvGet('room:' + code + ':words');
+      let mainList = [];
+      if (raw) { try { mainList = JSON.parse(raw); } catch (e) {} }
+      
+      const lower = item.text.toLowerCase();
+      const existing = mainList.find(w => w.text.toLowerCase() === lower);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        mainList.push({ text: item.text, count: 1 });
+      }
+      
+      const ok = await kvSet('room:' + code + ':words', JSON.stringify(mainList));
+      if (ok) { s.words = mainList; break; }
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    }
+  } else {
+    s.pendingVotes = (s.pendingVotes || []).filter(v => v.id !== item.id);
+    await kvSet('room:MOD-' + code + ':votes', JSON.stringify(s.pendingVotes));
+    
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const raw = await kvGet('room:' + code + ':votes');
+      let votes = emptyVotesStructure(s);
+      if (raw) { try { votes = JSON.parse(raw); } catch (e) {} }
+      
+      if (s.type === 'ranking') {
+        votes.push(item.value);
+      } else if (s.type === 'poll') {
+        const qIdx = item.qIndex;
+        if (!votes[qIdx]) votes[qIdx] = s.questions[qIdx].options.map(() => 0);
+        item.value.forEach(idx => {
+          votes[qIdx][idx] = (votes[qIdx][idx] || 0) + 1;
+        });
+      } else {
+        item.value.forEach(idx => {
+          votes[idx] = (votes[idx] || 0) + 1;
+        });
+      }
+      
+      const ok = await kvSet('room:' + code + ':votes', JSON.stringify(votes));
+      if (ok) {
+        s.votes = votes;
+        if (s.type === 'poll' && item.studentName) {
+          await recordStudentResponse(s, item.qIndex, item.value);
+        }
+        break;
+      }
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    }
+  }
+  render();
+}
+
+async function dismissSubmission(item) {
+  const s = state;
+  const code = s.code;
+  
+  s.dismissedItems = s.dismissedItems || [];
+  s.dismissedItems.push(item);
+  
+  if (s.type === 'brainstorm' || s.type === 'sticky') {
+    s.pendingPosts = (s.pendingPosts || []).filter(p => p.id !== item.id);
+    await kvSet('room:MOD-' + code + ':posts', JSON.stringify(s.pendingPosts));
+  } else if (s.type === 'wordcloud') {
+    s.pendingWords = (s.pendingWords || []).filter(w => w.id !== item.id);
+    await kvSet('room:MOD-' + code + ':words', JSON.stringify(s.pendingWords));
+  } else {
+    s.pendingVotes = (s.pendingVotes || []).filter(v => v.id !== item.id);
+    await kvSet('room:MOD-' + code + ':votes', JSON.stringify(s.pendingVotes));
+  }
+  render();
+}
+
+async function undoDismiss(item) {
+  const s = state;
+  const code = s.code;
+  
+  s.dismissedItems = (s.dismissedItems || []).filter(i => i.id !== item.id);
+  
+  if (s.type === 'brainstorm' || s.type === 'sticky') {
+    s.pendingPosts = s.pendingPosts || [];
+    s.pendingPosts.push(item);
+    await kvSet('room:MOD-' + code + ':posts', JSON.stringify(s.pendingPosts));
+  } else if (s.type === 'wordcloud') {
+    s.pendingWords = s.pendingWords || [];
+    s.pendingWords.push(item);
+    await kvSet('room:MOD-' + code + ':words', JSON.stringify(s.pendingWords));
+  } else {
+    s.pendingVotes = s.pendingVotes || [];
+    s.pendingVotes.push(item);
+    await kvSet('room:MOD-' + code + ':votes', JSON.stringify(s.pendingVotes));
+  }
+  render();
+}
+
+async function approveAllSubmissions() {
+  const s = state;
+  const code = s.code;
+  
+  if (s.type === 'brainstorm' || s.type === 'sticky') {
+    const pending = s.pendingPosts || [];
+    if (pending.length === 0) return;
+    
+    s.pendingPosts = [];
+    await kvSet('room:MOD-' + code + ':posts', JSON.stringify([]));
+    
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const raw = await kvGet('room:' + code + ':posts');
+      let mainList = [];
+      if (raw) { try { mainList = JSON.parse(raw); } catch (e) {} }
+      
+      pending.forEach(item => {
+        if (s.type === 'brainstorm') {
+          const existing = mainList.find(p => p.text.toLowerCase() === item.text.toLowerCase());
+          if (existing) {
+            existing.count = (existing.count || 1) + (item.count || 1);
+            existing.ownerSessionIds = existing.ownerSessionIds || [];
+            (item.ownerSessionIds || []).forEach(id => {
+              if (existing.ownerSessionIds.indexOf(id) === -1) existing.ownerSessionIds.push(id);
+            });
+          } else {
+            mainList.push(item);
+          }
+        } else {
+          mainList.push(item);
+        }
+      });
+      
+      const ok = await kvSet('room:' + code + ':posts', JSON.stringify(mainList));
+      if (ok) { s.posts = mainList; break; }
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    }
+  } else if (s.type === 'wordcloud') {
+    const pending = s.pendingWords || [];
+    if (pending.length === 0) return;
+    
+    s.pendingWords = [];
+    await kvSet('room:MOD-' + code + ':words', JSON.stringify([]));
+    
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const raw = await kvGet('room:' + code + ':words');
+      let mainList = [];
+      if (raw) { try { mainList = JSON.parse(raw); } catch (e) {} }
+      
+      pending.forEach(item => {
+        const lower = item.text.toLowerCase();
+        const existing = mainList.find(w => w.text.toLowerCase() === lower);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          mainList.push({ text: item.text, count: 1 });
+        }
+      });
+      
+      const ok = await kvSet('room:' + code + ':words', JSON.stringify(mainList));
+      if (ok) { s.words = mainList; break; }
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    }
+  } else {
+    const pending = s.pendingVotes || [];
+    if (pending.length === 0) return;
+    
+    s.pendingVotes = [];
+    await kvSet('room:MOD-' + code + ':votes', JSON.stringify([]));
+    
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const raw = await kvGet('room:' + code + ':votes');
+      let votes = emptyVotesStructure(s);
+      if (raw) { try { votes = JSON.parse(raw); } catch (e) {} }
+      
+      for (const item of pending) {
+        if (s.type === 'ranking') {
+          votes.push(item.value);
+        } else if (s.type === 'poll') {
+          const qIdx = item.qIndex;
+          if (!votes[qIdx]) votes[qIdx] = s.questions[qIdx].options.map(() => 0);
+          item.value.forEach(idx => {
+            votes[qIdx][idx] = (votes[qIdx][idx] || 0) + 1;
+          });
+          if (item.studentName) {
+            await recordStudentResponse(s, item.qIndex, item.value);
+          }
+        } else {
+          item.value.forEach(idx => {
+            votes[idx] = (votes[idx] || 0) + 1;
+          });
+        }
+      }
+      
+      const ok = await kvSet('room:' + code + ':votes', JSON.stringify(votes));
+      if (ok) { s.votes = votes; break; }
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    }
+  }
+  render();
+}
+
+async function blockDevice(sessionId) {
+  const s = state;
+  const code = s.code;
+  if (!sessionId) return;
+  
+  if (confirm("Block this device? All current and future submissions from this student will be deleted/blocked.")) {
+    s.blockedSessions = s.blockedSessions || [];
+    if (s.blockedSessions.indexOf(sessionId) === -1) {
+      s.blockedSessions.push(sessionId);
+    }
+    
+    const cfgRaw = await kvGet('room:' + code + ':config');
+    if (cfgRaw) {
+      try {
+        const cfg = JSON.parse(cfgRaw);
+        cfg.blockedSessions = s.blockedSessions;
+        await kvSet('room:' + code + ':config', JSON.stringify(cfg));
+      } catch (e) {}
+    }
+    
+    if (s.type === 'brainstorm' || s.type === 'sticky') {
+      s.pendingPosts = (s.pendingPosts || []).filter(p => !p.ownerSessionIds || p.ownerSessionIds.indexOf(sessionId) === -1);
+      await kvSet('room:MOD-' + code + ':posts', JSON.stringify(s.pendingPosts));
+    } else if (s.type === 'wordcloud') {
+      s.pendingWords = (s.pendingWords || []).filter(w => w.sessionId !== sessionId);
+      await kvSet('room:MOD-' + code + ':words', JSON.stringify(s.pendingWords));
+    } else {
+      s.pendingVotes = (s.pendingVotes || []).filter(v => v.sessionId !== sessionId);
+      await kvSet('room:MOD-' + code + ':votes', JSON.stringify(s.pendingVotes));
+    }
+    
+    if (s.type === 'brainstorm' || s.type === 'sticky') {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const raw = await kvGet('room:' + code + ':posts');
+        if (raw) {
+          try {
+            let list = JSON.parse(raw);
+            list = list.filter(p => !p.ownerSessionIds || p.ownerSessionIds.indexOf(sessionId) === -1);
+            const ok = await kvSet('room:' + code + ':posts', JSON.stringify(list));
+            if (ok) { s.posts = list; break; }
+          } catch (e) {}
+        }
+        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      }
+    }
+    
+    render();
+  }
+}
+
 function renderTeacherLive() {
   const s = state;
+  if (s.presentationMode === 'remote') {
+    renderDisplayView();
+    
+    const showRemoteQrBtn = document.getElementById('btn-show-remote-qr');
+    if (showRemoteQrBtn) {
+      showRemoteQrBtn.onclick = () => {
+        s.showRemoteQrModal = true;
+        render();
+      };
+    }
+    
+    const closeRemoteQrBtn = document.getElementById('btn-close-remote-qr');
+    if (closeRemoteQrBtn) {
+      closeRemoteQrBtn.onclick = () => {
+        s.showRemoteQrModal = false;
+        render();
+      };
+    }
+
+    const copyRemoteLinkBtn = document.getElementById('btn-copy-remote-link');
+    if (copyRemoteLinkBtn) {
+      copyRemoteLinkBtn.onclick = () => {
+        const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + s.remoteToken;
+        navigator.clipboard.writeText(link).then(() => {
+          copyRemoteLinkBtn.textContent = '✓ Copied!';
+          setTimeout(() => { copyRemoteLinkBtn.textContent = '📋 Copy Remote Link'; }, 2000);
+        });
+      };
+    }
+
+    const disconnectRemoteBtn = document.getElementById('btn-disconnect-remote');
+    if (disconnectRemoteBtn) {
+      disconnectRemoteBtn.onclick = async () => {
+        if (confirm("Disconnect the current phone remote? This will generate a new secret token.")) {
+          s.remoteToken = Math.random().toString(36).slice(2) + Date.now().toString(36).slice(4);
+          s.remoteConnected = false;
+          const raw = await kvGet('room:' + s.code + ':config');
+          if (raw) {
+            try {
+              const cfg = JSON.parse(raw);
+              cfg.remoteToken = s.remoteToken;
+              cfg.remoteConnected = false;
+              await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
+            } catch (e) {}
+          }
+          render();
+        }
+      };
+    }
+
+    ['classic', 'split'].forEach(mode => {
+      const modalBtn = document.getElementById('modal-pres-mode-' + mode);
+      if (modalBtn) {
+        modalBtn.onclick = async () => {
+          s.presentationMode = mode;
+          s.showRemoteQrModal = false;
+          const raw = await kvGet('room:' + s.code + ':config');
+          if (raw) {
+            try {
+              const cfg = JSON.parse(raw);
+              cfg.presentationMode = mode;
+              await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
+              
+              if (mode !== 'classic') {
+                await kvSet('room:MOD-' + s.code + ':posts', '[]');
+                await kvSet('room:MOD-' + s.code + ':words', '[]');
+                const initVotes = s.type === 'ranking' ? '[]' : (s.type === 'poll' ? JSON.stringify(s.questions.map(q => q.options.map(() => 0))) : JSON.stringify((s.options || []).map(() => 0)));
+                await kvSet('room:MOD-' + s.code + ':votes', initVotes);
+                await kvSet('room:MOD-' + s.code + ':responses', '[]');
+                await kvSet('room:MOD-' + s.code + ':config', '{}');
+              }
+            } catch (e) {}
+          }
+          if (mode === 'classic') {
+            await mergeShadowIntoMain(s.code);
+          }
+          render();
+        };
+      }
+    });
+    return;
+  }
+
   const joinUrl = window.location.href.split('#')[0].split('?')[0] + '?join=' + s.code;
   const isChoice = s.type === 'mc' || s.type === 'poll';
   const isPoll = s.type === 'poll';
@@ -2328,6 +2867,23 @@ function renderTeacherLive() {
       </div>
       <div class="prompt-label">${escapeHtml(isChoice ? currentPromptText(s) : s.prompt)}</div>
       <div class="controls-row">
+        <div class="pres-mode-selector-wrap" style="display:flex;gap:0.4rem;align-items:center;margin-right:0.4rem;flex-wrap:wrap;">
+          <span class="sans" style="font-weight:700;font-size:0.85rem;color:var(--muted);">Mode:</span>
+          <button class="btn-nav sans" id="pres-mode-classic" style="padding:0.45rem 0.8rem;font-size:0.85rem;${(s.presentationMode || 'classic') === 'classic' ? 'background:var(--yellow);' : ''}">Classic</button>
+          <button class="btn-nav sans" id="pres-mode-split" style="padding:0.45rem 0.8rem;font-size:0.85rem;${s.presentationMode === 'split' ? 'background:var(--yellow);' : ''}">Split Screen</button>
+          <button class="btn-nav sans" id="pres-mode-remote" style="padding:0.45rem 0.8rem;font-size:0.85rem;${s.presentationMode === 'remote' ? 'background:var(--yellow);' : ''}">Mobile Remote</button>
+        </div>
+        ${s.presentationMode === 'split' ? `
+          <button class="btn-reveal sans" id="btn-open-display" style="background:var(--green);color:#fff;">🖥️ Open Display View</button>
+        ` : ''}
+        ${s.presentationMode === 'remote' ? `
+          <button class="btn-nav sans" id="btn-show-remote-qr" style="display:flex;align-items:center;gap:0.4rem;padding:0.45rem 0.8rem;">
+            📱 Phone Remote
+            <span style="font-size:0.75rem;padding:0.15rem 0.4rem;border-radius:4px;background:${s.remoteConnected ? 'var(--green)' : 'var(--pink)'};color:#fff;font-weight:700;">
+              ${s.remoteConnected ? 'Connected' : 'Offline'}
+            </span>
+          </button>
+        ` : ''}
         ${isPoll ? `
           <div class="poll-nav-row">
             <button class="btn-nav sans" id="btn-poll-prev" ${currentIndexOf(s) === 0 ? 'disabled' : ''}>← Prev</button>
@@ -2347,7 +2903,7 @@ function renderTeacherLive() {
         <button class="btn-nav sans" id="btn-toggle-boardmode" style="${s.boardMode ? 'background:var(--pink) !important;color:#fff !important;' : ''}">${s.boardMode ? '✕ Exit Board Mode' : '🖥️ Board Mode'}</button>
         ${s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' || s.type === 'ranking' ? `
           <div class="download-dropdown-wrap">
-            <button class="btn-nav sans" id="btn-download-board">⬇️ Download Blurt Board</button>
+            <button class="btn-nav sans" id="btn-download-board">⬇️ Download Board</button>
             <div class="download-dropdown-menu sans" id="download-menu" style="display:none;">
               <button class="download-menu-item" id="download-pdf">Export as PDF</button>
               <button class="download-menu-item" id="download-jpeg">Export as JPEG</button>
@@ -2368,6 +2924,26 @@ function renderTeacherLive() {
           </div>
           <div class="sans" style="margin-top:1rem; font-size:1.25rem; font-weight:700; color:#fff; text-align:center;">
             Scan to join Room <span style="color:var(--yellow); font-size:1.6rem; font-weight:800;">${s.code}</span>
+          </div>
+        </div>
+      </div>
+    ` : ''}
+    ${s.showRemoteQrModal ? `
+      <div class="qr-modal-overlay" id="remote-qr-modal" style="z-index:30000;">
+        <div class="qr-modal-content" style="max-width:440px;">
+          <button class="qr-modal-close" id="btn-close-remote-qr">✕</button>
+          <div style="background:#fff; padding:1.5rem; border-radius:12px; border:3px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); text-align:center;">
+            <div class="sans" style="font-weight:800; font-size:1.3rem; margin-bottom:0.8rem; color:var(--ink);">📱 Phone Moderation Remote</div>
+            <div class="sans" style="font-size:0.85rem; color:var(--muted); margin-bottom:1.2rem; line-height:1.4;">
+              Scan this QR code with your phone or tablet to moderate submissions on a second screen. No login required.
+            </div>
+            <div style="display:flex; justify-content:center; margin-bottom:1.2rem;">
+              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + s.remoteToken, 240)}
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.6rem;">
+              <button class="btn-nav sans" id="btn-copy-remote-link" style="width:100%; font-size:0.85rem; font-weight:700; border:2px solid var(--ink); padding:0.5rem; background:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">📋 Copy Remote Link</button>
+              <button class="btn-clear sans" id="btn-disconnect-remote" style="width:100%; font-size:0.85rem; font-weight:700; border:2px solid var(--ink); padding:0.5rem; background:var(--pink); color:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">🔌 Disconnect Remote</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2527,10 +3103,128 @@ function renderTeacherLive() {
       }
     };
   }
+  // Mode Selection Handlers
+  ['classic', 'split', 'remote'].forEach(mode => {
+    const btn = document.getElementById('pres-mode-' + mode);
+    if (btn) {
+      btn.onclick = async () => {
+        const oldMode = s.presentationMode || 'classic';
+        if (oldMode === mode) return;
+        
+        s.presentationMode = mode;
+        
+        // Update database configuration
+        const raw = await kvGet('room:' + s.code + ':config');
+        if (raw) {
+          try {
+            const cfg = JSON.parse(raw);
+            cfg.presentationMode = mode;
+            if (mode === 'remote') {
+              if (!cfg.remoteToken) cfg.remoteToken = Math.random().toString(36).slice(2) + Date.now().toString(36).slice(4);
+              s.remoteToken = cfg.remoteToken;
+            }
+            await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
+            
+            // Initialize shadow room row
+            if (mode !== 'classic') {
+              await kvSet('room:MOD-' + s.code + ':posts', '[]');
+              await kvSet('room:MOD-' + s.code + ':words', '[]');
+              const initVotes = s.type === 'ranking' ? '[]' : (s.type === 'poll' ? JSON.stringify(s.questions.map(q => q.options.map(() => 0))) : JSON.stringify((s.options || []).map(() => 0)));
+              await kvSet('room:MOD-' + s.code + ':votes', initVotes);
+              await kvSet('room:MOD-' + s.code + ':responses', '[]');
+              await kvSet('room:MOD-' + s.code + ':config', '{}');
+            }
+          } catch (e) {}
+        }
+        
+        // If switching back to classic, automatically approve/merge any pending submissions
+        if (mode === 'classic') {
+          await mergeShadowIntoMain(s.code);
+        }
+        
+        // If switching to remote, automatically show the QR code modal
+        if (mode === 'remote') {
+          s.showRemoteQrModal = true;
+        }
+        
+        render();
+      };
+    }
+  });
 
+  const openDisplayBtn = document.getElementById('btn-open-display');
+  if (openDisplayBtn) {
+    openDisplayBtn.onclick = () => {
+      window.open(window.location.href.split('#')[0].split('?')[0] + '?display=' + s.code, '_blank');
+    };
+  }
+
+  const showRemoteQrBtn = document.getElementById('btn-show-remote-qr');
+  if (showRemoteQrBtn) {
+    showRemoteQrBtn.onclick = () => {
+      s.showRemoteQrModal = true;
+      render();
+    };
+  }
+
+  const closeRemoteQrBtn = document.getElementById('btn-close-remote-qr');
+  if (closeRemoteQrBtn) {
+    closeRemoteQrBtn.onclick = () => {
+      s.showRemoteQrModal = false;
+      render();
+    };
+  }
+
+  const copyRemoteLinkBtn = document.getElementById('btn-copy-remote-link');
+  if (copyRemoteLinkBtn) {
+    copyRemoteLinkBtn.onclick = () => {
+      const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + s.remoteToken;
+      navigator.clipboard.writeText(link).then(() => {
+        copyRemoteLinkBtn.textContent = '✓ Copied!';
+        setTimeout(() => { copyRemoteLinkBtn.textContent = '📋 Copy Remote Link'; }, 2000);
+      });
+    };
+  }
+
+  const disconnectRemoteBtn = document.getElementById('btn-disconnect-remote');
+  if (disconnectRemoteBtn) {
+    disconnectRemoteBtn.onclick = async () => {
+      if (confirm("Disconnect the current phone remote? This will generate a new secret token.")) {
+        s.remoteToken = Math.random().toString(36).slice(2) + Date.now().toString(36).slice(4);
+        s.remoteConnected = false;
+        const raw = await kvGet('room:' + s.code + ':config');
+        if (raw) {
+          try {
+            const cfg = JSON.parse(raw);
+            cfg.remoteToken = s.remoteToken;
+            cfg.remoteConnected = false;
+            await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
+          } catch (e) {}
+        }
+        render();
+      }
+    };
+  }
   renderTeacherStage();
-  stopPolling();
   const tick = async () => {
+    const cfgRaw = await kvGet('room:' + s.code + ':config');
+    if (cfgRaw) {
+      try {
+        const cfg = JSON.parse(cfgRaw);
+        const prevMode = s.presentationMode;
+        s.presentationMode = cfg.presentationMode || 'classic';
+        s.remoteToken = cfg.remoteToken || null;
+        s.blockedSessions = cfg.blockedSessions || [];
+        s.remoteConnected = cfg.remoteConnected || false;
+        s.revealed = cfg.revealed !== undefined ? cfg.revealed : s.revealed;
+        
+        if (prevMode !== s.presentationMode) {
+          render();
+          return;
+        }
+      } catch (e) {}
+    }
+
     if (isChoice) {
       const raw = await kvGet('room:' + s.code + ':votes');
       if (raw) { try { s.votes = JSON.parse(raw); } catch (e) {} }
@@ -2547,7 +3241,44 @@ function renderTeacherLive() {
     if (document.getElementById('submission-count')) document.getElementById('submission-count').textContent = teacherCountLabel(s);
     renderTeacherStage();
   };
-  pollTimer = setupRealtimeListener(s.code, tick);
+
+  const shadowTick = async () => {
+    if (isChoice) {
+      const raw = await kvGet('room:MOD-' + s.code + ':votes');
+      if (raw) { try { s.pendingVotes = JSON.parse(raw); } catch (e) {} }
+    } else if (s.type === 'ranking') {
+      const raw = await kvGet('room:MOD-' + s.code + ':votes');
+      if (raw) { try { s.pendingVotes = JSON.parse(raw); } catch (e) {} }
+    } else if (isBrainstorm) {
+      const raw = await kvGet('room:MOD-' + s.code + ':posts');
+      if (raw) { try { s.pendingPosts = JSON.parse(raw); } catch (e) {} }
+    } else {
+      const raw = await kvGet('room:MOD-' + s.code + ':words');
+      if (raw) { try { s.pendingWords = JSON.parse(raw); } catch (e) {} }
+    }
+    
+    const cfgRaw = await kvGet('room:' + s.code + ':config');
+    if (cfgRaw) {
+      try {
+        const cfg = JSON.parse(cfgRaw);
+        s.remoteConnected = cfg.remoteConnected || false;
+        s.presentationMode = cfg.presentationMode || 'classic';
+      } catch (e) {}
+    }
+    
+    renderTeacherStage();
+  };
+
+  if (state.lastListenerCode !== s.code || state.lastListenerMode !== (s.presentationMode || 'classic')) {
+    stopPolling();
+    state.lastListenerCode = s.code;
+    state.lastListenerMode = s.presentationMode || 'classic';
+    
+    pollTimer = setupRealtimeListener(s.code, tick);
+    if (s.presentationMode && s.presentationMode !== 'classic') {
+      shadowTimer = setupRealtimeListener('MOD-' + s.code, shadowTick);
+    }
+  }
 }
 
 async function pollGoTo(newIndex) {
@@ -2565,6 +3296,502 @@ async function pollGoTo(newIndex) {
     } catch (e) {}
   }
   render();
+}
+
+async function startDisplayOnlyView(code) {
+  state = { screen: 'displayView', code: code, posts: [], words: [], votes: [], config: {}, boardMode: true };
+  
+  const configRaw = await kvGet('room:' + code + ':config');
+  if (configRaw) {
+    try {
+      const cfg = JSON.parse(configRaw);
+      state.type = cfg.type;
+      state.prompt = cfg.prompt;
+      state.questions = cfg.questions;
+      state.currentIndex = cfg.currentIndex || 0;
+      state.revealMode = cfg.revealMode || 'instant';
+      state.revealed = cfg.revealed;
+      state.likesEnabled = !!cfg.likesEnabled;
+      state.presentationMode = cfg.presentationMode || 'classic';
+    } catch (e) {}
+  }
+  
+  if (state.type === 'mc' || state.type === 'poll') {
+    const raw = await kvGet('room:' + code + ':votes');
+    if (raw) { try { state.votes = JSON.parse(raw); } catch (e) {} }
+  } else if (state.type === 'ranking') {
+    const raw = await kvGet('room:' + code + ':votes');
+    if (raw) { try { state.votes = JSON.parse(raw); } catch (e) {} }
+  } else if (state.type === 'brainstorm' || state.type === 'sticky') {
+    const raw = await kvGet('room:' + code + ':posts');
+    if (raw) { try { state.posts = JSON.parse(raw); } catch (e) {} }
+  } else {
+    const raw = await kvGet('room:' + code + ':words');
+    if (raw) { try { state.words = JSON.parse(raw); } catch (e) {} }
+  }
+  
+  render();
+  
+  stopPolling();
+  const tick = async () => {
+    const cfgRaw = await kvGet('room:' + code + ':config');
+    if (cfgRaw) {
+      try {
+        const cfg = JSON.parse(cfgRaw);
+        state.prompt = cfg.prompt;
+        state.currentIndex = cfg.currentIndex || 0;
+        state.revealed = cfg.revealed;
+        state.likesEnabled = !!cfg.likesEnabled;
+        state.mergeMode = cfg.mergeMode;
+        state.moveMode = cfg.moveMode;
+      } catch (e) {}
+    }
+    
+    if (state.type === 'mc' || state.type === 'poll') {
+      const raw = await kvGet('room:' + code + ':votes');
+      if (raw) { try { state.votes = JSON.parse(raw); } catch (e) {} }
+    } else if (state.type === 'ranking') {
+      const raw = await kvGet('room:' + code + ':votes');
+      if (raw) { try { state.votes = JSON.parse(raw); } catch (e) {} }
+    } else if (state.type === 'brainstorm' || state.type === 'sticky') {
+      const raw = await kvGet('room:' + code + ':posts');
+      if (raw) { try { state.posts = JSON.parse(raw); } catch (e) {} }
+    } else {
+      const raw = await kvGet('room:' + code + ':words');
+      if (raw) { try { state.words = JSON.parse(raw); } catch (e) {} }
+    }
+    render();
+  };
+  pollTimer = setupRealtimeListener(code, tick);
+}
+
+function renderDisplayView() {
+  const s = state;
+  const isChoice = s.type === 'mc' || s.type === 'poll';
+  const joinUrl = window.location.href.split('#')[0].split('?')[0] + '?join=' + s.code;
+
+  app.innerHTML = `
+    <div class="live-wrap board-mode-active" style="padding: 1.5rem !important; height: 100vh; display: flex; flex-direction: column; justify-content: space-between; background: var(--stage-dark); box-sizing: border-box; overflow: hidden; width: 100vw; position: fixed; top: 0; left: 0;">
+      <!-- Top display badge -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding-bottom:0.8rem; background:#fff; border-radius:10px; padding:0.8rem 1.2rem; border:3px solid var(--ink); box-shadow:4px 4px 0 var(--shadow); z-index: 10;">
+        <div class="sans" style="font-weight:900; font-size:1.4rem; color:var(--ink);">
+          ${escapeHtml(isChoice ? currentPromptText(s) : s.prompt)}
+        </div>
+        <div style="display:flex; gap:1rem; align-items:center;">
+          <div class="room-badge" style="padding:0.4rem 0.8rem; font-size:1.1rem; border-radius:8px; border:2px solid var(--ink); background:var(--yellow); box-shadow:2px 2px 0 var(--shadow); font-weight:800; font-family:monospace; color:var(--ink);">
+            ROOM: ${s.code}
+          </div>
+        </div>
+      </div>
+      <!-- Fullscreen stage -->
+      <div id="cloud-stage" style="flex:1; width:100%; position:relative; min-height:0; display:flex; flex-direction:column; align-items:stretch; justify-content:stretch;"></div>
+      
+      <!-- Optional floating indicator for teacher remote -->
+      ${state.screen === 'teacherLive' ? `
+        <button class="btn-nav sans" id="btn-show-remote-qr" style="position:fixed; bottom:20px; right:20px; z-index:10000; box-shadow:4px 4px 0 var(--shadow); display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
+          📱 Remote: 
+          <span style="font-size:0.75rem; padding:0.15rem 0.4rem; border-radius:4px; background:${s.remoteConnected ? 'var(--green)' : 'var(--pink)'}; color:#fff; font-weight:700;">
+            ${s.remoteConnected ? 'Connected' : 'Offline'}
+          </span>
+        </button>
+      ` : ''}
+    </div>
+
+    ${s.showRemoteQrModal ? `
+      <div class="qr-modal-overlay" id="remote-qr-modal" style="z-index:30000;">
+        <div class="qr-modal-content" style="max-width:440px;">
+          <button class="qr-modal-close" id="btn-close-remote-qr">✕</button>
+          <div style="background:#fff; padding:1.5rem; border-radius:12px; border:3px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); text-align:center;">
+            <div class="sans" style="font-weight:800; font-size:1.3rem; margin-bottom:0.8rem; color:var(--ink);">📱 Phone Moderation Remote</div>
+            <div class="sans" style="font-size:0.85rem; color:var(--muted); margin-bottom:1.2rem; line-height:1.4;">
+              Scan this QR code with your phone or tablet to moderate submissions on a second screen. No login required.
+            </div>
+            <div style="display:flex; justify-content:center; margin-bottom:1.2rem;">
+              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + s.remoteToken, 240)}
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.6rem;">
+              <button class="btn-nav sans" id="btn-copy-remote-link" style="width:100%; font-size:0.85rem; font-weight:700; border:2px solid var(--ink); padding:0.5rem; background:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">📋 Copy Remote Link</button>
+              <button class="btn-clear sans" id="btn-disconnect-remote" style="width:100%; font-size:0.85rem; font-weight:700; border:2px solid var(--ink); padding:0.5rem; background:var(--pink); color:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">🔌 Disconnect Remote</button>
+            </div>
+            <div style="display:flex; gap:0.4rem; align-items:center; margin-top:1.2rem; justify-content:center; flex-wrap:wrap;">
+              <span class="sans" style="font-weight:700; font-size:0.85rem; color:var(--ink);">Switch Mode:</span>
+              <button class="btn-nav sans" id="modal-pres-mode-classic" style="padding:0.4rem 0.6rem; font-size:0.75rem; font-weight:700; border:2px solid var(--ink); cursor:pointer; border-radius:4px; box-shadow:1px 1px 0 var(--shadow); background:#fff;">Classic</button>
+              <button class="btn-nav sans" id="modal-pres-mode-split" style="padding:0.4rem 0.6rem; font-size:0.75rem; font-weight:700; border:2px solid var(--ink); cursor:pointer; border-radius:4px; box-shadow:1px 1px 0 var(--shadow); background:#fff;">Split Screen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    ` : ''}
+  `;
+  
+  if (s.type === 'mc' || s.type === 'poll') renderMCStage();
+  else if (s.type === 'brainstorm') renderBrainstormStage();
+  else if (s.type === 'sticky') renderStickyStage();
+  else if (s.type === 'ranking') renderRankingStage();
+  else renderCloudStage();
+}
+
+async function startRemoteControlView(code, token) {
+  state = { screen: 'phoneRemote', code: code, token: token, posts: [], words: [], votes: [], config: {} };
+  
+  const configRaw = await kvGet('room:' + code + ':config');
+  if (configRaw) {
+    try {
+      const cfg = JSON.parse(configRaw);
+      state.type = cfg.type;
+      state.prompt = cfg.prompt;
+      state.questions = cfg.questions;
+      state.currentIndex = cfg.currentIndex || 0;
+      state.revealMode = cfg.revealMode || 'instant';
+      state.revealed = cfg.revealed;
+      state.likesEnabled = !!cfg.likesEnabled;
+      state.presentationMode = cfg.presentationMode || 'classic';
+      state.dbRemoteToken = cfg.remoteToken;
+    } catch (e) {}
+  }
+  
+  if (state.dbRemoteToken === token) {
+    const raw = await kvGet('room:' + code + ':config');
+    if (raw) {
+      try {
+        const cfg = JSON.parse(raw);
+        cfg.remoteConnected = true;
+        await kvSet('room:' + code + ':config', JSON.stringify(cfg));
+      } catch (e) {}
+    }
+  } else {
+    state.unauthorized = true;
+  }
+  
+  render();
+  
+  if (state.unauthorized) return;
+  
+  stopPolling();
+  
+  const tick = async () => {
+    const cfgRaw = await kvGet('room:' + code + ':config');
+    if (cfgRaw) {
+      try {
+        const cfg = JSON.parse(cfgRaw);
+        if (cfg.remoteToken !== token) {
+          stopPolling();
+          state.unauthorized = true;
+          render();
+          return;
+        }
+        state.prompt = cfg.prompt;
+        state.currentIndex = cfg.currentIndex || 0;
+        state.revealed = cfg.revealed;
+        state.likesEnabled = !!cfg.likesEnabled;
+        state.presentationMode = cfg.presentationMode || 'classic';
+      } catch (e) {}
+    }
+    
+    if (state.type === 'mc' || state.type === 'poll') {
+      const raw = await kvGet('room:' + code + ':votes');
+      if (raw) { try { state.votes = JSON.parse(raw); } catch (e) {} }
+    } else if (state.type === 'ranking') {
+      const raw = await kvGet('room:' + code + ':votes');
+      if (raw) { try { state.votes = JSON.parse(raw); } catch (e) {} }
+    } else if (state.type === 'brainstorm' || state.type === 'sticky') {
+      const raw = await kvGet('room:' + code + ':posts');
+      if (raw) { try { state.posts = JSON.parse(raw); } catch (e) {} }
+    } else {
+      const raw = await kvGet('room:' + code + ':words');
+      if (raw) { try { state.words = JSON.parse(raw); } catch (e) {} }
+    }
+    render();
+  };
+  
+  const shadowTick = async () => {
+    if (state.type === 'mc' || state.type === 'poll') {
+      const raw = await kvGet('room:MOD-' + code + ':votes');
+      if (raw) { try { state.pendingVotes = JSON.parse(raw); } catch (e) {} }
+    } else if (state.type === 'ranking') {
+      const raw = await kvGet('room:MOD-' + code + ':votes');
+      if (raw) { try { state.pendingVotes = JSON.parse(raw); } catch (e) {} }
+    } else if (state.type === 'brainstorm' || state.type === 'sticky') {
+      const raw = await kvGet('room:MOD-' + code + ':posts');
+      if (raw) { try { state.pendingPosts = JSON.parse(raw); } catch (e) {} }
+    } else {
+      const raw = await kvGet('room:MOD-' + code + ':words');
+      if (raw) { try { state.pendingWords = JSON.parse(raw); } catch (e) {} }
+    }
+    render();
+  };
+  
+  pollTimer = setupRealtimeListener(code, tick);
+  shadowTimer = setupRealtimeListener('MOD-' + code, shadowTick);
+}
+
+window.addEventListener('beforeunload', async () => {
+  if (state.screen === 'phoneRemote') {
+    const raw = await kvGet('room:' + state.code + ':config');
+    if (raw) {
+      try {
+        const cfg = JSON.parse(raw);
+        cfg.remoteConnected = false;
+        await kvSet('room:' + state.code + ':config', JSON.stringify(cfg));
+      } catch (e) {}
+    }
+  }
+});
+
+function renderPhoneRemote() {
+  const s = state;
+  if (s.unauthorized) {
+    app.innerHTML = `
+      <div class="student-wrap" style="max-width:500px;margin:3rem auto;text-align:center;box-sizing:border-box;padding:1rem;">
+        <div class="sans" style="text-align:center;font-size:1.3rem;font-weight:800;color:var(--pink);background:#fff;padding:2.5rem 2rem;border-radius:12px;border:3.5px solid var(--ink);box-shadow:6px 6px 0 var(--shadow);">
+          ⚠️ Session Terminated
+          <div style="font-size:0.95rem;font-weight:500;color:var(--ink);margin-top:0.8rem;line-height:1.5;">
+            This remote control token is invalid or has expired. Make sure you scanned the latest QR code from your dashboard.
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
+  
+  const pending = getPendingItemsList(s);
+  const dismissed = s.dismissedItems || [];
+  
+  app.innerHTML = `
+    <div class="student-wrap" style="max-width:480px; margin:0 auto; padding:1rem; box-sizing:border-box;">
+      <div class="student-header" style="text-align:left; display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding-bottom:0.6rem; border-bottom:2.5px solid var(--ink);">
+        <div>
+          <div class="student-room-code sans" style="font-size:0.85rem; padding:0.15rem 0.4rem;">Remote Mode</div>
+          <div class="student-prompt" style="font-size:1rem; font-weight:700; margin-top:0.2rem; color:#fff;">Room ${s.code}</div>
+        </div>
+        <button class="btn-clear sans" id="btn-remote-disconnect" style="padding:0.35rem 0.6rem; font-size:0.75rem; font-weight:700; border:2px solid var(--ink); background:var(--pink); color:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">Disconnect</button>
+      </div>
+      
+      <div class="sans" style="font-size:0.85rem; color:rgba(255,255,255,0.85); line-height:1.4; margin-bottom:1rem; text-align:left;">
+        💡 Swipe <strong>Right 👉</strong> to Reveal on Smartboard.<br>
+        💡 Swipe <strong>Left 👈</strong> to Dismiss.
+      </div>
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.6rem; width:100%;">
+        <div class="sans" style="font-weight:800; font-size:1.1rem; color:#fff;">
+          📥 Inbox (${pending.length})
+        </div>
+        <button class="btn-reveal sans" id="btn-remote-approve-all" style="padding:0.4rem 0.8rem; font-size:0.75rem; background:var(--green); color:#fff; border:2px solid var(--ink); box-shadow:2px 2px 0 var(--shadow); cursor:pointer; border-radius:6px; font-weight:700;" ${pending.length === 0 ? 'disabled' : ''}>
+          🔓 Reveal All
+        </button>
+      </div>
+      
+      <div class="pending-list" style="display:flex; flex-direction:column; gap:0.8rem; margin-bottom:1.5rem; min-height:150px;">
+        ${pending.length === 0 ? `
+          <div class="sans" style="text-align:center; color:rgba(255,255,255,0.7); margin-top:2rem; font-style:italic;">
+            No pending submissions.
+          </div>
+        ` : pending.map((item, index) => {
+          const isNew = index === pending.length - 1;
+          return `
+            <div class="mod-card sans phone-mod-card" data-id="${item.id}" style="display:flex; justify-content:space-between; align-items:center; padding:0.8rem; border:2.5px solid var(--ink); border-radius:8px; background:${isNew ? '#FFF9C4' : '#fff'}; box-shadow:3px 3px 0 var(--shadow); transition:transform 0.2s, opacity 0.2s; position:relative; overflow:hidden; touch-action:pan-y; color:var(--ink);">
+              <div style="display:flex; align-items:center; gap:0.6rem; flex:1;">
+                ${item.image ? `
+                  <div class="mod-img-thumbnail" data-img="${item.image}" style="cursor:zoom-in; width:45px; height:45px; border:1.8px solid var(--ink); border-radius:4px; overflow:hidden; box-shadow:1px 1px 0 var(--shadow); flex-shrink:0;">
+                    <img src="${item.image}" style="width:100%; height:100%; object-fit:cover;" />
+                  </div>
+                ` : ''}
+                <div style="text-align:left; flex:1; overflow:hidden;">
+                  <div style="font-weight:700; font-size:0.9rem; word-break:break-word;">
+                    ${escapeHtml(
+                      s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky'
+                        ? item.text
+                        : (s.type === 'ranking' 
+                            ? item.value.map(idx => s.options[idx]).join(' › ')
+                            : (item.studentName ? item.studentName + ': ' : 'Anonymous: ') + item.value.map(idx => s.options[idx] || (s.questions && s.questions[currentIndexOf(s)].options[idx])).join(', ')
+                          )
+                    )}
+                  </div>
+                  ${item.sessionId ? `
+                    <div style="font-size:0.7rem; color:var(--muted); margin-top:0.15rem; display:flex; gap:0.5rem;">
+                      <span>Student: ${item.sessionId.slice(0, 5)}</span>
+                      <button class="block-dev-btn" data-session="${item.sessionId}" style="border:none; background:none; color:var(--pink); cursor:pointer; padding:0; font-size:0.7rem; text-decoration:underline; font-weight:700;">Block</button>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+              <div style="display:flex; gap:0.3rem; align-items:center; margin-left:0.5rem; flex-shrink:0;">
+                <button class="btn-reveal sans btn-remote-card-approve" data-id="${item.id}" style="padding:0.35rem 0.5rem; font-size:0.75rem; background:var(--green); color:#fff; border:1.5px solid var(--ink); box-shadow:1.5px 1.5px 0 var(--shadow); cursor:pointer; border-radius:4px; font-weight:700;">Reveal</button>
+                <button class="btn-clear sans btn-remote-card-dismiss" data-id="${item.id}" style="padding:0.35rem 0.5rem; font-size:0.75rem; background:var(--pink); color:#fff; border:1.5px solid var(--ink); box-shadow:1.5px 1.5px 0 var(--shadow); cursor:pointer; border-radius:4px; font-weight:700;">✕</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      
+      <!-- Dismissed Section -->
+      <div class="dismissed-box" style="background:#fff; border:2.5px solid var(--ink); border-radius:10px; box-shadow:4px 4px 0 var(--shadow); padding:0.8rem; box-sizing:border-box; color:var(--ink); text-align:left; display:flex; flex-direction:column; margin-bottom:1.5rem;">
+        <button class="sans" id="btn-remote-toggle-dismissed" style="border:none; background:none; width:100%; text-align:left; font-weight:800; font-size:0.95rem; cursor:pointer; padding:0; display:flex; justify-content:space-between; align-items:center; color:var(--ink);">
+          <span>🗑️ Dismissed (${dismissed.length})</span>
+          <span>${s.showDismissedList ? '▼' : '►'}</span>
+        </button>
+        
+        ${s.showDismissedList ? `
+          <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.6rem; max-height:120px; overflow-y:auto; padding-right:0.1rem;">
+            ${dismissed.length === 0 ? `
+              <div class="sans" style="color:var(--muted); font-size:0.75rem; text-align:center; margin-top:0.8rem; font-style:italic;">
+                No dismissed items.
+              </div>
+            ` : dismissed.map(item => `
+              <div class="sans" style="display:flex; justify-content:space-between; align-items:center; padding:0.4rem; border:1.5px solid var(--ink); border-radius:4px; background:#f5f5f5; font-size:0.8rem;">
+                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;">
+                  ${escapeHtml(s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' ? item.text : 'MC/Poll/Ranking Vote')}
+                </span>
+                <button class="btn-remote-undo" data-id="${item.id}" style="border:1px solid var(--ink); background:#fff; cursor:pointer; font-size:0.7rem; font-weight:700; border-radius:3px; padding:0.1rem 0.3rem;">Undo</button>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>
+      
+      <!-- Live smartboard status indicator -->
+      <div style="background:rgba(255,255,255,0.1); border:2px dashed rgba(255,255,255,0.3); padding:0.8rem; border-radius:8px; color:rgba(255,255,255,0.9); font-size:0.85rem; text-align:left;">
+        💡 You are connected to the main screen. Changes you approve here appear instantly on the classroom screen.
+      </div>
+    </div>
+
+    <!-- Zoom image overlay -->
+    ${s.zoomedImage ? `
+      <div class="qr-modal-overlay" id="img-zoom-modal" style="z-index:30000; cursor:zoom-out; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center;">
+        <div class="qr-modal-content" style="max-width:90vw; max-height:85vh;">
+          <button class="qr-modal-close" id="btn-close-img-zoom" style="top:-35px; right:-10px;">✕</button>
+          <div style="background:#fff; padding:1rem; border-radius:12px; border:3.5px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); max-height:80vh; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <img src="${s.zoomedImage}" style="max-width:100%; max-height:70vh; object-fit:contain; border-radius:4px; border:2px solid var(--ink);" />
+          </div>
+        </div>
+      </div>
+    ` : ''}
+  `;
+  
+  // Register click handlers for phone
+  const discBtn = document.getElementById('btn-remote-disconnect');
+  if (discBtn) {
+    discBtn.onclick = async () => {
+      if (confirm("Disconnect remote control?")) {
+        const raw = await kvGet('room:' + s.code + ':config');
+        if (raw) {
+          try {
+            const cfg = JSON.parse(raw);
+            cfg.remoteConnected = false;
+            await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
+          } catch (e) {}
+        }
+        stopPolling();
+        state = { screen: 'landing' };
+        render();
+      }
+    };
+  }
+  
+  const approveAllBtn = document.getElementById('btn-remote-approve-all');
+  if (approveAllBtn) approveAllBtn.onclick = approveAllSubmissions;
+  
+  const toggleDismissedBtn = document.getElementById('btn-remote-toggle-dismissed');
+  if (toggleDismissedBtn) {
+    toggleDismissedBtn.onclick = () => {
+      s.showDismissedList = !s.showDismissedList;
+      render();
+    };
+  }
+  
+  document.querySelectorAll('.btn-remote-card-approve').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      const item = pending.find(i => i.id === id);
+      if (item) approveSubmission(item);
+    };
+  });
+  
+  document.querySelectorAll('.btn-remote-card-dismiss').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      const item = pending.find(i => i.id === id);
+      if (item) dismissSubmission(item);
+    };
+  });
+  
+  document.querySelectorAll('.btn-remote-undo').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      const item = dismissed.find(i => i.id === id);
+      if (item) undoDismiss(item);
+    };
+  });
+  
+  document.querySelectorAll('.block-dev-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const sessionId = btn.dataset.session;
+      blockDevice(sessionId);
+    };
+  });
+  
+  document.querySelectorAll('.mod-img-thumbnail').forEach(el => {
+    el.onclick = (e) => {
+      e.stopPropagation();
+      s.zoomedImage = el.dataset.img;
+      render();
+    };
+  });
+
+  const imgZoomModal = document.getElementById('img-zoom-modal');
+  if (imgZoomModal) {
+    imgZoomModal.onclick = (e) => {
+      if (e.target === imgZoomModal || e.target.id === 'btn-close-img-zoom') {
+        s.zoomedImage = null;
+        render();
+      }
+    };
+  }
+  
+  // Register Swipe touch gesture events
+  document.querySelectorAll('.phone-mod-card').forEach(card => {
+    let startX = 0;
+    let startY = 0;
+    const id = card.dataset.id;
+    const item = pending.find(i => i.id === id);
+    if (!item) return;
+    
+    card.ontouchstart = (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      card.style.transition = 'none';
+    };
+    
+    card.ontouchmove = (e) => {
+      const diffX = e.touches[0].clientX - startX;
+      const diffY = e.touches[0].clientY - startY;
+      
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) < 160) {
+        card.style.transform = `translateX(${diffX}px) rotate(${diffX * 0.05}deg)`;
+      }
+    };
+    
+    card.ontouchend = (e) => {
+      const diffX = e.changedTouches[0].clientX - startX;
+      const diffY = e.changedTouches[0].clientY - startY;
+      
+      card.style.transition = 'transform 0.2s, opacity 0.2s';
+      
+      if (Math.abs(diffX) > 85 && Math.abs(diffY) < 55) {
+        if (diffX > 0) {
+          card.style.transform = 'translateX(250px) rotate(15deg)';
+          card.style.opacity = '0';
+          setTimeout(() => approveSubmission(item), 150);
+        } else {
+          card.style.transform = 'translateX(-250px) rotate(-15deg)';
+          card.style.opacity = '0';
+          setTimeout(() => dismissSubmission(item), 150);
+        }
+      } else {
+        card.style.transform = 'none';
+      }
+    };
+  });
 }
 
 async function renderTeacherResults() {
@@ -2716,7 +3943,175 @@ function teacherCountLabel(s) {
   return totalCount(s.words) + ' submissions';
 }
 
+function getPendingItemsList(s) {
+  if (s.type === 'brainstorm' || s.type === 'sticky') return s.pendingPosts || [];
+  if (s.type === 'wordcloud') return s.pendingWords || [];
+  return s.pendingVotes || [];
+}
+
+function renderSplitModerationDashboard() {
+  const stage = document.getElementById('cloud-stage');
+  if (!stage) return;
+  const s = state;
+  
+  const pending = getPendingItemsList(s);
+  const dismissed = s.dismissedItems || [];
+  
+  stage.innerHTML = `
+    <div class="split-mod-wrap" style="display:flex;gap:1.5rem;width:100%;height:calc(100vh - 220px);box-sizing:border-box;margin-top:1rem;min-height:500px;">
+      <!-- Left Side: Moderation Queue -->
+      <div class="mod-queue-container" style="flex:1.5;display:flex;flex-direction:column;background:#fff;border:3.5px solid var(--ink);border-radius:12px;box-shadow:6px 6px 0 var(--shadow);padding:1.5rem;box-sizing:border-box;color:var(--ink);height:100%;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:1rem;width:100%;">
+          <div class="sans" style="font-weight:800;font-size:1.25rem;display:flex;align-items:center;gap:0.5rem;">
+            📥 Inbox 
+            <span id="pending-badge-count" style="background:var(--pink);color:#fff;font-size:0.85rem;padding:0.2rem 0.6rem;border-radius:20px;border:2px solid var(--ink);font-weight:800;">
+              ${pending.length} pending
+            </span>
+          </div>
+          <button class="btn-reveal sans" id="btn-approve-all" style="padding:0.4rem 0.8rem;font-size:0.8rem;background:var(--green);color:#fff;border:2.5px solid var(--ink);box-shadow:2px 2px 0 var(--shadow);cursor:pointer;border-radius:6px;font-weight:700;" ${pending.length === 0 ? 'disabled' : ''}>
+            🔓 Reveal All
+          </button>
+        </div>
+        
+        <div class="pending-list" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0.8rem;padding-right:0.3rem;">
+          ${pending.length === 0 ? `
+            <div class="sans" style="text-align:center;color:var(--muted);margin-top:4rem;font-style:italic;">
+              No pending submissions. Waiting for student input...
+            </div>
+          ` : pending.map((item, index) => {
+            const isNew = index === pending.length - 1;
+            return `
+              <div class="mod-card sans" style="display:flex;justify-content:space-between;align-items:center;padding:0.8rem;border:2.5px solid var(--ink);border-radius:8px;background:${isNew ? '#FFF9C4' : '#fff'};box-shadow:3px 3px 0 var(--shadow);transition:transform 0.1s;position:relative;">
+                ${isNew ? `<div style="position:absolute;top:-8px;left:8px;background:var(--yellow);color:var(--ink);border:1.5px solid var(--ink);font-size:0.65rem;font-weight:800;padding:0.05rem 0.3rem;border-radius:4px;box-shadow:1px 1px 0 var(--shadow);">NEW</div>` : ''}
+                <div style="display:flex;align-items:center;gap:0.8rem;flex:1;">
+                  ${item.image ? `
+                    <div class="mod-img-thumbnail" data-img="${item.image}" style="cursor:zoom-in;width:50px;height:50px;border:2px solid var(--ink);border-radius:4px;overflow:hidden;box-shadow:1px 1px 0 var(--shadow);">
+                      <img src="${item.image}" style="width:100%;height:100%;object-fit:cover;" />
+                    </div>
+                  ` : ''}
+                  <div style="text-align:left;flex:1;">
+                    <div style="font-weight:600;font-size:0.95rem;word-break:break-word;">
+                      ${escapeHtml(
+                        s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky'
+                          ? item.text
+                          : (s.type === 'ranking' 
+                              ? item.value.map(idx => s.options[idx]).join(' › ')
+                              : (item.studentName ? item.studentName + ': ' : 'Anonymous: ') + item.value.map(idx => s.options[idx] || (s.questions && s.questions[currentIndexOf(s)].options[idx])).join(', ')
+                            )
+                      )}
+                    </div>
+                    ${item.sessionId ? `
+                      <div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem;display:flex;gap:0.5rem;align-items:center;">
+                        <span>Session: ${item.sessionId.slice(0, 6)}</span>
+                        <button class="block-dev-btn" data-session="${item.sessionId}" style="border:none;background:none;color:var(--pink);cursor:pointer;padding:0;font-size:0.75rem;text-decoration:underline;font-weight:700;">Block student</button>
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+                <div style="display:flex;gap:0.4rem;align-items:center;margin-left:0.6rem;">
+                  <button class="btn-reveal sans mod-approve-btn" data-id="${item.id}" style="padding:0.35rem 0.6rem;font-size:0.8rem;background:var(--green);color:#fff;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--shadow);cursor:pointer;border-radius:4px;font-weight:700;">Reveal</button>
+                  <button class="btn-clear sans mod-dismiss-btn" data-id="${item.id}" style="padding:0.35rem 0.6rem;font-size:0.8rem;background:var(--pink);color:#fff;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--shadow);cursor:pointer;border-radius:4px;font-weight:700;">Dismiss</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+      
+      <!-- Right Side: Stats & Dismissed Section -->
+      <div class="mod-sidebar" style="flex:1;display:flex;flex-direction:column;gap:1.5rem;height:100%;">
+        <!-- Approved counts -->
+        <div style="background:#fff;border:3px solid var(--ink);border-radius:12px;box-shadow:6px 6px 0 var(--shadow);padding:1.2rem;box-sizing:border-box;color:var(--ink);text-align:left;">
+          <div class="sans" style="font-weight:800;font-size:1.1rem;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.4rem;">
+            🟢 Active Board Submissions
+          </div>
+          <div class="sans" style="font-size:0.9rem;line-height:1.4;">
+            Students connected can only see the <strong>Approved List</strong>. 
+            Open the <strong style="color:var(--green);">Display View</strong> tab and drag it to your projector display to show it to the class.
+          </div>
+        </div>
+        
+        <!-- Dismissed Queue -->
+        <div class="dismissed-box" style="flex:1;background:#fff;border:3px solid var(--ink);border-radius:12px;box-shadow:6px 6px 0 var(--shadow);padding:1.2rem;box-sizing:border-box;overflow-y:auto;color:var(--ink);display:flex;flex-direction:column;">
+          <button class="sans" id="btn-toggle-dismissed-list" style="border:none;background:none;width:100%;text-align:left;font-weight:800;font-size:1.1rem;cursor:pointer;padding:0;display:flex;justify-content:space-between;align-items:center;color:var(--ink);">
+            <span>🗑️ Dismissed (${dismissed.length})</span>
+            <span>${s.showDismissedList ? '▼' : '►'}</span>
+          </button>
+          
+          ${s.showDismissedList ? `
+            <div style="display:flex;flex-direction:column;gap:0.6rem;margin-top:0.8rem;flex:1;overflow-y:auto;padding-right:0.2rem;">
+              ${dismissed.length === 0 ? `
+                <div class="sans" style="color:var(--muted);font-size:0.8rem;text-align:center;margin-top:2rem;font-style:italic;">
+                  No dismissed items.
+                </div>
+              ` : dismissed.map(item => `
+                <div class="sans" style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem;border:2px solid var(--ink);border-radius:6px;background:#f5f5f5;font-size:0.85rem;">
+                  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;text-align:left;">
+                    ${escapeHtml(s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' ? item.text : 'MC/Poll/Ranking Vote')}
+                  </span>
+                  <button class="mod-undo-btn" data-id="${item.id}" style="border:1.5px solid var(--ink);background:#fff;cursor:pointer;font-size:0.75rem;font-weight:700;border-radius:4px;padding:0.2rem 0.4rem;box-shadow:1px 1px 0 var(--shadow);">Undo</button>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Register dashboard click handlers
+  const approveAllBtn = document.getElementById('btn-approve-all');
+  if (approveAllBtn) approveAllBtn.onclick = approveAllSubmissions;
+  
+  const toggleDismissedBtn = document.getElementById('btn-toggle-dismissed-list');
+  if (toggleDismissedBtn) {
+    toggleDismissedBtn.onclick = () => {
+      s.showDismissedList = !s.showDismissedList;
+      render();
+    };
+  }
+  
+  stage.querySelectorAll('.mod-approve-btn').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      const item = pending.find(i => i.id === id);
+      if (item) approveSubmission(item);
+    };
+  });
+  
+  stage.querySelectorAll('.mod-dismiss-btn').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      const item = pending.find(i => i.id === id);
+      if (item) dismissSubmission(item);
+    };
+  });
+  
+  stage.querySelectorAll('.mod-undo-btn').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      const item = dismissed.find(i => i.id === id);
+      if (item) undoDismiss(item);
+    };
+  });
+  
+  stage.querySelectorAll('.block-dev-btn').forEach(btn => {
+    btn.onclick = () => {
+      const sessionId = btn.dataset.session;
+      blockDevice(sessionId);
+    };
+  });
+  
+  stage.querySelectorAll('.mod-img-thumbnail').forEach(el => {
+    el.onclick = () => {
+      s.zoomedImage = el.dataset.img;
+      render();
+    };
+  });
+}
+
 function renderTeacherStage() {
+  if (state.presentationMode === 'split') return renderSplitModerationDashboard();
   if (state.type === 'mc' || state.type === 'poll') return renderMCStage();
   if (state.type === 'brainstorm') return renderBrainstormStage();
   if (state.type === 'sticky') return renderStickyStage();
@@ -3444,6 +4839,12 @@ function renderStudentWaitingRoom() {
 }
 
 function renderStudentRoom() {
+  const s = state;
+  if (!s.mySessionId) s.mySessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  if (isBlockedSession()) {
+    renderBlockedScreen();
+    return;
+  }
   if (state.type === 'mc' || state.type === 'poll') return renderStudentRoomMC();
   if (state.type === 'brainstorm') return renderStudentRoomBrainstorm();
   if (state.type === 'sticky') return renderStudentRoomSticky();
@@ -3493,18 +4894,25 @@ function renderStudentRoomRanking() {
       </div>
     </div>`;
 
+  stopPolling();
+  const tick = async () => {
+    const cfgRaw = await kvGet('room:' + s.code + ':config');
+    if (cfgRaw) {
+      try {
+        const cfg = JSON.parse(cfgRaw);
+        s.revealed = cfg.revealed;
+        s.blockedSessions = cfg.blockedSessions || [];
+        s.presentationMode = cfg.presentationMode || 'classic';
+      } catch (e) {}
+    }
+    if (isBlockedSession()) {
+      renderBlockedScreen();
+      return;
+    }
+  };
+  pollTimer = setupRealtimeListener(s.code, tick);
+
   if (s.hasVoted) {
-    stopPolling();
-    const tick = async () => {
-      const cfgRaw = await kvGet('room:' + s.code + ':config');
-      if (cfgRaw) {
-        try {
-          const cfg = JSON.parse(cfgRaw);
-          s.revealed = cfg.revealed;
-        } catch (e) {}
-      }
-    };
-    pollTimer = setupRealtimeListener(s.code, tick);
     return;
   }
 
@@ -3588,7 +4996,13 @@ function renderStudentRoomBrainstorm() {
         const cfg = JSON.parse(cfgRaw);
         s.revealed = cfg.revealed;
         s.likesEnabled = !!cfg.likesEnabled;
+        s.blockedSessions = cfg.blockedSessions || [];
+        s.presentationMode = cfg.presentationMode || 'classic';
       } catch (e) {}
+    }
+    if (isBlockedSession()) {
+      renderBlockedScreen();
+      return;
     }
     const raw = await kvGet('room:' + s.code + ':posts');
     if (raw) { try { s.posts = JSON.parse(raw); } catch (e) {} }
@@ -3643,19 +5057,31 @@ function renderStudentRoomBrainstorm() {
       return;
     }
     for (let attempt = 0; attempt < 3; attempt++) {
-      const raw = await kvGet('room:' + s.code + ':posts');
+      const targetRoom = getTargetRoom(s);
+      const raw = await kvGet('room:' + targetRoom + ':posts');
       let list = [];
       if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
-      const lower = clean.toLowerCase();
-      const existing = list.find(p => p.text.toLowerCase() === lower);
-      if (existing) {
-        existing.count = (existing.count || 1) + 1;
-        existing.ownerSessionIds = existing.ownerSessionIds || [];
-        if (existing.ownerSessionIds.indexOf(s.mySessionId) === -1) existing.ownerSessionIds.push(s.mySessionId);
+      if (targetRoom.startsWith('MOD-')) {
+        list.push({
+          id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+          text: clean,
+          likes: 0,
+          count: 1,
+          ownerSessionIds: [s.mySessionId],
+          sessionId: s.mySessionId
+        });
       } else {
-        list.push({ id: Math.random().toString(36).slice(2) + Date.now().toString(36), text: clean, likes: 0, count: 1, ownerSessionIds: [s.mySessionId] });
+        const lower = clean.toLowerCase();
+        const existing = list.find(p => p.text.toLowerCase() === lower);
+        if (existing) {
+          existing.count = (existing.count || 1) + 1;
+          existing.ownerSessionIds = existing.ownerSessionIds || [];
+          if (existing.ownerSessionIds.indexOf(s.mySessionId) === -1) existing.ownerSessionIds.push(s.mySessionId);
+        } else {
+          list.push({ id: Math.random().toString(36).slice(2) + Date.now().toString(36), text: clean, likes: 0, count: 1, ownerSessionIds: [s.mySessionId], sessionId: s.mySessionId });
+        }
       }
-      const ok = await kvSet('room:' + s.code + ':posts', JSON.stringify(list));
+      const ok = await kvSet('room:' + targetRoom + ':posts', JSON.stringify(list));
       if (ok) { s.posts = list; break; }
       await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
     }
@@ -3801,7 +5227,8 @@ function renderStudentRoomSticky() {
 
   async function submitStickyNote(text, color, image) {
     for (let attempt = 0; attempt < 3; attempt++) {
-      const raw = await kvGet('room:' + s.code + ':posts');
+      const targetRoom = getTargetRoom(s);
+      const raw = await kvGet('room:' + targetRoom + ':posts');
       let list = [];
       if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
       
@@ -3814,11 +5241,12 @@ function renderStudentRoomSticky() {
         top: 20 + Math.random() * 60,
         angle: -5 + Math.random() * 10,
         likes: 0,
-        ownerSessionIds: [s.mySessionId]
+        ownerSessionIds: [s.mySessionId],
+        sessionId: s.mySessionId
       };
       list.push(newNote);
 
-      const ok = await kvSet('room:' + s.code + ':posts', JSON.stringify(list));
+      const ok = await kvSet('room:' + targetRoom + ':posts', JSON.stringify(list));
       if (ok) { s.posts = list; break; }
       await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
     }
@@ -3843,7 +5271,13 @@ function renderStudentRoomSticky() {
         const cfg = JSON.parse(cfgRaw);
         s.revealed = cfg.revealed;
         s.likesEnabled = !!cfg.likesEnabled;
+        s.blockedSessions = cfg.blockedSessions || [];
+        s.presentationMode = cfg.presentationMode || 'classic';
       } catch (e) {}
+    }
+    if (isBlockedSession()) {
+      renderBlockedScreen();
+      return;
     }
     const raw = await kvGet('room:' + s.code + ':posts');
     if (raw) { try { s.posts = JSON.parse(raw); } catch (e) {} }
@@ -3939,7 +5373,18 @@ function renderStudentRoomWordCloud() {
   stopPolling();
   const tick = async () => {
     const cfgRaw = await kvGet('room:' + s.code + ':config');
-    if (cfgRaw) { try { s.revealed = JSON.parse(cfgRaw).revealed; } catch (e) {} }
+    if (cfgRaw) {
+      try {
+        const cfg = JSON.parse(cfgRaw);
+        s.revealed = cfg.revealed;
+        s.blockedSessions = cfg.blockedSessions || [];
+        s.presentationMode = cfg.presentationMode || 'classic';
+      } catch (e) {}
+    }
+    if (isBlockedSession()) {
+      renderBlockedScreen();
+      return;
+    }
     const raw = await kvGet('room:' + s.code + ':words');
     if (raw) { try { s.words = JSON.parse(raw); } catch (e) {} }
     renderStudentCloud();
@@ -3955,13 +5400,23 @@ function renderStudentRoomWordCloud() {
       return;
     }
     for (let attempt = 0; attempt < 3; attempt++) {
-      const raw = await kvGet('room:' + s.code + ':words');
+      const targetRoom = getTargetRoom(s);
+      const raw = await kvGet('room:' + targetRoom + ':words');
       let list = [];
       if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
-      const lower = clean.toLowerCase();
-      const existing = list.find(w => w.text.toLowerCase() === lower);
-      if (existing) existing.count += 1; else list.push({ text: clean, count: 1 });
-      const ok = await kvSet('room:' + s.code + ':words', JSON.stringify(list));
+      if (targetRoom.startsWith('MOD-')) {
+        list.push({
+          id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+          text: clean,
+          count: 1,
+          sessionId: s.mySessionId
+        });
+      } else {
+        const lower = clean.toLowerCase();
+        const existing = list.find(w => w.text.toLowerCase() === lower);
+        if (existing) existing.count += 1; else list.push({ text: clean, count: 1 });
+      }
+      const ok = await kvSet('room:' + targetRoom + ':words', JSON.stringify(list));
       if (ok) { s.words = list; break; }
       await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
     }
@@ -4004,6 +5459,14 @@ function renderStudentRoomMC() {
       try {
         const cfg = JSON.parse(cfgRaw);
         s.revealed = cfg.revealed;
+        s.blockedSessions = cfg.blockedSessions || [];
+        s.presentationMode = cfg.presentationMode || 'classic';
+        
+        if (isBlockedSession()) {
+          renderBlockedScreen();
+          return;
+        }
+        
         if (isPoll && cfg.finished && s.studentName) {
           stopPolling();
           state = { screen: 'studentQuizResults', code: s.code, questions: s.questions, studentName: s.studentName };
@@ -4069,26 +5532,46 @@ async function submitVote() {
   const isPoll = s.type === 'poll';
   const qIndex = currentIndexOf(s);
   document.getElementById('btn-submit-vote').disabled = true;
+  
+  const targetRoom = getTargetRoom(s);
+  const isShadow = targetRoom.startsWith('MOD-');
+  
   for (let attempt = 0; attempt < 3; attempt++) {
-    const raw = await kvGet('room:' + s.code + ':votes');
-    let votes = emptyVotesStructure(s);
-    if (raw) { try { votes = JSON.parse(raw); } catch (e) {} }
-    let target;
-    if (isPoll) {
-      if (!votes[qIndex]) votes[qIndex] = currentOptions(s).map(() => 0);
-      target = votes[qIndex];
+    const raw = await kvGet('room:' + targetRoom + ':votes');
+    
+    if (isShadow) {
+      let list = [];
+      if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
+      list.push({
+        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+        value: s.selected.slice(),
+        qIndex,
+        studentName: s.studentName,
+        sessionId: s.mySessionId
+      });
+      const ok = await kvSet('room:' + targetRoom + ':votes', JSON.stringify(list));
+      if (ok) break;
     } else {
-      target = votes;
+      let votes = emptyVotesStructure(s);
+      if (raw) { try { votes = JSON.parse(raw); } catch (e) {} }
+      let target;
+      if (isPoll) {
+        if (!votes[qIndex]) votes[qIndex] = currentOptions(s).map(() => 0);
+        target = votes[qIndex];
+      } else {
+        target = votes;
+      }
+      s.selected.forEach(idx => { target[idx] = (target[idx] || 0) + 1; });
+      const ok = await kvSet('room:' + targetRoom + ':votes', JSON.stringify(votes));
+      if (ok) { s.votes = votes; break; }
     }
-    s.selected.forEach(idx => { target[idx] = (target[idx] || 0) + 1; });
-    const ok = await kvSet('room:' + s.code + ':votes', JSON.stringify(votes));
-    if (ok) { s.votes = votes; break; }
     await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
   }
+  
   s.hasVoted = true;
   if (isPoll) {
     s.answeredIndices[qIndex] = true;
-    if (s.studentName) await recordStudentResponse(s, qIndex, s.selected.slice());
+    if (s.studentName && !isShadow) await recordStudentResponse(s, qIndex, s.selected.slice());
   }
   document.getElementById('mc-status-note').textContent = '✓ Vote submitted — thanks!';
   renderMCOptions();
@@ -4097,7 +5580,8 @@ async function submitVote() {
 
 async function recordStudentResponse(s, qIndex, selectedIndices) {
   for (let attempt = 0; attempt < 3; attempt++) {
-    const raw = await kvGet('room:' + s.code + ':responses');
+    const targetRoom = getTargetRoom(s);
+    const raw = await kvGet('room:' + targetRoom + ':responses');
     let list = [];
     if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
     const lower = s.studentName.trim().toLowerCase();
@@ -4110,7 +5594,7 @@ async function recordStudentResponse(s, qIndex, selectedIndices) {
       record.answers = s.questions.map((_, i) => (record.answers && record.answers[i]) || null);
     }
     record.answers[qIndex] = selectedIndices;
-    const ok = await kvSet('room:' + s.code + ':responses', JSON.stringify(list));
+    const ok = await kvSet('room:' + targetRoom + ':responses', JSON.stringify(list));
     if (ok) return;
     await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
   }
@@ -4185,7 +5669,7 @@ function exportBoard(format) {
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
       const a = document.createElement('a');
       a.href = dataUrl;
-      a.download = `blurt-board-${state.code}.jpg`;
+      a.download = `bowerboard-${state.code}.jpg`;
       a.click();
     } else if (format === 'pdf') {
       const { jsPDF } = window.jspdf;
@@ -4195,7 +5679,7 @@ function exportBoard(format) {
         format: [canvas.width, canvas.height]
       });
       pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, canvas.width, canvas.height);
-      pdf.save(`blurt-board-${state.code}.pdf`);
+      pdf.save(`bowerboard-${state.code}.pdf`);
     }
   }).catch(err => {
     document.body.style.cursor = originalCursor;
@@ -4207,11 +5691,18 @@ function exportBoard(format) {
 (function init() {
   const params = new URLSearchParams(window.location.search);
   const joinCode = params.get('join');
+  const displayCode = params.get('display');
+  const remoteCode = params.get('remote');
+  const remoteToken = params.get('token');
+
   if (joinCode) {
     state = { screen: 'studentJoin', codeInput: joinCode.toUpperCase(), error: '' };
     render();
-    // auto-trigger join
     document.getElementById('btn-join').click();
+  } else if (displayCode) {
+    startDisplayOnlyView(displayCode.toUpperCase());
+  } else if (remoteCode) {
+    startRemoteControlView(remoteCode.toUpperCase(), remoteToken);
   } else {
     render();
   }

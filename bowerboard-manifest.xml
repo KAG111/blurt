@@ -7,9 +7,9 @@
   <!-- Unique ID for the Add-in -->
   <Id>399e8f69-ee83-4f99-afd2-206c553f5977</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>Blurt App</ProviderName>
+  <ProviderName>Bowerboard</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Blurt Board" />
+  <DisplayName DefaultValue="Bowerboard" />
   <Description DefaultValue="Live word clouds, polls, brainstorms, and sticky notes directly inside your PowerPoint slides." />
   
   <IconUrl DefaultValue="https://blurtapp.netlify.app/favicon.ico" />
@@ -21,7 +21,7 @@
   </Hosts>
   
   <DefaultSettings>
-    <!-- Point to the live Blurt Web URL -->
+    <!-- Point to the live Bowerboard Web URL -->
     <SourceLocation DefaultValue="https://blurtapp.netlify.app/" />
     <RequestedWidth>1000</RequestedWidth>
     <RequestedHeight>600</RequestedHeight>
