@@ -836,6 +836,15 @@
     .cartoon-arrow-tooltip::before {
       display: none !important;
     }
+    .flow-diagram-container {
+      flex-direction: column !important;
+      gap: 0.5rem !important;
+      align-items: stretch !important;
+    }
+    .flow-arrow {
+      transform: rotate(90deg) !important;
+      margin: 0.25rem 0 !important;
+    }
   }
 </style>
 </head>
@@ -1740,6 +1749,52 @@ function renderLanding() {
           </div>
           <div class="footnote" style="font-size:0.85rem; color:#AFA5C7; font-weight:500;">
             Answers are anonymous — nothing is linked to a name.
+          </div>
+          
+          <!-- Fun Flow Diagram -->
+          <div class="flow-diagram-container sans" style="display:flex; gap:0.5rem; align-items:center; margin-top:1.5rem; width:100%; justify-content:space-between; flex-wrap:wrap;">
+            <!-- Step 1 -->
+            <div style="flex:1; min-width:130px; background:#FFE57F; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
+              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 1</div>
+              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Build a Bower</div>
+              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Choose room type & write topic.</div>
+            </div>
+            
+            <!-- Arrow -->
+            <div class="flow-arrow" style="font-size:1.15rem; color:#fff; font-weight:900; text-align:center;">➔</div>
+            
+            <!-- Step 2 -->
+            <div style="flex:1; min-width:130px; background:#FF8A80; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
+              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 2</div>
+              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Share QR/Code</div>
+              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Students scan or join. Zero logins!</div>
+            </div>
+            
+            <!-- Arrow -->
+            <div class="flow-arrow" style="font-size:1.15rem; color:#fff; font-weight:900; text-align:center;">➔</div>
+            
+            <!-- Step 3 -->
+            <div style="flex:1; min-width:130px; background:#80D8FF; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
+              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 3</div>
+              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Gather & Build</div>
+              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Moderate, group posts, show feedback!</div>
+            </div>
+          </div>
+          
+          <!-- Expandable USP Post-It -->
+          <div class="usp-postit sans" onclick="const content = this.querySelector('.usp-content'); const icon = this.querySelector('.toggle-icon'); if (content.style.maxHeight) { content.style.maxHeight = null; icon.textContent = '+'; } else { content.style.maxHeight = content.scrollHeight + 'px'; icon.textContent = '−'; }" style="background:#FFD180; border:2.5px solid var(--ink); border-radius:12px; box-shadow:3px 3px 0 var(--ink); padding:0.75rem 0.9rem; margin-top:1.5rem; text-align:left; cursor:pointer; position:relative; box-sizing:border-box; transition: transform 0.15s ease;">
+            <div style="display:flex; justify-content:space-between; align-items:center; font-family:'Outfit', sans-serif; font-size:0.95rem; font-weight:900; color:var(--ink);">
+              <span>📌 What makes bowerboard different?</span>
+              <span class="toggle-icon" style="font-size:1.1rem; font-weight:900;">+</span>
+            </div>
+            <div class="usp-content" style="max-height:0; overflow:hidden; transition: max-height 0.25s ease-out; margin-top:0;">
+              <ul style="margin:0.6rem 0 0 0; padding-left:1.1rem; font-size:0.75rem; font-weight:700; line-height:1.4; color:var(--ink); display:flex; flex-direction:column; gap:0.4rem; list-style-type:square;">
+                <li>📱 <strong>Teacher Remote:</strong> Approve and edit student posts from your phone before they go on display.</li>
+                <li>🤝 <strong>Merge Responses:</strong> Group and merge similar feedback posts to reduce visual board clutter.</li>
+                <li>📊 <strong>Free Data Export:</strong> Download classroom answers in a variety of clean formats completely for free.</li>
+                <li>⚡ <strong>Zero Logins:</strong> Instant joins and creates. No passwords, sign-ups, or installs for anyone.</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
