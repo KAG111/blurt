@@ -1432,32 +1432,26 @@ function render() {
 function renderLanding() {
   stopPolling();
   app.innerHTML = `
-    <div class="brand-bar" style="display:flex; justify-content:space-between; align-items:center; width:100%; max-width:800px; padding:1.5rem 1.2rem 0; box-sizing:border-box;">
-      <div class="brand-mark" style="display:flex; align-items:center;">
-        <img src="logo.png" style="height:48px; width:auto;" alt="bowerboard logo" />
+    <div class="bower-definition-box sans" style="max-width:240px; font-size:0.8rem; padding:0.85rem; border:3px solid var(--ink); box-shadow:3px 3px 0 var(--shadow);">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.25rem;">
+        <span style="font-weight:900; font-size:1.15rem; color:var(--ink);">bower</span>
+        <span style="font-size:0.75rem; color:var(--muted); font-style:italic; font-family:sans-serif;">/ˈbaʊ.ər/</span>
       </div>
-    </div>
-    
-    <div class="bower-definition-box sans">
-      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.4rem;">
-        <span style="font-weight:900; font-size:1.25rem; color:var(--ink);">bower</span>
-        <span style="font-size:0.85rem; color:var(--muted); font-style:italic; font-family:sans-serif;">/ˈbaʊ.ər/</span>
+      <div style="font-size:0.7rem; color:var(--muted); margin-bottom:0.4rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">noun</div>
+      <div style="font-size:0.8rem; line-height:1.45; color:var(--ink); margin-bottom:0.5rem;">
+        A decorated structure built by a bowerbird using a variety of articles.
       </div>
-      <div style="font-size:0.75rem; color:var(--muted); margin-bottom:0.5rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">noun</div>
-      <div style="font-size:0.85rem; line-height:1.45; color:var(--ink); margin-bottom:0.6rem;">
-        A construct built by a male bowerbird, intricately decorated with a variety of colorful articles (shells, flowers, glass, plastics) to attract others.
-      </div>
-      <div style="border-top:1.5px dashed var(--ink); padding-top:0.5rem; font-size:0.8rem; line-height:1.45; color:var(--muted); font-style:italic;">
-        "Just like the bowerbird, we gather feedback, ideas, and notes to build a beautiful, collaborative space."
+      <div style="border-top:1.5px dashed var(--ink); padding-top:0.4rem; font-size:0.75rem; line-height:1.4; color:var(--muted); font-style:italic;">
+        "Like the bowerbird, we gather student ideas, feedback, and notes to build a collaborative space."
       </div>
     </div>
 
-    <div class="screen" style="position:relative; z-index:10; max-width:600px; margin:0 auto;">
-      <div class="hero-stage" style="margin-top:1.5rem; margin-bottom:1rem; display:flex; justify-content:center;">
-        <img src="logo.png" style="max-width:100%; height:130px; width:auto; filter: drop-shadow(4px 4px 0px rgba(0,0,0,0.15));" alt="bowerboard logo" />
+    <div class="screen" style="position:relative; z-index:10; max-width:600px; margin:0 auto; padding-top:3.5rem;">
+      <div class="hero-stage" style="margin-top:2rem; margin-bottom:1.5rem; display:flex; justify-content:center;">
+        <img src="logo.png" style="max-width:100%; height:200px; width:auto; filter: drop-shadow(5px 5px 0px rgba(0,0,0,0.12));" alt="bowerboard logo" />
       </div>
       
-      <div class="subtitle sans" style="margin-top:1rem; font-size:0.95rem; line-height:1.5; color:var(--muted); margin-bottom:2rem;">
+      <div class="subtitle sans" style="margin-top:1.2rem; font-size:0.95rem; line-height:1.5; color:var(--muted); margin-bottom:2rem;">
         Interactive word clouds, sticky note boards, multiple choice polls, and ranking lists. No logins, no accounts to install.
       </div>
       
