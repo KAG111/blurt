@@ -772,6 +772,21 @@
       height: 120px;
     }
   }
+  @keyframes floatArrow {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    50% { transform: translateY(-6px) rotate(1deg); }
+  }
+  @media (max-width: 900px) {
+    .cartoon-arrow-tooltip {
+      position: static !important;
+      margin: 0.5rem auto 1.5rem !important;
+      max-width: 100% !important;
+      width: 100% !important;
+      transform: none !important;
+      box-sizing: border-box !important;
+      animation: none !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -1592,9 +1607,17 @@ function renderLanding() {
         </p>
         
         <div class="cta-section" style="display:flex; flex-direction:column; gap:16px;">
-          <div class="btn-row" style="display:flex; gap:16px; flex-wrap:wrap; justify-content:flex-start; margin-bottom:0.5rem;">
-            <button class="btn-primary" id="btn-teacher">Start a session</button>
-            <button class="btn-outline" id="btn-student">Join with a code</button>
+          <div class="btn-row" style="display:flex; gap:16px; flex-wrap:wrap; justify-content:flex-start; margin-bottom:0.5rem; position:relative; margin-top:3.5rem;">
+            <!-- Cartoon Arrow Tooltip -->
+            <div class="cartoon-arrow-tooltip sans" style="position:absolute; top:-70px; left:10px; background:var(--yellow); color:var(--ink); border:3px solid var(--ink); border-radius:12px; box-shadow:4px 4px 0 var(--ink); padding:0.6rem 0.9rem; font-size:0.8rem; font-weight:800; line-height:1.25; z-index:100; max-width:220px; text-align:left; animation: floatArrow 2s infinite ease-in-out;">
+              👉 Click through, choose a bower to build and try in Demo Mode!
+              <div style="position:absolute; bottom:-12px; left:40px; width:0; height:0; border-left:8px solid transparent; border-right:8px solid transparent; border-top:12px solid var(--ink);"></div>
+              <div style="position:absolute; bottom:-7px; left:41px; width:0; height:0; border-left:7px solid transparent; border-right:7px solid transparent; border-top:10px solid var(--yellow);"></div>
+            </div>
+            
+            <button class="btn-primary" id="btn-teacher">Build a bower</button>
+            <button class="btn-outline" id="btn-student">Join a bower</button>
+            <button class="btn-outline" id="btn-demo" style="background:var(--yellow); color:var(--ink);">Try Demo Mode</button>
           </div>
           <div class="footnote" style="font-size:0.85rem; color:#AFA5C7; font-weight:500;">
             Answers are anonymous — nothing is linked to a name.
@@ -1626,51 +1649,83 @@ function renderLanding() {
       </div>
     </div>
 
-    <!-- Product Glimpse Section (Below the fold) -->
-    <div class="product-glimpse-wrap" style="width:100%; max-width:850px; margin:4rem auto 2rem; padding:0 1.5rem; box-sizing:border-box; z-index:10; position:relative;">
-      <div style="text-align:center; margin-bottom:2rem;">
-        <span style="font-family:'Outfit', sans-serif; font-size:0.9rem; font-weight:900; background:var(--yellow); color:var(--ink); border:2.5px solid var(--ink); padding:0.4rem 0.8rem; border-radius:30px; box-shadow:2px 2px 0 var(--ink); text-transform:uppercase; letter-spacing:0.05em; display:inline-block;">Live Preview</span>
-        <h2 style="font-family:'Outfit', sans-serif; font-size:1.8rem; font-weight:900; color:#fff; margin:0.8rem 0 0.4rem; letter-spacing:-0.01em;">See Bowerboard in action</h2>
-      </div>
+    <!-- Product Preview Tiles (Below the fold) -->
+    <div class="preview-tiles-row" style="display:flex; gap:1.8rem; width:100%; max-width:1100px; margin:4.5rem auto 2rem; padding:0 1.5rem; box-sizing:border-box; z-index:10; position:relative; justify-content:center; flex-wrap:wrap;">
       
-      <!-- Browser Chrome Frame -->
-      <div class="browser-chrome" style="background:#fff; border:3px solid var(--ink); border-radius:16px; box-shadow:8px 8px 0 var(--shadow); overflow:hidden; display:flex; flex-direction:column; color:var(--ink); text-align:left;">
-        <!-- Browser Header Bar -->
-        <div style="background:#F1EDFA; border-bottom:3px solid var(--ink); padding:0.75rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; box-sizing:border-box;">
-          <div style="display:flex; gap:6px;">
-            <span style="width:12px; height:12px; border-radius:50%; background:#FF5F56; border:1.5px solid var(--ink); display:inline-block;"></span>
-            <span style="width:12px; height:12px; border-radius:50%; background:#FFBD2E; border:1.5px solid var(--ink); display:inline-block;"></span>
-            <span style="width:12px; height:12px; border-radius:50%; background:#27C93F; border:1.5px solid var(--ink); display:inline-block;"></span>
-          </div>
-          <div style="background:#fff; border:1.5px solid var(--ink); border-radius:6px; font-family:monospace; font-size:0.75rem; padding:0.2rem 2.5rem; text-align:center; color:var(--muted); flex:1; max-width:400px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; box-sizing:border-box;">
-            bowerboard.com/room/DEMO-ROOM
-          </div>
-          <div style="width:40px;"></div>
+      <!-- Card 1: Sticky Notes Corkboard -->
+      <div class="preview-tile-card" style="flex:1; min-width:280px; max-width:340px; background:#fff; border:3.5px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; color:var(--ink); text-align:left;">
+        <div style="background:#F1EDFA; border-bottom:3.5px solid var(--ink); padding:0.65rem 0.95rem; font-family:'Outfit', sans-serif; font-size:0.9rem; font-weight:900; display:flex; align-items:center; gap:8px;">
+          <span style="width:10px; height:10px; border-radius:50%; background:#FF5F56; border:1.5px solid var(--ink); display:inline-block;"></span>
+          Sticky Notes Corkboard
         </div>
-        
-        <!-- Live Board Stage Preview: Corkboard Theme -->
-        <div style="background:#DCC3AD; padding:2.5rem 1.5rem; min-height:240px; display:flex; flex-wrap:wrap; align-content:center; justify-content:center; gap:1.2rem; position:relative; overflow:hidden; box-sizing:border-box;">
+        <div style="background:#DCC3AD; padding:1.5rem 1rem; min-height:220px; display:flex; flex-direction:column; gap:0.8rem; position:relative; overflow:hidden; box-sizing:border-box; justify-content:center;">
           <!-- Cork texture pattern -->
           <div style="position:absolute; top:0; left:0; width:100%; height:100%; background-image:radial-gradient(rgba(0,0,0,0.06) 1px, transparent 1px); background-size:8px 8px; pointer-events:none;"></div>
           
-          <!-- Mock Sticky Notes -->
-          <div class="sans" style="width:145px; background:#FF85A7; border:2.5px solid var(--ink); box-shadow:3px 3px 0 var(--ink); padding:0.75rem; font-size:0.8rem; font-weight:700; transform:rotate(-2deg); box-sizing:border-box;">
+          <div class="sans" style="background:#FF85A7; border:2.25px solid var(--ink); box-shadow:2.5px 2.5px 0 var(--ink); padding:0.6rem; font-size:0.75rem; font-weight:700; transform:rotate(-2deg); box-sizing:border-box; width:90%; align-self:flex-start;">
             📌 Gathering pieces...
           </div>
-          
-          <div class="sans" style="width:150px; background:#FFE885; border:2.5px solid var(--ink); box-shadow:3px 3px 0 var(--ink); padding:0.75rem; font-size:0.8rem; font-weight:700; transform:rotate(3deg); box-sizing:border-box;">
-            ⚡ Love the real-time speed! No accounts is perfect.
-          </div>
-          
-          <div class="sans" style="width:160px; background:#85FFE8; border:2.5px solid var(--ink); box-shadow:3px 3px 0 var(--ink); padding:0.75rem; font-size:0.8rem; font-weight:700; transform:rotate(-1deg); box-sizing:border-box;">
-            💬 Anonymous responses get everyone participating.
-          </div>
-          
-          <div class="sans" style="width:130px; background:#F2F0F7; border:2.5px solid var(--ink); box-shadow:3px 3px 0 var(--ink); padding:0.75rem; font-size:0.8rem; font-weight:700; transform:rotate(2deg); box-sizing:border-box;">
+          <div class="sans" style="background:#FFE885; border:2.25px solid var(--ink); box-shadow:2.5px 2.5px 0 var(--ink); padding:0.6rem; font-size:0.75rem; font-weight:700; transform:rotate(2deg); box-sizing:border-box; width:90%; align-self:flex-end;">
             🎨 Build the picture!
           </div>
         </div>
       </div>
+      
+      <!-- Card 2: Live Poll Results -->
+      <div class="preview-tile-card" style="flex:1; min-width:280px; max-width:340px; background:#fff; border:3.5px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; color:var(--ink); text-align:left;">
+        <div style="background:#F1EDFA; border-bottom:3.5px solid var(--ink); padding:0.65rem 0.95rem; font-family:'Outfit', sans-serif; font-size:0.9rem; font-weight:900; display:flex; align-items:center; gap:8px;">
+          <span style="width:10px; height:10px; border-radius:50%; background:#FFBD2E; border:1.5px solid var(--ink); display:inline-block;"></span>
+          Live Poll Results
+        </div>
+        <div style="background:#FBF9FF; padding:1.5rem 1.25rem; min-height:220px; display:flex; flex-direction:column; gap:0.9rem; justify-content:center; box-sizing:border-box; font-family:'Space Grotesk', sans-serif;">
+          <div style="font-weight:700; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Question Feedback:</div>
+          
+          <!-- Bar 1 -->
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700; margin-bottom:3px;">
+              <span>Super Easy</span> <span>68%</span>
+            </div>
+            <div style="height:14px; background:#fff; border:2px solid var(--ink); border-radius:4px; overflow:hidden;">
+              <div style="width:68%; height:100%; background:var(--pink); border-right:2px solid var(--ink);"></div>
+            </div>
+          </div>
+          
+          <!-- Bar 2 -->
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700; margin-bottom:3px;">
+              <span>A bit confusing</span> <span>32%</span>
+            </div>
+            <div style="height:14px; background:#fff; border:2px solid var(--ink); border-radius:4px; overflow:hidden;">
+              <div style="width:32%; height:100%; background:var(--yellow); border-right:2px solid var(--ink);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Card 3: Quiz Leaderboard -->
+      <div class="preview-tile-card" style="flex:1; min-width:280px; max-width:340px; background:#fff; border:3.5px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; color:var(--ink); text-align:left;">
+        <div style="background:#F1EDFA; border-bottom:3.5px solid var(--ink); padding:0.65rem 0.95rem; font-family:'Outfit', sans-serif; font-size:0.9rem; font-weight:900; display:flex; align-items:center; gap:8px;">
+          <span style="width:10px; height:10px; border-radius:50%; background:#27C93F; border:1.5px solid var(--ink); display:inline-block;"></span>
+          Quiz Leaderboard
+        </div>
+        <div style="background:var(--stage); padding:1.5rem 1.25rem; min-height:220px; display:flex; flex-direction:column; gap:0.6rem; justify-content:center; box-sizing:border-box; font-family:'Space Grotesk', sans-serif; color:#fff; position:relative;">
+          <div style="position:absolute; top:0; left:0; width:100%; height:100%; background-image:radial-gradient(rgba(255,255,255,0.03) 1.5px, transparent 1.5px); background-size:18px 18px; pointer-events:none;"></div>
+          
+          <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; color:var(--ink); border:2px solid var(--ink); border-radius:8px; padding:0.4rem 0.75rem; font-size:0.75rem; font-weight:700; transform:rotate(-1deg); box-shadow:2.5px 2.5px 0 var(--shadow);">
+            <span>👑 1. Alex</span>
+            <span>950 pts</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; color:var(--ink); border:2px solid var(--ink); border-radius:8px; padding:0.4rem 0.75rem; font-size:0.75rem; font-weight:700; transform:rotate(1deg); box-shadow:2.5px 2.5px 0 var(--shadow);">
+            <span>🥈 2. Jordan</span>
+            <span>880 pts</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; color:var(--ink); border:2px solid var(--ink); border-radius:8px; padding:0.4rem 0.75rem; font-size:0.75rem; font-weight:700; transform:rotate(-0.5deg); box-shadow:2.5px 2.5px 0 var(--shadow);">
+            <span>🥉 3. Taylor</span>
+            <span>790 pts</span>
+          </div>
+        </div>
+      </div>
+      
     </div>
 
     <!-- Footer Section -->
@@ -1689,6 +1744,7 @@ function renderLanding() {
   `;
   document.getElementById('btn-teacher').onclick = () => { state = { screen: 'activityPicker' }; render(); };
   document.getElementById('btn-student').onclick = () => { state = { screen: 'studentJoin', codeInput: '', error: '' }; render(); };
+  document.getElementById('btn-demo').onclick = () => { startDemoSession('sticky'); };
 }
 
 function renderActivityPicker() {
