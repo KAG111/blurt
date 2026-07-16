@@ -776,15 +776,65 @@
     0%, 100% { transform: translateY(0) rotate(-1deg); }
     50% { transform: translateY(-6px) rotate(1deg); }
   }
+  .cartoon-arrow-tooltip {
+    position: absolute;
+    top: -85px;
+    left: 10px;
+    background: var(--yellow);
+    color: var(--ink);
+    border: 3px solid var(--ink);
+    border-radius: 12px;
+    box-shadow: 4px 4px 0 var(--ink);
+    padding: 0.6rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+    line-height: 1.25;
+    z-index: 100;
+    max-width: 220px;
+    text-align: left;
+    animation: floatArrow 2s infinite ease-in-out;
+    box-sizing: border-box;
+  }
+  .cartoon-arrow-tooltip::after {
+    content: '';
+    position: absolute;
+    bottom: -12px;
+    left: 40px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 12px solid var(--ink);
+  }
+  .cartoon-arrow-tooltip::before {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 41px;
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 10px solid var(--yellow);
+    z-index: 1;
+  }
+  
   @media (max-width: 900px) {
     .cartoon-arrow-tooltip {
-      position: static !important;
-      margin: 0.5rem auto 1.5rem !important;
+      position: relative !important;
+      top: 0 !important;
+      left: 0 !important;
+      margin: 0.5rem 0 1.5rem 0 !important;
       max-width: 100% !important;
       width: 100% !important;
       transform: none !important;
-      box-sizing: border-box !important;
       animation: none !important;
+      text-align: center !important;
+      box-sizing: border-box !important;
+    }
+    .cartoon-arrow-tooltip::after,
+    .cartoon-arrow-tooltip::before {
+      display: none !important;
     }
   }
 </style>
@@ -1306,6 +1356,11 @@ async function kvSet(key, value) {
     const property = parts[2];
     const parsedValue = JSON.parse(value);
     
+    // Save to local history if it's a room config being created/written!
+    if (property === 'config' && parsedValue && parsedValue.type) {
+      saveRoomToHistory(code, parsedValue.type, parsedValue.prompt || '');
+    }
+    
     const upsertData = { code };
     upsertData[property] = parsedValue;
     upsertData['updated_at'] = new Date().toISOString();
@@ -1367,6 +1422,73 @@ function generateCode() {
   for (let i = 0; i < 4; i++) c += letters[Math.floor(Math.random() * letters.length)];
   return c;
 }
+
+function saveRoomToHistory(code, type, prompt) {
+  try {
+    const history = JSON.parse(localStorage.getItem('bowerboard_history') || '[]');
+    const filtered = history.filter(item => item.code !== code);
+    filtered.unshift({ code, type, prompt, date: Date.now() });
+    localStorage.setItem('bowerboard_history', JSON.stringify(filtered.slice(0, 5)));
+  } catch (e) {
+    console.error("Error saving room history:", e);
+  }
+}
+
+async function reopenBower(code, type) {
+  state.loading = true;
+  render();
+  const configRaw = await kvGet('room:' + code + ':config');
+  if (!configRaw) {
+    alert("Could not load this room. It may have expired or been deleted.");
+    state.loading = false;
+    render();
+    return;
+  }
+  const config = JSON.parse(configRaw);
+  
+  let words = [];
+  let posts = [];
+  let votes = [];
+  let responses = [];
+  let roster = [];
+  
+  if (type === 'wordcloud') {
+    const raw = await kvGet('room:' + code + ':words');
+    words = raw ? JSON.parse(raw) : [];
+  } else if (type === 'brainstorm' || type === 'sticky') {
+    const raw = await kvGet('room:' + code + ':posts');
+    posts = raw ? JSON.parse(raw) : [];
+  } else if (type === 'mc' || type === 'poll' || type === 'ranking') {
+    const raw = await kvGet('room:' + code + ':votes');
+    votes = raw ? JSON.parse(raw) : [];
+    if (type === 'poll') {
+      const respRaw = await kvGet('room:' + code + ':responses');
+      responses = respRaw ? JSON.parse(respRaw) : [];
+      const rostRaw = await kvGet('room:' + code + ':roster');
+      roster = rostRaw ? JSON.parse(rostRaw) : [];
+    }
+  }
+  
+  state = {
+    screen: 'teacherLive',
+    type,
+    code,
+    revealed: config.revealed,
+    revealMode: config.revealMode,
+    prompt: config.prompt,
+    options: config.options || [],
+    questions: config.questions || [],
+    words,
+    posts,
+    votes,
+    responses,
+    roster,
+    likesEnabled: config.likesEnabled || false,
+    requireNames: config.requireNames || false
+  };
+  render();
+}
+window.reopenBower = reopenBower;
 
 function getTargetRoom(s) {
   return (s.presentationMode && s.presentationMode !== 'classic') ? 'MOD-' + s.code : s.code;
@@ -1609,10 +1731,8 @@ function renderLanding() {
         <div class="cta-section" style="display:flex; flex-direction:column; gap:16px;">
           <div class="btn-row" style="display:flex; gap:16px; flex-wrap:wrap; justify-content:flex-start; margin-bottom:0.5rem; position:relative; margin-top:3.5rem;">
             <!-- Cartoon Arrow Tooltip -->
-            <div class="cartoon-arrow-tooltip sans" style="position:absolute; top:-70px; left:10px; background:var(--yellow); color:var(--ink); border:3px solid var(--ink); border-radius:12px; box-shadow:4px 4px 0 var(--ink); padding:0.6rem 0.9rem; font-size:0.8rem; font-weight:800; line-height:1.25; z-index:100; max-width:220px; text-align:left; animation: floatArrow 2s infinite ease-in-out;">
+            <div class="cartoon-arrow-tooltip sans">
               👉 Click through, choose a bower to build and try it out!
-              <div style="position:absolute; bottom:-12px; left:40px; width:0; height:0; border-left:8px solid transparent; border-right:8px solid transparent; border-top:12px solid var(--ink);"></div>
-              <div style="position:absolute; bottom:-7px; left:41px; width:0; height:0; border-left:7px solid transparent; border-right:7px solid transparent; border-top:10px solid var(--yellow);"></div>
             </div>
             
             <button class="btn-primary" id="btn-teacher">Build a bower</button>
@@ -1706,11 +1826,54 @@ function renderLanding() {
 
 function renderActivityPicker() {
   stopPolling();
+  const history = JSON.parse(localStorage.getItem('bowerboard_history') || '[]');
+  
+  let historyHtml = `
+    <div style="color:rgba(255,255,255,0.45); font-size:0.85rem; font-style:italic;">
+      No previous bowers found on this device.
+    </div>
+  `;
+  
+  if (history.length > 0) {
+    historyHtml = history.map(item => {
+      const dateStr = new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const typeLabel = {
+        'wordcloud': 'Word Cloud',
+        'sticky': 'Sticky Notes',
+        'mc': 'Multiple Choice',
+        'poll': 'Slider Poll',
+        'ranking': 'Ranking Task',
+        'brainstorm': 'Brainstorm'
+      }[item.type] || item.type;
+      
+      const cleanPrompt = item.prompt.length > 60 ? item.prompt.substring(0, 57) + '...' : item.prompt;
+      
+      return `
+        <div style="background:#fff; border:2.5px solid var(--ink); border-radius:10px; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; box-shadow:3px 3px 0 var(--ink); color:var(--ink);">
+          <div style="flex:1; min-width:0; text-align:left;">
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.25rem;">
+              <span style="font-family:monospace; font-weight:800; font-size:0.85rem; background:var(--yellow); border:1.5px solid var(--ink); padding:0.15rem 0.4rem; border-radius:4px;">${item.code}</span>
+              <span style="font-size:0.75rem; font-weight:700; background:#E8E4F7; padding:0.15rem 0.4rem; border-radius:4px; color:var(--ink);">${typeLabel}</span>
+              <span style="font-size:0.7rem; color:var(--muted);">${dateStr}</span>
+            </div>
+            <div style="font-size:0.8rem; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+              ${escapeHtml(cleanPrompt || '(No question topic)')}
+            </div>
+          </div>
+          <button class="btn-primary sans" onclick="reopenBower('${item.code}', '${item.type}')" style="padding:0.4rem 0.8rem; font-size:0.75rem; border-radius:6px; box-shadow:2px 2px 0 var(--ink); flex-shrink:0;">
+            Resume
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+
   app.innerHTML = `
     <div class="screen">
       <button class="back-btn sans" id="btn-back">← back</button>
-      <div style="font-size:1.6rem;font-weight:700;">Choose the bower you want to create</div>
-      <div class="activity-grid">
+      <div style="font-size:1.6rem;font-weight:700;font-family:'Outfit',sans-serif;color:#fff;">Choose the bower you want to create</div>
+      
+      <div class="activity-grid" style="margin-top:1rem;">
         <button class="activity-card sans" id="pick-wordcloud">
           <div class="activity-card-title">Word Cloud</div>
           <div class="activity-card-desc">Students type a word or phrase. Answers grow bigger the more people say them.</div>
@@ -1736,7 +1899,18 @@ function renderActivityPicker() {
           <div class="activity-card-desc">Students rank multiple items. The graph shows the class consensus using Borda points.</div>
         </button>
       </div>
+
+      <!-- Recent Bowers Section -->
+      <div class="recent-bowers-container sans" style="width:100%; max-width:680px; margin-top:2.5rem; text-align:left; box-sizing:border-box;">
+        <h3 style="font-family:'Outfit', sans-serif; font-size:1.15rem; font-weight:900; color:#fff; margin-bottom:1rem; border-bottom:2px solid rgba(255,255,255,0.15); padding-bottom:0.4rem;">
+          Your Recent Bowers (local history)
+        </h3>
+        <div style="display:flex; flex-direction:column; gap:0.75rem;">
+          ${historyHtml}
+        </div>
+      </div>
     </div>`;
+    
   document.getElementById('btn-back').onclick = () => { state = { screen: 'landing' }; render(); };
   document.getElementById('pick-wordcloud').onclick = () => { state = { screen: 'teacherSetup', activityType: 'wordcloud' }; render(); };
   document.getElementById('pick-mc').onclick = () => { state = { screen: 'teacherSetup', activityType: 'mc', options: ['', ''], allowMultiple: false, correctIndex: null }; render(); };
