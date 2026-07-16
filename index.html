@@ -739,7 +739,7 @@
   /* Sticker logo shadow */
   .sticker-logo {
     max-width: 100%;
-    height: 170px;
+    height: 290px;
     width: auto;
     filter: drop-shadow(6px 6px 0px var(--ink));
     transition: transform 0.2s ease;
@@ -764,12 +764,12 @@
       width: 100%;
     }
     .sticker-logo {
-      height: 150px;
+      height: 220px;
     }
   }
   @media (max-width: 480px) {
     .sticker-logo {
-      height: 120px;
+      height: 160px;
     }
   }
   @keyframes floatArrow {
@@ -1610,14 +1610,13 @@ function renderLanding() {
           <div class="btn-row" style="display:flex; gap:16px; flex-wrap:wrap; justify-content:flex-start; margin-bottom:0.5rem; position:relative; margin-top:3.5rem;">
             <!-- Cartoon Arrow Tooltip -->
             <div class="cartoon-arrow-tooltip sans" style="position:absolute; top:-70px; left:10px; background:var(--yellow); color:var(--ink); border:3px solid var(--ink); border-radius:12px; box-shadow:4px 4px 0 var(--ink); padding:0.6rem 0.9rem; font-size:0.8rem; font-weight:800; line-height:1.25; z-index:100; max-width:220px; text-align:left; animation: floatArrow 2s infinite ease-in-out;">
-              👉 Click through, choose a bower to build and try in Demo Mode!
+              👉 Click through, choose a bower to build and try it out!
               <div style="position:absolute; bottom:-12px; left:40px; width:0; height:0; border-left:8px solid transparent; border-right:8px solid transparent; border-top:12px solid var(--ink);"></div>
               <div style="position:absolute; bottom:-7px; left:41px; width:0; height:0; border-left:7px solid transparent; border-right:7px solid transparent; border-top:10px solid var(--yellow);"></div>
             </div>
             
             <button class="btn-primary" id="btn-teacher">Build a bower</button>
             <button class="btn-outline" id="btn-student">Join a bower</button>
-            <button class="btn-outline" id="btn-demo" style="background:var(--yellow); color:var(--ink);">Try Demo Mode</button>
           </div>
           <div class="footnote" style="font-size:0.85rem; color:#AFA5C7; font-weight:500;">
             Answers are anonymous — nothing is linked to a name.
@@ -1658,16 +1657,8 @@ function renderLanding() {
           <span style="width:10px; height:10px; border-radius:50%; background:#FF5F56; border:1.5px solid var(--ink); display:inline-block;"></span>
           Sticky Notes Corkboard
         </div>
-        <div style="background:#DCC3AD; padding:1.5rem 1rem; min-height:220px; display:flex; flex-direction:column; gap:0.8rem; position:relative; overflow:hidden; box-sizing:border-box; justify-content:center;">
-          <!-- Cork texture pattern -->
-          <div style="position:absolute; top:0; left:0; width:100%; height:100%; background-image:radial-gradient(rgba(0,0,0,0.06) 1px, transparent 1px); background-size:8px 8px; pointer-events:none;"></div>
-          
-          <div class="sans" style="background:#FF85A7; border:2.25px solid var(--ink); box-shadow:2.5px 2.5px 0 var(--ink); padding:0.6rem; font-size:0.75rem; font-weight:700; transform:rotate(-2deg); box-sizing:border-box; width:90%; align-self:flex-start;">
-            📌 Gathering pieces...
-          </div>
-          <div class="sans" style="background:#FFE885; border:2.25px solid var(--ink); box-shadow:2.5px 2.5px 0 var(--ink); padding:0.6rem; font-size:0.75rem; font-weight:700; transform:rotate(2deg); box-sizing:border-box; width:90%; align-self:flex-end;">
-            🎨 Build the picture!
-          </div>
+        <div style="background:#DCC3AD; min-height:220px; position:relative; overflow:hidden; box-sizing:border-box;">
+          <img src="sticky_preview.png" style="width:100%; height:220px; object-fit:cover; display:block;" alt="Sticky Notes Corkboard Preview" />
         </div>
       </div>
       
@@ -1677,52 +1668,19 @@ function renderLanding() {
           <span style="width:10px; height:10px; border-radius:50%; background:#FFBD2E; border:1.5px solid var(--ink); display:inline-block;"></span>
           Live Poll Results
         </div>
-        <div style="background:#FBF9FF; padding:1.5rem 1.25rem; min-height:220px; display:flex; flex-direction:column; gap:0.9rem; justify-content:center; box-sizing:border-box; font-family:'Space Grotesk', sans-serif;">
-          <div style="font-weight:700; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Question Feedback:</div>
-          
-          <!-- Bar 1 -->
-          <div>
-            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700; margin-bottom:3px;">
-              <span>Super Easy</span> <span>68%</span>
-            </div>
-            <div style="height:14px; background:#fff; border:2px solid var(--ink); border-radius:4px; overflow:hidden;">
-              <div style="width:68%; height:100%; background:var(--pink); border-right:2px solid var(--ink);"></div>
-            </div>
-          </div>
-          
-          <!-- Bar 2 -->
-          <div>
-            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700; margin-bottom:3px;">
-              <span>A bit confusing</span> <span>32%</span>
-            </div>
-            <div style="height:14px; background:#fff; border:2px solid var(--ink); border-radius:4px; overflow:hidden;">
-              <div style="width:32%; height:100%; background:var(--yellow); border-right:2px solid var(--ink);"></div>
-            </div>
-          </div>
+        <div style="background:#FBF9FF; min-height:220px; position:relative; overflow:hidden; box-sizing:border-box;">
+          <img src="poll_preview.png" style="width:100%; height:220px; object-fit:cover; display:block;" alt="Live Poll Results Preview" />
         </div>
       </div>
       
-      <!-- Card 3: Quiz Leaderboard -->
+      <!-- Card 3: Multiple Choice Quiz -->
       <div class="preview-tile-card" style="flex:1; min-width:280px; max-width:340px; background:#fff; border:3.5px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; color:var(--ink); text-align:left;">
         <div style="background:#F1EDFA; border-bottom:3.5px solid var(--ink); padding:0.65rem 0.95rem; font-family:'Outfit', sans-serif; font-size:0.9rem; font-weight:900; display:flex; align-items:center; gap:8px;">
           <span style="width:10px; height:10px; border-radius:50%; background:#27C93F; border:1.5px solid var(--ink); display:inline-block;"></span>
-          Quiz Leaderboard
+          Quiz & Multiple Choice
         </div>
-        <div style="background:var(--stage); padding:1.5rem 1.25rem; min-height:220px; display:flex; flex-direction:column; gap:0.6rem; justify-content:center; box-sizing:border-box; font-family:'Space Grotesk', sans-serif; color:#fff; position:relative;">
-          <div style="position:absolute; top:0; left:0; width:100%; height:100%; background-image:radial-gradient(rgba(255,255,255,0.03) 1.5px, transparent 1.5px); background-size:18px 18px; pointer-events:none;"></div>
-          
-          <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; color:var(--ink); border:2px solid var(--ink); border-radius:8px; padding:0.4rem 0.75rem; font-size:0.75rem; font-weight:700; transform:rotate(-1deg); box-shadow:2.5px 2.5px 0 var(--shadow);">
-            <span>👑 1. Alex</span>
-            <span>950 pts</span>
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; color:var(--ink); border:2px solid var(--ink); border-radius:8px; padding:0.4rem 0.75rem; font-size:0.75rem; font-weight:700; transform:rotate(1deg); box-shadow:2.5px 2.5px 0 var(--shadow);">
-            <span>🥈 2. Jordan</span>
-            <span>880 pts</span>
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; color:var(--ink); border:2px solid var(--ink); border-radius:8px; padding:0.4rem 0.75rem; font-size:0.75rem; font-weight:700; transform:rotate(-0.5deg); box-shadow:2.5px 2.5px 0 var(--shadow);">
-            <span>🥉 3. Taylor</span>
-            <span>790 pts</span>
-          </div>
+        <div style="background:var(--stage); min-height:220px; position:relative; overflow:hidden; box-sizing:border-box;">
+          <img src="quiz_preview.png" style="width:100%; height:220px; object-fit:cover; display:block;" alt="Quiz Leaderboard Preview" />
         </div>
       </div>
       
@@ -1744,7 +1702,6 @@ function renderLanding() {
   `;
   document.getElementById('btn-teacher').onclick = () => { state = { screen: 'activityPicker' }; render(); };
   document.getElementById('btn-student').onclick = () => { state = { screen: 'studentJoin', codeInput: '', error: '' }; render(); };
-  document.getElementById('btn-demo').onclick = () => { startDemoSession('sticky'); };
 }
 
 function renderActivityPicker() {
