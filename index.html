@@ -1756,46 +1756,6 @@ function renderLanding() {
           <div class="footnote" style="font-size:0.85rem; color:rgba(20,17,31,0.65); font-weight:500;">
             Answers are anonymous — nothing is linked to a name.
           </div>
-          
-          <!-- Fun Flow Diagram -->
-          <div class="flow-diagram-container sans" style="display:flex; gap:0.5rem; align-items:center; margin-top:1.5rem; width:100%; justify-content:space-between; flex-wrap:wrap;">
-            <!-- Step 1 -->
-            <div style="flex:1; min-width:130px; max-width:230px; background:#FFE57F; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
-              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 1</div>
-              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Build a Bower</div>
-              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Choose room type & write topic.</div>
-            </div>
-            
-            <!-- Arrow -->
-            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
-            
-            <!-- Step 2 -->
-            <div style="flex:1; min-width:130px; max-width:230px; background:#FF8A80; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
-              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 2</div>
-              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Share QR/Code</div>
-              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Students scan or join. Zero logins!</div>
-            </div>
-            
-            <!-- Arrow -->
-            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
-            
-            <!-- Step 3 -->
-            <div style="flex:1; min-width:130px; max-width:230px; background:#80D8FF; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
-              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 3</div>
-              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Gather & Build</div>
-              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Moderate, group posts, show feedback!</div>
-            </div>
-
-            <!-- Arrow -->
-            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
-
-            <!-- Step 4 -->
-            <div style="flex:1; min-width:130px; max-width:230px; background:#B388FF; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
-              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 4</div>
-              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Download Your Bower</div>
-              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Export as CSV, PDF or JPEG.</div>
-            </div>
-          </div>
 
           <!-- Expandable USP Post-It -->
           <div class="usp-postit sans" data-expanded="false" onclick="const postit = this; const content = postit.querySelector('.usp-content'); const icon = postit.querySelector('.toggle-icon'); const expanded = postit.getAttribute('data-expanded') === 'true'; if (expanded) { content.style.maxHeight = '0px'; icon.textContent = '+'; postit.setAttribute('data-expanded', 'false'); } else { content.style.maxHeight = content.scrollHeight + 'px'; icon.textContent = '−'; postit.setAttribute('data-expanded', 'true'); }" style="background:#FFD180; border:2.5px solid var(--ink); border-radius:12px; box-shadow:3px 3px 0 var(--ink); padding:0.75rem 0.9rem; margin-top:1.5rem; text-align:left; cursor:pointer; position:relative; box-sizing:border-box; transition: transform 0.15s ease;">
@@ -1811,6 +1771,46 @@ function renderLanding() {
                 <li>📊 <strong>Your data, yours:</strong> Export results as CSV, PDF or image — every class's work, ready for your spreadsheets and reports.</li>
                 <li>⚡ <strong>Running in 10 seconds:</strong> No sign-ups, passwords or installs to get started.</li>
               </ul>
+            </div>
+          </div>
+
+          <!-- Fun Flow Diagram -->
+          <div class="flow-diagram-container sans" style="display:flex; gap:0.5rem; align-items:center; margin-top:1.5rem; width:100%; justify-content:space-between; flex-wrap:wrap;">
+            <!-- Step 1 -->
+            <div style="flex:1; min-width:130px; max-width:230px; background:#FFE57F; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
+              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 1</div>
+              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Build a Bower</div>
+              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Choose room type & write topic.</div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
+
+            <!-- Step 2 -->
+            <div style="flex:1; min-width:130px; max-width:230px; background:#FF8A80; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
+              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 2</div>
+              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Share QR/Code</div>
+              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Students scan or join. Zero logins!</div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
+
+            <!-- Step 3 -->
+            <div style="flex:1; min-width:130px; max-width:230px; background:#80D8FF; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
+              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 3</div>
+              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Gather & Build</div>
+              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Moderate, group posts, show feedback!</div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
+
+            <!-- Step 4 -->
+            <div style="flex:1; min-width:130px; max-width:230px; background:#B388FF; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
+              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 4</div>
+              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Download Your Bower</div>
+              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Export as CSV, PDF or JPEG.</div>
             </div>
           </div>
         </div>
