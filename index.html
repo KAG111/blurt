@@ -5614,14 +5614,22 @@ function renderStudentRoomBrainstorm() {
     if (targetRoom.startsWith('MOD-')) {
       // Moderated: append server-side via RPC. This browser never reads the
       // shared pending list, so it never sees other students' submissions.
-      await submitPendingItem(s.code, 'posts', {
-        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
-        text: clean,
-        likes: 0,
-        count: 1,
-        ownerSessionIds: [s.mySessionId],
-        sessionId: s.mySessionId
-      });
+      let submitted = false;
+      for (let attempt = 0; attempt < 3 && !submitted; attempt++) {
+        submitted = await submitPendingItem(s.code, 'posts', {
+          id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+          text: clean,
+          likes: 0,
+          count: 1,
+          ownerSessionIds: [s.mySessionId],
+          sessionId: s.mySessionId
+        });
+        if (!submitted) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      }
+      if (!submitted) {
+        document.getElementById('answer-error').textContent = "Couldn't post that — check your connection and try again.";
+        return;
+      }
     } else {
       for (let attempt = 0; attempt < 3; attempt++) {
         const raw = await kvGet('room:' + targetRoom + ':posts');
@@ -5798,7 +5806,16 @@ function renderStudentRoomSticky() {
     if (targetRoom.startsWith('MOD-')) {
       // Moderated: append server-side via RPC so this browser never reads
       // (and can't see) other students' pending sticky notes.
-      await submitPendingItem(s.code, 'posts', newNote);
+      let submitted = false;
+      for (let attempt = 0; attempt < 3 && !submitted; attempt++) {
+        submitted = await submitPendingItem(s.code, 'posts', newNote);
+        if (!submitted) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      }
+      if (!submitted) {
+        alert("Couldn't post that note — check your connection and try again.");
+        btn.disabled = false;
+        return;
+      }
       s.posts = s.posts || [];
     } else {
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -5964,12 +5981,20 @@ function renderStudentRoomWordCloud() {
     if (targetRoom.startsWith('MOD-')) {
       // Moderated: append server-side via RPC. This browser never reads the
       // shared pending list, so it never sees other students' words.
-      await submitPendingItem(s.code, 'words', {
-        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
-        text: clean,
-        count: 1,
-        sessionId: s.mySessionId
-      });
+      let submitted = false;
+      for (let attempt = 0; attempt < 3 && !submitted; attempt++) {
+        submitted = await submitPendingItem(s.code, 'words', {
+          id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+          text: clean,
+          count: 1,
+          sessionId: s.mySessionId
+        });
+        if (!submitted) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      }
+      if (!submitted) {
+        document.getElementById('answer-error').textContent = "Couldn't post that — check your connection and try again.";
+        return;
+      }
     } else {
       for (let attempt = 0; attempt < 3; attempt++) {
         const raw = await kvGet('room:' + targetRoom + ':words');
@@ -6102,13 +6127,22 @@ async function submitVote() {
   if (isShadow) {
     // Moderated: append server-side via RPC. This browser never reads the
     // shared pending vote list, so it never sees other students' choices.
-    await submitPendingItem(s.code, 'votes', {
-      id: Math.random().toString(36).slice(2) + Date.now().toString(36),
-      value: s.selected.slice(),
-      qIndex,
-      studentName: s.studentName,
-      sessionId: s.mySessionId
-    });
+    let submitted = false;
+    for (let attempt = 0; attempt < 3 && !submitted; attempt++) {
+      submitted = await submitPendingItem(s.code, 'votes', {
+        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+        value: s.selected.slice(),
+        qIndex,
+        studentName: s.studentName,
+        sessionId: s.mySessionId
+      });
+      if (!submitted) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    }
+    if (!submitted) {
+      document.getElementById('btn-submit-vote').disabled = false;
+      document.getElementById('mc-status-note').textContent = "Couldn't submit your vote — check your connection and try again.";
+      return;
+    }
   } else {
     for (let attempt = 0; attempt < 3; attempt++) {
       const raw = await kvGet('room:' + targetRoom + ':votes');
