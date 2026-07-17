@@ -1782,17 +1782,18 @@ function renderLanding() {
           </div>
           
           <!-- Expandable USP Post-It -->
-          <div class="usp-postit sans" onclick="const content = this.querySelector('.usp-content'); const icon = this.querySelector('.toggle-icon'); if (content.style.maxHeight) { content.style.maxHeight = null; icon.textContent = '+'; } else { content.style.maxHeight = content.scrollHeight + 'px'; icon.textContent = '−'; }" style="background:#FFD180; border:2.5px solid var(--ink); border-radius:12px; box-shadow:3px 3px 0 var(--ink); padding:0.75rem 0.9rem; margin-top:1.5rem; text-align:left; cursor:pointer; position:relative; box-sizing:border-box; transition: transform 0.15s ease;">
+          <div class="usp-postit sans" data-expanded="false" onclick="const postit = this; const content = postit.querySelector('.usp-content'); const icon = postit.querySelector('.toggle-icon'); const expanded = postit.getAttribute('data-expanded') === 'true'; if (expanded) { content.style.maxHeight = null; icon.textContent = '+'; postit.setAttribute('data-expanded', 'false'); } else { content.style.maxHeight = content.scrollHeight + 'px'; icon.textContent = '−'; postit.setAttribute('data-expanded', 'true'); }" style="background:#FFD180; border:2.5px solid var(--ink); border-radius:12px; box-shadow:3px 3px 0 var(--ink); padding:0.75rem 0.9rem; margin-top:1.5rem; text-align:left; cursor:pointer; position:relative; box-sizing:border-box; transition: transform 0.15s ease;">
             <div style="display:flex; justify-content:space-between; align-items:center; font-family:'Outfit', sans-serif; font-size:0.95rem; font-weight:900; color:var(--ink);">
               <span>📌 What makes bowerboard different?</span>
               <span class="toggle-icon" style="font-size:1.1rem; font-weight:900;">+</span>
             </div>
             <div class="usp-content" style="max-height:0; overflow:hidden; transition: max-height 0.25s ease-out; margin-top:0;">
               <ul style="margin:0.6rem 0 0 0; padding-left:1.1rem; font-size:0.75rem; font-weight:700; line-height:1.4; color:var(--ink); display:flex; flex-direction:column; gap:0.4rem; list-style-type:square;">
-                <li>📱 <strong>Teacher Remote:</strong> Approve and edit student posts from your phone before they go on display.</li>
-                <li>🤝 <strong>Merge Responses:</strong> Group and merge similar feedback posts to reduce visual board clutter.</li>
-                <li>📊 <strong>Free Data Export:</strong> Download classroom answers in a variety of clean formats completely for free.</li>
-                <li>⚡ <strong>Zero Logins:</strong> Instant joins and creates. No passwords, sign-ups, or installs for anyone.</li>
+                <li>📱 <strong>Moderate from your phone:</strong> Approve — or quietly edit — student posts before they hit the big screen. No app or login needed.</li>
+                <li>🤝 <strong>Merge responses:</strong> Group similar ideas into one, so the board shows what the room thinks — not thirty versions of the same thought.</li>
+                <li>🏆 <strong>Build a consensus:</strong> Ranking tasks combine everyone's votes into one fair, collective answer. Not just collected opinions — a decision.</li>
+                <li>📊 <strong>Your data, yours:</strong> Export results as CSV, PDF or image — every class's work, ready for your spreadsheets and reports.</li>
+                <li>⚡ <strong>Running in 10 seconds:</strong> No sign-ups, passwords or installs to get started.</li>
               </ul>
             </div>
           </div>
