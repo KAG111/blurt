@@ -12,8 +12,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
-    --stage: #2B2145;
-    --stage-dark: #1A1428;
+    --stage: #A4D4B4;
+    --stage-dark: #1C3326;
     --paper: #FFFFFF;
     --paper-soft: #FBF9FF;
     --ink: #14111F;
@@ -31,7 +31,7 @@
   html, body {
     margin: 0; padding: 0; min-height: 100vh;
     background: var(--stage);
-    color: #F5F2FF;
+    color: var(--ink);
     font-family: 'Inter', -apple-system, sans-serif;
   }
   .sans { font-family: 'Inter', -apple-system, sans-serif; }
@@ -44,7 +44,7 @@
   #app {
     min-height: 100vh; display: flex; flex-direction: column;
     background-color: var(--stage);
-    background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1.5px, transparent 1.5px);
+    background-image: radial-gradient(rgba(20, 17, 31, 0.05) 1.5px, transparent 1.5px);
     background-size: 24px 24px;
     position: relative;
     overflow-x: hidden;
@@ -102,7 +102,7 @@
   }
   .brand-mark {
     font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.3rem;
-    color: #fff; letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.4rem;
+    color: var(--ink); letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.4rem;
   }
   .brand-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--pink); display: inline-block; }
 
@@ -136,9 +136,9 @@
   }
   .back-btn {
     position: absolute; top: 1.5rem; left: 1.5rem; background: none; border: none;
-    color: rgba(255,255,255,0.65); font-size: 0.9rem; font-weight: 600;
+    color: rgba(20,17,31,0.65); font-size: 0.9rem; font-weight: 600;
   }
-  .back-btn:hover { color: #fff; }
+  .back-btn:hover { color: var(--ink); }
 
   /* Hero / landing — soundwave motif flanking the wordmark */
   .hero-stage {
@@ -161,10 +161,10 @@
   .title-xl {
     font-family: 'Space Grotesk', sans-serif; font-weight: 700;
     font-size: clamp(3rem, 11vw, 5.5rem); letter-spacing: -0.03em; line-height: 0.95;
-    color: #fff;
+    color: var(--ink);
   }
   .subtitle {
-    margin-top: 1rem; font-size: 1.15rem; color: rgba(255,255,255,0.75); font-weight: 500;
+    margin-top: 1rem; font-size: 1.15rem; color: rgba(20,17,31,0.75); font-weight: 500;
     position: relative; z-index: 1;
   }
   .btn-row { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; position: relative; z-index: 1; }
@@ -209,7 +209,7 @@
     color: var(--ink);
   }
 
-  .footnote { font-size: 0.85rem; color: rgba(255,255,255,0.55); max-width: 380px; position: relative; z-index: 1; }
+  .footnote { font-size: 0.85rem; color: rgba(20,17,31,0.6); max-width: 380px; position: relative; z-index: 1; }
 
   /* Card surfaces (used inside screens that need a light panel over the dark stage) */
   .field-wrap {
@@ -252,14 +252,14 @@
   .qr-caption { font-size: 0.7rem; color: var(--muted); text-align: center; font-weight: 600; }
   .prompt-label {
     margin-top: 0.75rem; margin-bottom: 1.25rem; font-size: 1.5rem; font-weight: 700; max-width: 700px;
-    font-family: 'Space Grotesk', sans-serif; color: #fff;
+    font-family: 'Space Grotesk', sans-serif; color: var(--ink);
   }
   .controls-row { display: flex; gap: 0.8rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
   .btn-reveal { background: var(--green); color: #1B1730; border: 2px solid var(--ink); padding: 0.65rem 1.3rem; border-radius: 8px; font-weight: 700; box-shadow: 3px 3px 0 var(--ink); }
   .btn-hide { background: var(--pink); color: #fff; border: 2px solid var(--ink); padding: 0.65rem 1.3rem; border-radius: 8px; font-weight: 700; box-shadow: 3px 3px 0 var(--ink); }
-  .btn-clear { background: transparent; color: rgba(255,255,255,0.6); border: 2px solid rgba(255,255,255,0.3); padding: 0.65rem 1.1rem; border-radius: 8px; font-weight: 600; }
-  .btn-clear:hover { color: #fff; border-color: rgba(255,255,255,0.6); }
-  .count-note { font-size: 0.9rem; color: rgba(255,255,255,0.6); font-weight: 600; }
+  .btn-clear { background: transparent; color: rgba(20,17,31,0.65); border: 2px solid rgba(20,17,31,0.3); padding: 0.65rem 1.1rem; border-radius: 8px; font-weight: 600; }
+  .btn-clear:hover { color: var(--ink); border-color: rgba(20,17,31,0.6); }
+  .count-note { font-size: 0.9rem; color: rgba(20,17,31,0.65); font-weight: 600; }
   .cloud-stage {
     flex: 1; display: flex; align-items: center; justify-content: center; min-height: 300px;
     background: var(--paper); border: 2.5px solid var(--ink); border-radius: 16px;
@@ -277,8 +277,8 @@
 
   .student-wrap { flex: 1; display: flex; flex-direction: column; padding: 2rem 1.5rem; align-items: center; gap: 1.5rem; }
   .student-header { text-align: center; max-width: 480px; }
-  .student-room-code { font-size: 0.85rem; color: rgba(255,255,255,0.6); font-weight: 700; letter-spacing: 0.03em; }
-  .student-prompt { font-size: 1.6rem; font-weight: 700; margin-top: 0.4rem; color: #fff; font-family: 'Space Grotesk', sans-serif; }
+  .student-room-code { font-size: 0.85rem; color: rgba(20,17,31,0.65); font-weight: 700; letter-spacing: 0.03em; }
+  .student-prompt { font-size: 1.6rem; font-weight: 700; margin-top: 0.4rem; color: var(--ink); font-family: 'Space Grotesk', sans-serif; }
   .answer-form { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; max-width: 400px; }
   .answer-input {
     font-size: 1.2rem; padding: 0.85rem 1rem; border-radius: 10px;
@@ -378,12 +378,12 @@
   .poll-question-counter { font-size: 0.95rem; font-weight: 700; color: var(--muted); min-width: 90px; text-align: center; }
 
   .results-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 2.5rem 1.5rem; gap: 2rem; width: 100%; max-width: 800px; margin: 0 auto; }
-  .results-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 2rem; color: #fff; text-align: center; }
+  .results-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 2rem; color: var(--ink); text-align: center; }
   .podium-row { display: flex; align-items: flex-end; gap: 1rem; justify-content: center; width: 100%; }
   .podium-slot { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
   .podium-medal { font-size: 2rem; }
-  .podium-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.05rem; color: #fff; max-width: 140px; text-align: center; word-break: break-word; }
-  .podium-score { font-size: 0.85rem; color: rgba(255,255,255,0.7); font-weight: 600; }
+  .podium-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.05rem; color: var(--ink); max-width: 140px; text-align: center; word-break: break-word; }
+  .podium-score { font-size: 0.85rem; color: rgba(20,17,31,0.7); font-weight: 600; }
   .podium-bar {
     width: 120px; border-radius: 10px 10px 0 0; border: 2.5px solid var(--ink);
     display: flex; align-items: flex-start; justify-content: center; padding-top: 0.6rem;
@@ -397,7 +397,7 @@
   .leaderboard-row:last-child { border-bottom: none; }
   .leaderboard-rank { color: var(--faint); font-weight: 700; width: 2rem; }
   .results-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
-  .empty-results { text-align: center; color: rgba(255,255,255,0.7); font-size: 1rem; }
+  .empty-results { text-align: center; color: rgba(20,17,31,0.7); font-size: 1rem; }
 
   .student-score-banner {
     background: #fff; border: 2.5px solid var(--ink); border-radius: 14px; padding: 1.5rem 2rem;
@@ -413,7 +413,7 @@
   .revision-question { font-weight: 700; color: var(--ink); margin-bottom: 0.5rem; font-family: 'Space Grotesk', sans-serif; }
   .revision-your-answer { color: var(--pink); font-size: 0.9rem; font-weight: 600; margin-bottom: 0.2rem; }
   .revision-correct-answer { color: var(--green); font-size: 0.9rem; font-weight: 600; }
-  .revision-heading { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: #fff; font-size: 1.2rem; margin-top: 0.5rem; }
+  .revision-heading { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--ink); font-size: 1.2rem; margin-top: 0.5rem; }
   .perfect-score-banner { font-size: 1.15rem; color: var(--green); font-weight: 700; background: #fff; border: 2.5px solid var(--green); border-radius: 12px; padding: 1rem 1.5rem; }
 
   .roster-list { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 0.6rem; }
@@ -424,8 +424,8 @@
   .roster-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--ink); }
   .roster-remove { background: none; border: none; color: var(--faint); font-size: 0.85rem; font-weight: 600; }
   .roster-remove:hover { color: var(--pink); }
-  .roster-empty { color: rgba(255,255,255,0.6); font-size: 0.95rem; text-align: center; }
-  .nickname-badge { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.3rem; color: #fff; }
+  .roster-empty { color: rgba(20,17,31,0.65); font-size: 0.95rem; text-align: center; }
+  .nickname-badge { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.3rem; color: var(--ink); }
 
   .brainstorm-board { position: relative; width: 100%; max-width: 600px; aspect-ratio: 1 / 1; margin: 0 auto; }
   .brainstorm-hub {
@@ -1316,7 +1316,7 @@ try {
       appEl.innerHTML = `
         <div class="screen" style="max-width:500px;margin:2rem auto;text-align:center;">
           <div style="font-size:1.5rem;font-weight:700;color:var(--pink);margin-bottom:1rem;">⚠️ Connection Error</div>
-          <div class="sans" style="color:#fff;line-height:1.6;font-size:0.95rem;">
+          <div class="sans" style="color:var(--ink);line-height:1.6;font-size:0.95rem;">
             Failed to load the real-time database library. This usually happens if:
             <ul style="text-align:left;margin-top:0.8rem;padding-left:1.5rem;">
               <li style="margin-bottom:0.4rem;">An ad blocker or browser extension is blocking <code>cdn.jsdelivr.net</code>.</li>
@@ -1729,11 +1729,11 @@ function renderLanding() {
           <img src="logo.png" class="sticker-logo" alt="bowerboard logo" />
         </div>
         
-        <h1 style="font-family:'Outfit', sans-serif; font-size:2.8rem; font-weight:900; line-height:1.15; color:#fff; margin:0; letter-spacing:-0.02em;">
+        <h1 style="font-family:'Outfit', sans-serif; font-size:2.8rem; font-weight:900; line-height:1.15; color:var(--ink); margin:0; letter-spacing:-0.02em;">
           Gather the pieces. Build the picture.
         </h1>
-        
-        <p style="font-family:'Space Grotesk', sans-serif; font-size:1.15rem; line-height:1.55; color:#D4CCE6; margin:0; font-weight:500;">
+
+        <p style="font-family:'Space Grotesk', sans-serif; font-size:1.15rem; line-height:1.55; color:rgba(20,17,31,0.8); margin:0; font-weight:500;">
           Word clouds, polls, sticky notes and rankings your class joins in seconds — no logins, no installs.
         </p>
         
@@ -1747,7 +1747,7 @@ function renderLanding() {
             <button class="btn-primary" id="btn-teacher">Build a bower</button>
             <button class="btn-outline" id="btn-student">Join a bower</button>
           </div>
-          <div class="footnote" style="font-size:0.85rem; color:#AFA5C7; font-weight:500;">
+          <div class="footnote" style="font-size:0.85rem; color:rgba(20,17,31,0.65); font-weight:500;">
             Answers are anonymous — nothing is linked to a name.
           </div>
           
@@ -1761,7 +1761,7 @@ function renderLanding() {
             </div>
             
             <!-- Arrow -->
-            <div class="flow-arrow" style="font-size:1.15rem; color:#fff; font-weight:900; text-align:center;">➔</div>
+            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
             
             <!-- Step 2 -->
             <div style="flex:1; min-width:130px; background:#FF8A80; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
@@ -1771,7 +1771,7 @@ function renderLanding() {
             </div>
             
             <!-- Arrow -->
-            <div class="flow-arrow" style="font-size:1.15rem; color:#fff; font-weight:900; text-align:center;">➔</div>
+            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
             
             <!-- Step 3 -->
             <div style="flex:1; min-width:130px; background:#80D8FF; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
@@ -1884,7 +1884,7 @@ function renderActivityPicker() {
   const history = JSON.parse(localStorage.getItem('bowerboard_history') || '[]');
   
   let historyHtml = `
-    <div style="color:rgba(255,255,255,0.45); font-size:0.85rem; font-style:italic;">
+    <div style="color:rgba(20,17,31,0.5); font-size:0.85rem; font-style:italic;">
       No previous bowers found on this device.
     </div>
   `;
@@ -1926,7 +1926,7 @@ function renderActivityPicker() {
   app.innerHTML = `
     <div class="screen">
       <button class="back-btn sans" id="btn-back">← back</button>
-      <div style="font-size:1.6rem;font-weight:700;font-family:'Outfit',sans-serif;color:#fff;">Choose the bower you want to create</div>
+      <div style="font-size:1.6rem;font-weight:700;font-family:'Outfit',sans-serif;color:var(--ink);">Choose the bower you want to create</div>
       
       <div class="activity-grid" style="margin-top:1rem;">
         <button class="activity-card sans" id="pick-wordcloud">
@@ -1957,7 +1957,7 @@ function renderActivityPicker() {
 
       <!-- Recent Bowers Section -->
       <div class="recent-bowers-container sans" style="width:100%; max-width:680px; margin-top:2.5rem; text-align:left; box-sizing:border-box;">
-        <h3 style="font-family:'Outfit', sans-serif; font-size:1.15rem; font-weight:900; color:#fff; margin-bottom:1rem; border-bottom:2px solid rgba(255,255,255,0.15); padding-bottom:0.4rem;">
+        <h3 style="font-family:'Outfit', sans-serif; font-size:1.15rem; font-weight:900; color:var(--ink); margin-bottom:1rem; border-bottom:2px solid rgba(20,17,31,0.15); padding-bottom:0.4rem;">
           Your Recent Bowers (local history)
         </h3>
         <div style="display:flex; flex-direction:column; gap:0.75rem;">
@@ -2732,7 +2732,7 @@ function renderTeacherLobby() {
   app.innerHTML = `
     <div class="live-wrap">
       <div class="live-header">
-        <div class="sans" style="font-size:0.85rem;color:var(--muted);">Waiting room</div>
+        <div class="sans" style="font-size:0.85rem;color:rgba(20,17,31,0.65);">Waiting room</div>
         <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
           <div class="room-badge">
             <div class="room-badge-label sans">ROOM CODE</div>
@@ -2745,7 +2745,7 @@ function renderTeacherLobby() {
         </div>
       </div>
       <div class="prompt-label">Who's joined so far</div>
-      <div class="footnote sans" style="color:rgba(255,255,255,0.7);max-width:none;text-align:left;margin-bottom:1rem;">
+      <div class="footnote sans" style="color:rgba(20,17,31,0.7);max-width:none;text-align:left;margin-bottom:1rem;">
         Review nicknames below and remove any before you start. Once you hit Start, everyone jumps to question 1.
       </div>
       <div id="roster-wrap" class="roster-list"></div>
@@ -3311,7 +3311,7 @@ function renderTeacherLive() {
   app.innerHTML = `
     <div class="live-wrap">
       <div class="live-header">
-        <div class="sans" style="font-size:0.85rem;color:var(--muted);">${isPoll ? 'Question ' + (currentIndexOf(s) + 1) + ' of ' + numQuestionsOf(s) : (s.type === 'ranking' ? 'Ranking prompt' : (s.type === 'sticky' ? 'Cork board topic' : (isBrainstorm ? 'Central question' : 'Question')))}</div>
+        <div class="sans" style="font-size:0.85rem;color:rgba(20,17,31,0.65);">${isPoll ? 'Question ' + (currentIndexOf(s) + 1) + ' of ' + numQuestionsOf(s) : (s.type === 'ranking' ? 'Ranking prompt' : (s.type === 'sticky' ? 'Cork board topic' : (isBrainstorm ? 'Central question' : 'Question')))}</div>
         <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
           <div class="room-badge">
             <div class="room-badge-label sans">ROOM CODE</div>
@@ -3326,7 +3326,7 @@ function renderTeacherLive() {
       <div class="prompt-label">${escapeHtml(isChoice ? currentPromptText(s) : s.prompt)}</div>
       <div class="controls-row">
         <div class="pres-mode-selector-wrap" style="display:flex;gap:0.4rem;align-items:center;margin-right:0.4rem;flex-wrap:wrap;">
-          <span class="sans" style="font-weight:700;font-size:0.85rem;color:var(--muted);">Mode:</span>
+          <span class="sans" style="font-weight:700;font-size:0.85rem;color:rgba(20,17,31,0.65);">Mode:</span>
           <button class="btn-nav sans" id="pres-mode-classic" style="padding:0.45rem 0.8rem;font-size:0.85rem;${(s.presentationMode || 'classic') === 'classic' ? 'background:var(--yellow);' : ''}">Classic</button>
           <button class="btn-nav sans" id="pres-mode-split" style="padding:0.45rem 0.8rem;font-size:0.85rem;${s.presentationMode === 'split' ? 'background:var(--yellow);' : ''}">Split Screen</button>
           <button class="btn-nav sans" id="pres-mode-remote" style="padding:0.45rem 0.8rem;font-size:0.85rem;${s.presentationMode === 'remote' ? 'background:var(--yellow);' : ''}">Mobile Remote</button>
@@ -4019,18 +4019,18 @@ function renderPhoneRemote() {
       <div class="student-header" style="text-align:left; display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding-bottom:0.6rem; border-bottom:2.5px solid var(--ink);">
         <div>
           <div class="student-room-code sans" style="font-size:0.85rem; padding:0.15rem 0.4rem;">Remote Mode</div>
-          <div class="student-prompt" style="font-size:1rem; font-weight:700; margin-top:0.2rem; color:#fff;">Room ${s.code}</div>
+          <div class="student-prompt" style="font-size:1rem; font-weight:700; margin-top:0.2rem; color:var(--ink);">Room ${s.code}</div>
         </div>
         <button class="btn-clear sans" id="btn-remote-disconnect" style="padding:0.35rem 0.6rem; font-size:0.75rem; font-weight:700; border:2px solid var(--ink); background:var(--pink); color:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">Disconnect</button>
       </div>
       
-      <div class="sans" style="font-size:0.85rem; color:rgba(255,255,255,0.85); line-height:1.4; margin-bottom:1rem; text-align:left;">
+      <div class="sans" style="font-size:0.85rem; color:rgba(20,17,31,0.85); line-height:1.4; margin-bottom:1rem; text-align:left;">
         💡 Swipe <strong>Right 👉</strong> to Reveal on Smartboard.<br>
         💡 Swipe <strong>Left 👈</strong> to Dismiss.
       </div>
-      
+
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.6rem; width:100%;">
-        <div class="sans" style="font-weight:800; font-size:1.1rem; color:#fff;">
+        <div class="sans" style="font-weight:800; font-size:1.1rem; color:var(--ink);">
           📥 Inbox (${pending.length})
         </div>
         <button class="btn-reveal sans" id="btn-remote-approve-all" style="padding:0.4rem 0.8rem; font-size:0.75rem; background:var(--green); color:#fff; border:2px solid var(--ink); box-shadow:2px 2px 0 var(--shadow); cursor:pointer; border-radius:6px; font-weight:700;" ${pending.length === 0 ? 'disabled' : ''}>
@@ -4040,7 +4040,7 @@ function renderPhoneRemote() {
       
       <div class="pending-list" style="display:flex; flex-direction:column; gap:0.8rem; margin-bottom:1.5rem; min-height:150px;">
         ${pending.length === 0 ? `
-          <div class="sans" style="text-align:center; color:rgba(255,255,255,0.7); margin-top:2rem; font-style:italic;">
+          <div class="sans" style="text-align:center; color:rgba(20,17,31,0.7); margin-top:2rem; font-style:italic;">
             No pending submissions.
           </div>
         ` : pending.map((item, index) => {
@@ -4107,7 +4107,7 @@ function renderPhoneRemote() {
       </div>
       
       <!-- Live smartboard status indicator -->
-      <div style="background:rgba(255,255,255,0.1); border:2px dashed rgba(255,255,255,0.3); padding:0.8rem; border-radius:8px; color:rgba(255,255,255,0.9); font-size:0.85rem; text-align:left;">
+      <div style="background:rgba(20,17,31,0.06); border:2px dashed rgba(20,17,31,0.3); padding:0.8rem; border-radius:8px; color:rgba(20,17,31,0.85); font-size:0.85rem; text-align:left;">
         💡 You are connected to the main screen. Changes you approve here appear instantly on the classroom screen.
       </div>
     </div>
@@ -5263,9 +5263,9 @@ function renderStudentWaitingRoom() {
   const s = state;
   app.innerHTML = `
     <div class="screen">
-      <div style="font-size:1.1rem;color:rgba(255,255,255,0.75);" class="sans">You're in as</div>
+      <div style="font-size:1.1rem;color:rgba(20,17,31,0.75);" class="sans">You're in as</div>
       <div class="nickname-badge">${escapeHtml(s.nickname)}</div>
-      <div class="footnote sans" style="color:rgba(255,255,255,0.7);max-width:340px;">Waiting for your teacher to start the quiz…</div>
+      <div class="footnote sans" style="color:rgba(20,17,31,0.7);max-width:340px;">Waiting for your teacher to start the quiz…</div>
     </div>`;
   const tick = async () => {
     const rosterRaw = await kvGet('room:' + s.code + ':roster');
@@ -5276,8 +5276,8 @@ function renderStudentWaitingRoom() {
       stopPolling();
       app.innerHTML = `
         <div class="screen">
-          <div style="font-size:1.3rem;font-weight:700;color:#fff;">You were removed from this quiz</div>
-          <div class="footnote sans" style="color:rgba(255,255,255,0.7);">Check with your teacher if you think this was a mistake.</div>
+          <div style="font-size:1.3rem;font-weight:700;color:var(--ink);">You were removed from this quiz</div>
+          <div class="footnote sans" style="color:rgba(20,17,31,0.7);">Check with your teacher if you think this was a mistake.</div>
         </div>`;
       return;
     }
@@ -5326,10 +5326,10 @@ function renderStudentRoomRanking() {
         ${s.hasVoted ? `
           <div class="sans" style="text-align:center;font-size:1.1rem;font-weight:700;color:var(--green);margin:1.5rem 0;">
             ✓ Ranking submitted!<br>
-            <span style="font-size:0.9rem;font-weight:500;color:#fff;margin-top:0.4rem;display:inline-block;">Wait for your teacher to reveal the results.</span>
+            <span style="font-size:0.9rem;font-weight:500;color:var(--ink);margin-top:0.4rem;display:inline-block;">Wait for your teacher to reveal the results.</span>
           </div>
         ` : `
-          <div class="sans" style="font-size:0.85rem;color:rgba(255,255,255,0.7);text-align:left;margin-bottom:0.8rem;">
+          <div class="sans" style="font-size:0.85rem;color:rgba(20,17,31,0.7);text-align:left;margin-bottom:0.8rem;">
             Order items from top (1st place) to bottom. Use the arrows to move them:
           </div>
           <div class="ranking-list" id="ranking-list-container">
@@ -6117,7 +6117,7 @@ function exportBoard(format) {
   document.body.style.cursor = 'wait';
 
   html2canvas(target, {
-    backgroundColor: '#2B2145',
+    backgroundColor: '#A4D4B4',
     scale: 2,
     logging: false,
     useCORS: true
