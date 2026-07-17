@@ -3370,7 +3370,7 @@ function renderTeacherLive() {
           <button class="btn-reveal sans" id="btn-reveal-all-ranks">🔓 Reveal all ranks</button>
         ` : ''}
         <button class="btn-nav sans" id="btn-toggle-boardmode" style="${s.boardMode ? 'background:var(--pink) !important;color:#fff !important;' : ''}">${s.boardMode ? '✕ Exit Board Mode' : '🖥️ Board Mode'}</button>
-        ${s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' || s.type === 'ranking' ? `
+        ${s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' || s.type === 'ranking' || s.type === 'mc' || s.type === 'poll' ? `
           <div class="download-dropdown-wrap">
             <button class="btn-nav sans" id="btn-download-board">⬇️ Download Board</button>
             <div class="download-dropdown-menu sans" id="download-menu" style="display:none;">
@@ -6157,6 +6157,25 @@ function boardToCSVRows(s) {
     const sorted = (s.options || []).map(opt => ({ text: opt, points: scores[opt] })).sort((a, b) => b.points - a.points);
     const rows = [['Rank', 'Option', 'Points']];
     sorted.forEach((item, idx) => rows.push([idx + 1, item.text, item.points]));
+    return rows;
+  }
+  if (s.type === 'mc' || s.type === 'poll') {
+    const isPoll = s.type === 'poll';
+    const questions = isPoll ? (s.questions || []) : [{ prompt: s.prompt, options: s.options, correctIndex: s.correctIndex }];
+    const rows = [isPoll
+      ? ['Question #', 'Question', 'Option', 'Votes', 'Percentage', 'Correct']
+      : ['Option', 'Votes', 'Percentage', 'Correct']];
+    questions.forEach((q, qIdx) => {
+      const votes = isPoll ? ((s.votes && s.votes[qIdx]) || (q.options || []).map(() => 0)) : (s.votes || (q.options || []).map(() => 0));
+      const total = votes.reduce((a, v) => a + v, 0);
+      const correctIndex = (q.correctIndex === undefined || q.correctIndex === null) ? null : q.correctIndex;
+      (q.options || []).forEach((opt, i) => {
+        const count = votes[i] || 0;
+        const pct = (total > 0 ? Math.round((count / total) * 100) : 0) + '%';
+        const isCorrect = correctIndex === i ? 'Yes' : '';
+        rows.push(isPoll ? [qIdx + 1, q.prompt, opt, count, pct, isCorrect] : [opt, count, pct, isCorrect]);
+      });
+    });
     return rows;
   }
   return [];
