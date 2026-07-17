@@ -1329,25 +1329,60 @@ try {
   });
 }
 
+function baseRoomCode(code) {
+  return code.startsWith('MOD-') ? code.slice(4) : code;
+}
+
+function getHostSecret(code) {
+  try { return localStorage.getItem('bowerboard_host_' + baseRoomCode(code)) || null; } catch (e) { return null; }
+}
+
+function setHostSecret(code, secret) {
+  try { localStorage.setItem('bowerboard_host_' + baseRoomCode(code), secret); } catch (e) {}
+}
+
+function clearHostSecret(code) {
+  try { localStorage.removeItem('bowerboard_host_' + baseRoomCode(code)); } catch (e) {}
+}
+
+function generateHostSecret() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'hs-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+// Requests must be scoped per-room (and per-host-secret, when known) so RLS can
+// enforce room isolation and hide moderation-pending rows from anyone but the
+// room's creator. A fresh lightweight client is cheap (no network call) and
+// keeps this scoping explicit at every call site, unlike mutating shared state.
+function clientFor(code) {
+  if (!window.supabase) return null;
+  const headers = { 'x-room-code': code };
+  const secret = getHostSecret(code);
+  if (secret) headers['x-host-secret'] = secret;
+  return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers } });
+}
+
 async function kvGet(key) {
   if (!supabaseClient) return null;
   try {
     const parts = key.split(':');
     const code = parts[1];
     const property = parts[2];
-    
-    const { data, error } = await supabaseClient
+    const client = clientFor(code);
+    if (!client) return null;
+
+    const { data, error } = await client
       .from('rooms')
       .select(property)
       .eq('code', code)
       .maybeSingle();
-      
+
     if (error) {
       console.error("Supabase kvGet error:", error);
       return null;
     }
     if (!data) return null;
-    
+
     const val = data[property];
     if (val === undefined || val === null) return null;
     return typeof val === 'string' ? val : JSON.stringify(val);
@@ -1364,20 +1399,27 @@ async function kvSet(key, value) {
     const code = parts[1];
     const property = parts[2];
     const parsedValue = JSON.parse(value);
-    
+
     // Save to local history if it's a room config being created/written!
     if (property === 'config' && parsedValue && parsedValue.type) {
       saveRoomToHistory(code, parsedValue.type, parsedValue.prompt || '');
     }
-    
+
     const upsertData = { code };
     upsertData[property] = parsedValue;
     upsertData['updated_at'] = new Date().toISOString();
-    
-    const { error } = await supabaseClient
+    // Only include host_secret when this browser actually knows it (room
+    // creator / phone remote) — omitting the key on conflict leaves the
+    // existing DB value untouched, so a plain student write can't clobber it.
+    const secret = getHostSecret(code);
+    if (secret) upsertData['host_secret'] = secret;
+
+    const client = clientFor(code);
+    if (!client) return false;
+    const { error } = await client
       .from('rooms')
       .upsert(upsertData, { onConflict: 'code' });
-      
+
     if (error) {
       console.error("Supabase kvSet error:", error);
       return false;
@@ -1387,6 +1429,50 @@ async function kvSet(key, value) {
     console.error("kvSet Exception:", e);
     return false;
   }
+}
+
+// Appends a single item to a MOD-<code> shadow row's array column via a
+// SECURITY DEFINER RPC, so a submitting student's browser never has to read
+// (and therefore never sees) other students' pending, unapproved submissions.
+async function submitPendingItem(code, column, item) {
+  if (!supabaseClient) return false;
+  try {
+    const { error } = await supabaseClient.rpc('append_pending_item', {
+      p_code: baseRoomCode(code),
+      p_column: column,
+      p_item: item
+    });
+    if (error) {
+      console.error("Supabase submitPendingItem error:", error);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("submitPendingItem Exception:", e);
+    return false;
+  }
+}
+
+// Rotates a room's host_secret (used for both teacher access to pending
+// content and the phone-moderation-remote link). Authorizes the rotation
+// with the OLD secret, so only a device that already holds it can invalidate
+// existing phone-remote links.
+async function rotatePhoneRemote(code) {
+  const oldSecret = getHostSecret(code);
+  const newSecret = generateHostSecret();
+  const headers = { 'x-room-code': code };
+  if (oldSecret) headers['x-host-secret'] = oldSecret;
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers } });
+  const { error } = await client
+    .from('rooms')
+    .update({ host_secret: newSecret, updated_at: new Date().toISOString() })
+    .eq('code', 'MOD-' + code);
+  if (error) {
+    console.error("rotatePhoneRemote error:", error);
+    return false;
+  }
+  setHostSecret(code, newSecret);
+  return true;
 }
 
 function setupRealtimeListener(roomCode, tickFunction) {
@@ -1551,6 +1637,7 @@ async function startDemoSession(type) {
 
   // Create unique room code
   const code = "DEMO-" + generateCode();
+  setHostSecret(code, generateHostSecret());
   const revealMode = s.revealMode || 'live';
   
   const config = {
@@ -2022,6 +2109,7 @@ function renderWordCloudSetup() {
     if (!state.prompt || !state.prompt.trim()) return;
     state.loading = true; render();
     const code = generateCode();
+    setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
     const config = { type: 'wordcloud', prompt: state.prompt.trim(), revealMode, revealed: revealMode === 'live', createdAt: Date.now() };
     const ok = await kvSet('room:' + code + ':config', JSON.stringify(config));
@@ -2073,6 +2161,7 @@ function renderBrainstormSetup() {
     if (!state.prompt || !state.prompt.trim()) return;
     state.loading = true; render();
     const code = generateCode();
+    setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
     const config = { type: 'brainstorm', prompt: state.prompt.trim(), revealMode, revealed: revealMode === 'live', likesEnabled: false, createdAt: Date.now() };
     const ok = await kvSet('room:' + code + ':config', JSON.stringify(config));
@@ -2124,6 +2213,7 @@ function renderStickySetup() {
     if (!state.prompt || !state.prompt.trim()) return;
     state.loading = true; render();
     const code = generateCode();
+    setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
     const config = { type: 'sticky', prompt: state.prompt.trim(), revealMode, revealed: revealMode === 'live', likesEnabled: false, createdAt: Date.now() };
     const ok = await kvSet('room:' + code + ':config', JSON.stringify(config));
@@ -2221,6 +2311,7 @@ function renderRankingSetup() {
     }
     state.loading = true; render();
     const code = generateCode();
+    setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
     const config = {
       type: 'ranking',
@@ -2350,6 +2441,7 @@ function renderMCSetup() {
     if (!canCreateMC(state)) return;
     state.loading = true; render();
     const code = generateCode();
+    setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
     const cleanOptions = state.options.map(o => o.trim()).filter(o => o.length > 0);
     const config = {
@@ -2683,6 +2775,7 @@ function renderPollBuildStage() {
     }
     s.loading = true; render();
     const code = generateCode();
+    setHostSecret(code, generateHostSecret());
     const cleanQuestions = s.questions.map(qq => ({
       prompt: qq.prompt.trim(),
       options: qq.options.map(o => o.trim()).filter(o => o.length > 0),
@@ -3244,7 +3337,7 @@ function renderTeacherLive() {
     const copyRemoteLinkBtn = document.getElementById('btn-copy-remote-link');
     if (copyRemoteLinkBtn) {
       copyRemoteLinkBtn.onclick = () => {
-        const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + s.remoteToken;
+        const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code);
         navigator.clipboard.writeText(link).then(() => {
           copyRemoteLinkBtn.textContent = '✓ Copied!';
           setTimeout(() => { copyRemoteLinkBtn.textContent = '📋 Copy Remote Link'; }, 2000);
@@ -3256,13 +3349,12 @@ function renderTeacherLive() {
     if (disconnectRemoteBtn) {
       disconnectRemoteBtn.onclick = async () => {
         if (confirm("Disconnect the current phone remote? This will generate a new secret token.")) {
-          s.remoteToken = Math.random().toString(36).slice(2) + Date.now().toString(36).slice(4);
+          await rotatePhoneRemote(s.code);
           s.remoteConnected = false;
           const raw = await kvGet('room:' + s.code + ':config');
           if (raw) {
             try {
               const cfg = JSON.parse(raw);
-              cfg.remoteToken = s.remoteToken;
               cfg.remoteConnected = false;
               await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
             } catch (e) {}
@@ -3397,7 +3489,7 @@ function renderTeacherLive() {
               Scan this QR code with your phone or tablet to moderate submissions on a second screen. No login required.
             </div>
             <div style="display:flex; justify-content:center; margin-bottom:1.2rem;">
-              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + s.remoteToken, 240)}
+              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code), 240)}
             </div>
             <div style="display:flex; flex-direction:column; gap:0.6rem;">
               <button class="btn-nav sans" id="btn-copy-remote-link" style="width:100%; font-size:0.85rem; font-weight:700; border:2px solid var(--ink); padding:0.5rem; background:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">📋 Copy Remote Link</button>
@@ -3578,10 +3670,6 @@ function renderTeacherLive() {
           try {
             const cfg = JSON.parse(raw);
             cfg.presentationMode = mode;
-            if (mode === 'remote') {
-              if (!cfg.remoteToken) cfg.remoteToken = Math.random().toString(36).slice(2) + Date.now().toString(36).slice(4);
-              s.remoteToken = cfg.remoteToken;
-            }
             await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
             
             // Initialize shadow room row
@@ -3637,7 +3725,7 @@ function renderTeacherLive() {
   const copyRemoteLinkBtn = document.getElementById('btn-copy-remote-link');
   if (copyRemoteLinkBtn) {
     copyRemoteLinkBtn.onclick = () => {
-      const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + s.remoteToken;
+      const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code);
       navigator.clipboard.writeText(link).then(() => {
         copyRemoteLinkBtn.textContent = '✓ Copied!';
         setTimeout(() => { copyRemoteLinkBtn.textContent = '📋 Copy Remote Link'; }, 2000);
@@ -3649,13 +3737,12 @@ function renderTeacherLive() {
   if (disconnectRemoteBtn) {
     disconnectRemoteBtn.onclick = async () => {
       if (confirm("Disconnect the current phone remote? This will generate a new secret token.")) {
-        s.remoteToken = Math.random().toString(36).slice(2) + Date.now().toString(36).slice(4);
+        await rotatePhoneRemote(s.code);
         s.remoteConnected = false;
         const raw = await kvGet('room:' + s.code + ':config');
         if (raw) {
           try {
             const cfg = JSON.parse(raw);
-            cfg.remoteToken = s.remoteToken;
             cfg.remoteConnected = false;
             await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
           } catch (e) {}
@@ -3672,7 +3759,6 @@ function renderTeacherLive() {
         const cfg = JSON.parse(cfgRaw);
         const prevMode = s.presentationMode;
         s.presentationMode = cfg.presentationMode || 'classic';
-        s.remoteToken = cfg.remoteToken || null;
         s.blockedSessions = cfg.blockedSessions || [];
         s.remoteConnected = cfg.remoteConnected || false;
         s.revealed = cfg.revealed !== undefined ? cfg.revealed : s.revealed;
@@ -3866,7 +3952,7 @@ function renderDisplayView() {
               Scan this QR code with your phone or tablet to moderate submissions on a second screen. No login required.
             </div>
             <div style="display:flex; justify-content:center; margin-bottom:1.2rem;">
-              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + s.remoteToken, 240)}
+              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code), 240)}
             </div>
             <div style="display:flex; flex-direction:column; gap:0.6rem;">
               <button class="btn-nav sans" id="btn-copy-remote-link" style="width:100%; font-size:0.85rem; font-weight:700; border:2px solid var(--ink); padding:0.5rem; background:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">📋 Copy Remote Link</button>
@@ -3892,7 +3978,13 @@ function renderDisplayView() {
 
 async function startRemoteControlView(code, token) {
   state = { screen: 'phoneRemote', code: code, token: token, posts: [], words: [], votes: [], config: {} };
-  
+
+  // The QR/link's "token" is the room's real host_secret. Store it so every
+  // subsequent kvGet/kvSet call from this device sends it as the
+  // x-host-secret header, then prove authorization with a real DB round-trip
+  // (reading the MOD- row) instead of trusting a value from public config.
+  setHostSecret(code, token);
+
   const configRaw = await kvGet('room:' + code + ':config');
   if (configRaw) {
     try {
@@ -3905,11 +3997,11 @@ async function startRemoteControlView(code, token) {
       state.revealed = cfg.revealed;
       state.likesEnabled = !!cfg.likesEnabled;
       state.presentationMode = cfg.presentationMode || 'classic';
-      state.dbRemoteToken = cfg.remoteToken;
     } catch (e) {}
   }
-  
-  if (state.dbRemoteToken === token) {
+
+  const modAuthCheck = await kvGet('room:MOD-' + code + ':config');
+  if (modAuthCheck !== null) {
     const raw = await kvGet('room:' + code + ':config');
     if (raw) {
       try {
@@ -3919,26 +4011,29 @@ async function startRemoteControlView(code, token) {
       } catch (e) {}
     }
   } else {
+    clearHostSecret(code);
     state.unauthorized = true;
   }
-  
+
   render();
-  
+
   if (state.unauthorized) return;
-  
+
   stopPolling();
-  
+
   const tick = async () => {
     const cfgRaw = await kvGet('room:' + code + ':config');
+    const modCheck = await kvGet('room:MOD-' + code + ':config');
+    if (modCheck === null) {
+      clearHostSecret(code);
+      stopPolling();
+      state.unauthorized = true;
+      render();
+      return;
+    }
     if (cfgRaw) {
       try {
         const cfg = JSON.parse(cfgRaw);
-        if (cfg.remoteToken !== token) {
-          stopPolling();
-          state.unauthorized = true;
-          render();
-          return;
-        }
         state.prompt = cfg.prompt;
         state.currentIndex = cfg.currentIndex || 0;
         state.revealed = cfg.revealed;
@@ -5515,21 +5610,23 @@ function renderStudentRoomBrainstorm() {
       document.getElementById('answer-error').textContent = "That can't be posted here. Try another.";
       return;
     }
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const targetRoom = getTargetRoom(s);
-      const raw = await kvGet('room:' + targetRoom + ':posts');
-      let list = [];
-      if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
-      if (targetRoom.startsWith('MOD-')) {
-        list.push({
-          id: Math.random().toString(36).slice(2) + Date.now().toString(36),
-          text: clean,
-          likes: 0,
-          count: 1,
-          ownerSessionIds: [s.mySessionId],
-          sessionId: s.mySessionId
-        });
-      } else {
+    const targetRoom = getTargetRoom(s);
+    if (targetRoom.startsWith('MOD-')) {
+      // Moderated: append server-side via RPC. This browser never reads the
+      // shared pending list, so it never sees other students' submissions.
+      await submitPendingItem(s.code, 'posts', {
+        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+        text: clean,
+        likes: 0,
+        count: 1,
+        ownerSessionIds: [s.mySessionId],
+        sessionId: s.mySessionId
+      });
+    } else {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const raw = await kvGet('room:' + targetRoom + ':posts');
+        let list = [];
+        if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
         const lower = clean.toLowerCase();
         const existing = list.find(p => p.text.toLowerCase() === lower);
         if (existing) {
@@ -5539,10 +5636,10 @@ function renderStudentRoomBrainstorm() {
         } else {
           list.push({ id: Math.random().toString(36).slice(2) + Date.now().toString(36), text: clean, likes: 0, count: 1, ownerSessionIds: [s.mySessionId], sessionId: s.mySessionId });
         }
+        const ok = await kvSet('room:' + targetRoom + ':posts', JSON.stringify(list));
+        if (ok) { s.posts = list; break; }
+        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
       }
-      const ok = await kvSet('room:' + targetRoom + ':posts', JSON.stringify(list));
-      if (ok) { s.posts = list; break; }
-      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
     }
     input.value = '';
     btn.disabled = true;
@@ -5685,29 +5782,34 @@ function renderStudentRoomSticky() {
   };
 
   async function submitStickyNote(text, color, image) {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const targetRoom = getTargetRoom(s);
-      const raw = await kvGet('room:' + targetRoom + ':posts');
-      let list = [];
-      if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
-      
-      const newNote = {
-        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
-        text,
-        color,
-        image,
-        left: 20 + Math.random() * 60,
-        top: 20 + Math.random() * 60,
-        angle: -5 + Math.random() * 10,
-        likes: 0,
-        ownerSessionIds: [s.mySessionId],
-        sessionId: s.mySessionId
-      };
-      list.push(newNote);
-
-      const ok = await kvSet('room:' + targetRoom + ':posts', JSON.stringify(list));
-      if (ok) { s.posts = list; break; }
-      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    const targetRoom = getTargetRoom(s);
+    const newNote = {
+      id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+      text,
+      color,
+      image,
+      left: 20 + Math.random() * 60,
+      top: 20 + Math.random() * 60,
+      angle: -5 + Math.random() * 10,
+      likes: 0,
+      ownerSessionIds: [s.mySessionId],
+      sessionId: s.mySessionId
+    };
+    if (targetRoom.startsWith('MOD-')) {
+      // Moderated: append server-side via RPC so this browser never reads
+      // (and can't see) other students' pending sticky notes.
+      await submitPendingItem(s.code, 'posts', newNote);
+      s.posts = s.posts || [];
+    } else {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const raw = await kvGet('room:' + targetRoom + ':posts');
+        let list = [];
+        if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
+        list.push(newNote);
+        const ok = await kvSet('room:' + targetRoom + ':posts', JSON.stringify(list));
+        if (ok) { s.posts = list; break; }
+        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      }
     }
 
     input.value = '';
@@ -5858,26 +5960,28 @@ function renderStudentRoomWordCloud() {
       document.getElementById('answer-error').textContent = "That word can't be posted here. Try another.";
       return;
     }
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const targetRoom = getTargetRoom(s);
-      const raw = await kvGet('room:' + targetRoom + ':words');
-      let list = [];
-      if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
-      if (targetRoom.startsWith('MOD-')) {
-        list.push({
-          id: Math.random().toString(36).slice(2) + Date.now().toString(36),
-          text: clean,
-          count: 1,
-          sessionId: s.mySessionId
-        });
-      } else {
+    const targetRoom = getTargetRoom(s);
+    if (targetRoom.startsWith('MOD-')) {
+      // Moderated: append server-side via RPC. This browser never reads the
+      // shared pending list, so it never sees other students' words.
+      await submitPendingItem(s.code, 'words', {
+        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+        text: clean,
+        count: 1,
+        sessionId: s.mySessionId
+      });
+    } else {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const raw = await kvGet('room:' + targetRoom + ':words');
+        let list = [];
+        if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
         const lower = clean.toLowerCase();
         const existing = list.find(w => w.text.toLowerCase() === lower);
         if (existing) existing.count += 1; else list.push({ text: clean, count: 1 });
+        const ok = await kvSet('room:' + targetRoom + ':words', JSON.stringify(list));
+        if (ok) { s.words = list; break; }
+        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
       }
-      const ok = await kvSet('room:' + targetRoom + ':words', JSON.stringify(list));
-      if (ok) { s.words = list; break; }
-      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
     }
     input.value = '';
     btn.disabled = true;
@@ -5995,22 +6099,19 @@ async function submitVote() {
   const targetRoom = getTargetRoom(s);
   const isShadow = targetRoom.startsWith('MOD-');
   
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const raw = await kvGet('room:' + targetRoom + ':votes');
-    
-    if (isShadow) {
-      let list = [];
-      if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
-      list.push({
-        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
-        value: s.selected.slice(),
-        qIndex,
-        studentName: s.studentName,
-        sessionId: s.mySessionId
-      });
-      const ok = await kvSet('room:' + targetRoom + ':votes', JSON.stringify(list));
-      if (ok) break;
-    } else {
+  if (isShadow) {
+    // Moderated: append server-side via RPC. This browser never reads the
+    // shared pending vote list, so it never sees other students' choices.
+    await submitPendingItem(s.code, 'votes', {
+      id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+      value: s.selected.slice(),
+      qIndex,
+      studentName: s.studentName,
+      sessionId: s.mySessionId
+    });
+  } else {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const raw = await kvGet('room:' + targetRoom + ':votes');
       let votes = emptyVotesStructure(s);
       if (raw) { try { votes = JSON.parse(raw); } catch (e) {} }
       let target;
@@ -6023,8 +6124,8 @@ async function submitVote() {
       s.selected.forEach(idx => { target[idx] = (target[idx] || 0) + 1; });
       const ok = await kvSet('room:' + targetRoom + ':votes', JSON.stringify(votes));
       if (ok) { s.votes = votes; break; }
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
     }
-    await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
   }
   
   s.hasVoted = true;
