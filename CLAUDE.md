@@ -23,10 +23,11 @@ internal names for it, but don't block on renaming existing code.
 
 This is a **single static HTML file with no build step**: `index.html` (~6,400 lines)
 contains all CSS (`<style>`, lines ~13–849) and all JS (`<script>`, lines ~854–6400)
-inline. There's no `package.json`, no bundler, no npm scripts. Deployment is Netlify
-serving the repo directly (see `bowerboard-manifest.xml`, which points the PowerPoint
-add-in at `https://blurtapp.netlify.app/` — the add-in is just that URL in an iframe,
-not a separate code path).
+inline. There's no `package.json`, no bundler, no npm scripts. Deployment is Cloudflare
+Pages serving the repo directly from GitHub (see `bowerboard-manifest.xml`, which points
+the PowerPoint add-in at `https://bowerboard.app/` — the add-in is just that URL in an
+iframe, not a separate code path). The project previously deployed via Netlify; that
+connection has been removed in favor of Cloudflare.
 
 Other files in the repo:
 - `logo.png`, `poll_preview.png`, `quiz_preview.png`, `sticky_preview.png` — static
