@@ -1481,22 +1481,31 @@ function setupRealtimeListener(roomCode, tickFunction) {
     return { close: () => {} };
   }
   tickFunction(); // Execute the layout logic once immediately on load
-  
+
   const channel = supabaseClient
     .channel(`room:${roomCode}`)
-    .on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'rooms', 
-      filter: `code=eq.${roomCode}` 
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'rooms',
+      filter: `code=eq.${roomCode}`
     }, () => {
       tickFunction(); // Instantly re-render charts when data changes
     })
     .subscribe();
 
-    
+  // Realtime's postgres_changes evaluates the same RLS policies as ordinary
+  // reads, but over the replication connection rather than a per-request
+  // HTTP call, so it doesn't carry the x-room-code/x-host-secret headers
+  // those policies check — meaning a push notification may never arrive.
+  // This interval is a guaranteed fallback so screens stay live regardless.
+  const pollFallback = setInterval(tickFunction, 4000);
+
   return {
-    close: () => supabaseClient.removeChannel(channel)
+    close: () => {
+      supabaseClient.removeChannel(channel);
+      clearInterval(pollFallback);
+    }
   };
 }
 
@@ -4119,7 +4128,13 @@ function renderPhoneRemote() {
         </div>
         <button class="btn-clear sans" id="btn-remote-disconnect" style="padding:0.35rem 0.6rem; font-size:0.75rem; font-weight:700; border:2px solid var(--ink); background:var(--pink); color:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">Disconnect</button>
       </div>
-      
+
+      ${s.revealMode === 'manual' ? `
+        <button class="${s.revealed ? 'btn-hide' : 'btn-reveal'} sans" id="btn-remote-toggle-reveal" style="width:100%; padding:0.6rem; font-size:0.9rem; font-weight:700; border:2.5px solid var(--ink); box-shadow:3px 3px 0 var(--shadow); cursor:pointer; border-radius:8px; margin-bottom:1rem; color:#fff;">
+          ${s.revealed ? '🙈 Hide answers from class' : '👁️ Reveal answers to class'}
+        </button>
+      ` : ''}
+
       <div class="sans" style="font-size:0.85rem; color:rgba(20,17,31,0.85); line-height:1.4; margin-bottom:1rem; text-align:left;">
         💡 Swipe <strong>Right 👉</strong> to Reveal on Smartboard.<br>
         💡 Swipe <strong>Left 👈</strong> to Dismiss.
@@ -4243,6 +4258,18 @@ function renderPhoneRemote() {
   
   const approveAllBtn = document.getElementById('btn-remote-approve-all');
   if (approveAllBtn) approveAllBtn.onclick = approveAllSubmissions;
+
+  const remoteToggleRevealBtn = document.getElementById('btn-remote-toggle-reveal');
+  if (remoteToggleRevealBtn) {
+    remoteToggleRevealBtn.onclick = async () => {
+      s.revealed = !s.revealed;
+      const raw = await kvGet('room:' + s.code + ':config');
+      if (raw) {
+        try { const cfg = JSON.parse(raw); cfg.revealed = s.revealed; await kvSet('room:' + s.code + ':config', JSON.stringify(cfg)); } catch (e) {}
+      }
+      renderPhoneRemote();
+    };
+  }
   
   const toggleDismissedBtn = document.getElementById('btn-remote-toggle-dismissed');
   if (toggleDismissedBtn) {
