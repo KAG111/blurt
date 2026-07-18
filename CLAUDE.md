@@ -19,6 +19,14 @@ etc.) are historical and pervasive — don't do a mass rename as a side effect o
 unrelated task. If you're adding a substantial new feature from scratch, prefer neutral
 internal names for it, but don't block on renaming existing code.
 
+## Git / PR workflow
+
+Never merge a pull request yourself. When a PR is ready to merge (CI green, no
+unresolved conflicts or review comments), tell the user explicitly and give the exact
+URL — e.g. "PR #9 is ready to merge: https://github.com/KAG111/blurt/pull/9" — and wait
+for them to merge it themselves. Don't just mention that a PR exists or is "ready";
+call out clearly that merging is the next step and it's on them to do it.
+
 ## Architecture
 
 This is a **single static HTML file with no build step**: `index.html` (~6,400 lines)
