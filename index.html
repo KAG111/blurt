@@ -1359,7 +1359,13 @@ function clientFor(code) {
   const headers = { 'x-room-code': code };
   const secret = getHostSecret(code);
   if (secret) headers['x-host-secret'] = secret;
-  return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers } });
+  return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers },
+    // This app has no login/auth; each ephemeral client only needs to send
+    // headers for one request, so skip session storage entirely — avoids
+    // "Multiple GoTrueClient instances" warnings from creating many clients.
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
 }
 
 async function kvGet(key) {
@@ -1462,7 +1468,10 @@ async function rotatePhoneRemote(code) {
   const newSecret = generateHostSecret();
   const headers = { 'x-room-code': code };
   if (oldSecret) headers['x-host-secret'] = oldSecret;
-  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers } });
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers },
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
   const { error } = await client
     .from('rooms')
     .update({ host_secret: newSecret, updated_at: new Date().toISOString() })
@@ -3923,6 +3932,11 @@ function renderDisplayView() {
   const s = state;
   const isChoice = s.type === 'mc' || s.type === 'poll';
   const joinUrl = window.location.href.split('#')[0].split('?')[0] + '?join=' + s.code;
+
+  // Belt-and-suspenders: the top-level render() dispatcher is also supposed
+  // to add this class, but this view is reachable directly via ?display=
+  // before that dispatcher's state is fully settled, so set it here too.
+  document.body.classList.add('board-mode-active');
 
   app.innerHTML = `
     <div class="live-wrap board-mode-active" style="padding: 1.5rem !important; height: 100vh; display: flex; flex-direction: column; justify-content: space-between; background: var(--stage-dark); box-sizing: border-box; overflow: hidden; width: 100vw; position: fixed; top: 0; left: 0;">
