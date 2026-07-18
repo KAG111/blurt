@@ -4,11 +4,40 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>bowerboard — Gather the pieces. Build the picture.</title>
+<meta name="description" content="Free, no-login classroom tool for live word clouds, polls, sticky notes and rankings — students join in seconds, teachers moderate from any device." />
+<link rel="canonical" href="https://bowerboard.app" />
+<meta name="theme-color" content="#A4D4B4" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="bowerboard" />
+<meta property="og:title" content="bowerboard — Gather the pieces. Build the picture." />
+<meta property="og:description" content="Free, no-login classroom tool for live word clouds, polls, sticky notes and rankings — students join in seconds, teachers moderate from any device." />
+<meta property="og:url" content="https://bowerboard.app" />
+<meta property="og:image" content="https://bowerboard.app/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="bowerboard — Gather the pieces. Build the picture." />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="bowerboard — Gather the pieces. Build the picture." />
+<meta name="twitter:description" content="Free, no-login classroom tool for live word clouds, polls, sticky notes and rankings — students join in seconds, teachers moderate from any device." />
+<meta name="twitter:image" content="https://bowerboard.app/og-image.png" />
+
+<!-- Favicons / manifest -->
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+<link rel="icon" type="image/svg+xml" href="/icon.svg" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@800;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
@@ -850,6 +879,14 @@
 </head>
 <body>
 <div id="app"></div>
+<noscript>
+  <div style="max-width:600px;margin:3rem auto;padding:2rem;text-align:center;font-family:-apple-system,sans-serif;color:#14111F;">
+    <h1 style="font-size:1.8rem;margin-bottom:0.5rem;">bowerboard</h1>
+    <p style="font-size:1.1rem;margin-bottom:0.5rem;">Free, no-login classroom tool for live word clouds, polls, sticky notes and rankings — students join in seconds, teachers moderate from any device.</p>
+    <p style="font-style:italic;color:#6B6480;">Gather the pieces. Build the picture.</p>
+    <p>Please enable JavaScript to use bowerboard — the app runs entirely in your browser.</p>
+  </div>
+</noscript>
 
 <script>
 /* =========================================================================
@@ -1939,7 +1976,7 @@ function renderLanding() {
           Sticky Notes Corkboard
         </div>
         <div style="background:#DCC3AD; min-height:220px; position:relative; overflow:hidden; box-sizing:border-box;">
-          <img src="sticky_preview.png" style="width:100%; height:220px; object-fit:cover; display:block;" alt="Sticky Notes Corkboard Preview" />
+          <img src="sticky_preview.png" loading="lazy" width="1254" height="644" style="width:100%; height:220px; object-fit:cover; display:block;" alt="Sticky Notes Corkboard Preview" />
         </div>
       </div>
       
@@ -1950,7 +1987,7 @@ function renderLanding() {
           Live Poll Results
         </div>
         <div style="background:#FBF9FF; min-height:220px; position:relative; overflow:hidden; box-sizing:border-box;">
-          <img src="poll_preview.png" style="width:100%; height:220px; object-fit:cover; display:block;" alt="Live Poll Results Preview" />
+          <img src="poll_preview.png" loading="lazy" width="1254" height="644" style="width:100%; height:220px; object-fit:cover; display:block;" alt="Live Poll Results Preview" />
         </div>
       </div>
       
@@ -1961,7 +1998,7 @@ function renderLanding() {
           Quiz & Multiple Choice
         </div>
         <div style="background:var(--stage); min-height:220px; position:relative; overflow:hidden; box-sizing:border-box;">
-          <img src="quiz_preview.png" style="width:100%; height:220px; object-fit:cover; display:block;" alt="Quiz Leaderboard Preview" />
+          <img src="quiz_preview.png" loading="lazy" width="1254" height="644" style="width:100%; height:220px; object-fit:cover; display:block;" alt="Quiz Leaderboard Preview" />
         </div>
       </div>
       
