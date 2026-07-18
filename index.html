@@ -5451,6 +5451,16 @@ function normalizeBrainstorm(text) {
   return text.trim().replace(/\s+/g, ' ').slice(0, 80);
 }
 
+function stickyFontSize(text, hasImage) {
+  const len = (text || '').length;
+  const steps = hasImage
+    ? [[15, 1.1], [30, 0.92], [50, 0.8], [80, 0.7], [Infinity, 0.62]]
+    : [[15, 1.6], [30, 1.3], [50, 1.05], [80, 0.88], [Infinity, 0.72]];
+  for (const [limit, size] of steps) {
+    if (len <= limit) return size;
+  }
+}
+
 function corkBoardHtml(prompt, posts, opts) {
   opts = opts || {};
   const interactive = !!opts.interactive;
@@ -5497,7 +5507,7 @@ function corkBoardHtml(prompt, posts, opts) {
           </div>
         ` : ''}
         ${mergeMode ? `<span class="merge-tick-box" style="position:absolute;bottom:4px;right:4px;margin:0;">${isSelected ? '✓' : ''}</span>` : ''}
-        <div class="sticky-note-text" style="${safeImageSrc ? 'max-height:42%' : 'max-height:85%'}">${textHtml} ${countBadge}</div>
+        <div class="sticky-note-text" style="${safeImageSrc ? 'max-height:42%' : 'max-height:85%'} font-size:${stickyFontSize(post.text, !!safeImageSrc)}rem;">${textHtml} ${countBadge}</div>
         ${imgHtml}
         ${likeEl}
       </div>`;
