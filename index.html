@@ -1481,22 +1481,31 @@ function setupRealtimeListener(roomCode, tickFunction) {
     return { close: () => {} };
   }
   tickFunction(); // Execute the layout logic once immediately on load
-  
+
   const channel = supabaseClient
     .channel(`room:${roomCode}`)
-    .on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'rooms', 
-      filter: `code=eq.${roomCode}` 
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'rooms',
+      filter: `code=eq.${roomCode}`
     }, () => {
       tickFunction(); // Instantly re-render charts when data changes
     })
     .subscribe();
 
-    
+  // Realtime's postgres_changes evaluates the same RLS policies as ordinary
+  // reads, but over the replication connection rather than a per-request
+  // HTTP call, so it doesn't carry the x-room-code/x-host-secret headers
+  // those policies check — meaning a push notification may never arrive.
+  // This interval is a guaranteed fallback so screens stay live regardless.
+  const pollFallback = setInterval(tickFunction, 4000);
+
   return {
-    close: () => supabaseClient.removeChannel(channel)
+    close: () => {
+      supabaseClient.removeChannel(channel);
+      clearInterval(pollFallback);
+    }
   };
 }
 
