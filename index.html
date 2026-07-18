@@ -6,7 +6,7 @@
 <title>bowerboard — Gather the pieces. Build the picture.</title>
 <meta name="description" content="Free, no-login classroom tool for live word clouds, polls, sticky notes and rankings — students join in seconds, teachers moderate from any device." />
 <link rel="canonical" href="https://bowerboard.app" />
-<meta name="theme-color" content="#A4D4B4" />
+<meta name="theme-color" content="#B9F6CA" />
 
 <!-- Open Graph -->
 <meta property="og:type" content="website" />
@@ -35,7 +35,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@700&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@800;900&display=swap" rel="stylesheet">
 <!-- html2canvas / jsPDF are only needed for the export-to-image/PDF feature,
      used well after initial load — loaded on demand from exportBoard()
      instead of blocking here. -->
@@ -211,7 +211,9 @@
     transform: translate(0, 0);
     transition: transform 120ms ease-out, box-shadow 120ms ease-out;
   }
-  .btn-primary:focus-visible, .btn-outline:focus-visible {
+  .btn-primary:focus-visible, .btn-outline:focus-visible,
+  .btn-nav:focus-visible, .btn-reveal:focus-visible, .btn-hide:focus-visible,
+  .btn-submit:focus-visible, .toggle-btn:focus-visible, .activity-card:focus-visible {
     outline: 3px auto var(--yellow);
     outline-offset: 3px;
   }
@@ -807,9 +809,9 @@
     50% { transform: translateY(-6px) rotate(1deg); }
   }
   .cartoon-arrow-tooltip {
-    position: absolute;
-    top: -85px;
-    left: 10px;
+    position: relative;
+    align-self: flex-start;
+    margin-bottom: 0.5rem;
     background: var(--yellow);
     color: var(--ink);
     border: 3px solid var(--ink);
@@ -853,13 +855,8 @@
   }
 
   @media (max-width: 900px) {
-    .btn-row {
-      margin-top: 0 !important;
-    }
     .cartoon-arrow-tooltip {
-      position: relative !important;
-      top: 0 !important;
-      left: 0 !important;
+      align-self: stretch !important;
       margin: 0.5rem 0 1.5rem 0 !important;
       max-width: 100% !important;
       width: 100% !important;
@@ -1514,22 +1511,30 @@ async function kvSet(key, value) {
 // Appends a single item to a MOD-<code> shadow row's array column via a
 // SECURITY DEFINER RPC, so a submitting student's browser never has to read
 // (and therefore never sees) other students' pending, unapproved submissions.
+//
+// This and every RPC wrapper below returns a status string rather than a
+// boolean: 'ok' on success, 'blocked_word' / 'rate_limited' / 'room_full'
+// for the server's soft rejections (the room row itself is fine, this one
+// submission wasn't accepted), or 'error' for anything else (room not
+// found, network failure, etc). Callers must compare against 'ok'
+// explicitly — every one of these strings, including the failure ones, is
+// truthy in JS.
 async function submitPendingItem(code, column, item) {
-  if (!supabaseClient) return false;
+  if (!supabaseClient) return 'error';
   try {
-    const { error } = await supabaseClient.rpc('append_pending_item', {
+    const { data, error } = await supabaseClient.rpc('append_pending_item', {
       p_code: baseRoomCode(code),
       p_column: column,
       p_item: item
     });
     if (error) {
       console.error("Supabase submitPendingItem error:", error);
-      return false;
+      return 'error';
     }
-    return true;
+    return data;
   } catch (e) {
     console.error("submitPendingItem Exception:", e);
-    return false;
+    return 'error';
   }
 }
 
@@ -1537,98 +1542,139 @@ async function submitPendingItem(code, column, item) {
 // replace client-side read-modify-write for classic (non-moderated) rooms,
 // where concurrent students writing the same JSON column would otherwise
 // silently clobber each other's submissions.
-async function incrementVotesRPC(code, qIndex, optionIndices) {
-  if (!supabaseClient) return false;
+async function incrementVotesRPC(code, qIndex, optionIndices, sessionId) {
+  if (!supabaseClient) return 'error';
   try {
-    const { error } = await supabaseClient.rpc('increment_votes', {
+    const { data, error } = await supabaseClient.rpc('increment_votes', {
       p_code: baseRoomCode(code),
       p_qindex: qIndex,
-      p_option_indices: optionIndices
+      p_option_indices: optionIndices,
+      p_session_id: sessionId
     });
-    if (error) { console.error("increment_votes error:", error); return false; }
-    return true;
+    if (error) { console.error("increment_votes error:", error); return 'error'; }
+    return data;
   } catch (e) {
     console.error("increment_votes Exception:", e);
-    return false;
+    return 'error';
   }
 }
 
-async function appendRankingRPC(code, ranking) {
-  if (!supabaseClient) return false;
+async function appendRankingRPC(code, ranking, sessionId) {
+  if (!supabaseClient) return 'error';
   try {
-    const { error } = await supabaseClient.rpc('append_ranking', {
+    const { data, error } = await supabaseClient.rpc('append_ranking', {
       p_code: baseRoomCode(code),
-      p_ranking: ranking
+      p_ranking: ranking,
+      p_session_id: sessionId
     });
-    if (error) { console.error("append_ranking error:", error); return false; }
-    return true;
+    if (error) { console.error("append_ranking error:", error); return 'error'; }
+    return data;
   } catch (e) {
     console.error("append_ranking Exception:", e);
-    return false;
+    return 'error';
   }
 }
 
-async function submitWordRPC(code, text) {
-  if (!supabaseClient) return false;
+async function submitWordRPC(code, text, sessionId) {
+  if (!supabaseClient) return 'error';
   try {
-    const { error } = await supabaseClient.rpc('submit_word', {
+    const { data, error } = await supabaseClient.rpc('submit_word', {
       p_code: baseRoomCode(code),
-      p_text: text
+      p_text: text,
+      p_session_id: sessionId
     });
-    if (error) { console.error("submit_word error:", error); return false; }
-    return true;
+    if (error) { console.error("submit_word error:", error); return 'error'; }
+    return data;
   } catch (e) {
     console.error("submit_word Exception:", e);
-    return false;
+    return 'error';
   }
 }
 
 async function appendPostRPC(code, post, dedupe) {
-  if (!supabaseClient) return false;
+  if (!supabaseClient) return 'error';
   try {
-    const { error } = await supabaseClient.rpc('append_post', {
+    const { data, error } = await supabaseClient.rpc('append_post', {
       p_code: baseRoomCode(code),
       p_post: post,
       p_dedupe: dedupe
     });
-    if (error) { console.error("append_post error:", error); return false; }
-    return true;
+    if (error) { console.error("append_post error:", error); return 'error'; }
+    return data;
   } catch (e) {
     console.error("append_post Exception:", e);
-    return false;
+    return 'error';
   }
 }
 
-async function likePostRPC(code, postId) {
-  if (!supabaseClient) return false;
+async function likePostRPC(code, postId, sessionId) {
+  if (!supabaseClient) return 'error';
   try {
-    const { error } = await supabaseClient.rpc('like_post', {
+    const { data, error } = await supabaseClient.rpc('like_post', {
       p_code: baseRoomCode(code),
-      p_post_id: postId
+      p_post_id: postId,
+      p_session_id: sessionId
     });
-    if (error) { console.error("like_post error:", error); return false; }
-    return true;
+    if (error) { console.error("like_post error:", error); return 'error'; }
+    return data;
   } catch (e) {
     console.error("like_post Exception:", e);
-    return false;
+    return 'error';
   }
 }
 
 async function recordStudentResponseRPC(code, name, qIndex, selected) {
-  if (!supabaseClient) return false;
+  if (!supabaseClient) return 'error';
   try {
-    const { error } = await supabaseClient.rpc('record_student_response', {
+    const { data, error } = await supabaseClient.rpc('record_student_response', {
       p_code: baseRoomCode(code),
       p_name: name,
       p_qindex: qIndex,
       p_selected: selected
     });
-    if (error) { console.error("record_student_response error:", error); return false; }
-    return true;
+    if (error) { console.error("record_student_response error:", error); return 'error'; }
+    return data;
   } catch (e) {
     console.error("record_student_response Exception:", e);
-    return false;
+    return 'error';
   }
+}
+
+// Atomically checks-and-appends a nickname to a room's roster (see
+// join_roster in supabase/migrations) — replaces the old client-side
+// read-roster -> check-taken -> write-roster sequence, which could lose a
+// student's name entirely if two people joined in the same instant.
+async function joinRosterRPC(code, name, sessionId) {
+  if (!supabaseClient) return 'error';
+  try {
+    const { data, error } = await supabaseClient.rpc('join_roster', {
+      p_code: baseRoomCode(code),
+      p_name: name,
+      p_session_id: sessionId
+    });
+    if (error) { console.error("join_roster error:", error); return 'error'; }
+    return data;
+  } catch (e) {
+    console.error("join_roster Exception:", e);
+    return 'error';
+  }
+}
+
+// A write RPC status is "soft-fail" if the room itself is fine and this
+// one submission just wasn't accepted — as opposed to 'error', which means
+// something went wrong worth retrying (network blip, room briefly
+// unreachable). Submit paths should stop retrying and show a message on
+// soft-fail, but keep retrying on 'error'.
+function isSoftFailStatus(status) {
+  return status === 'blocked_word' || status === 'rate_limited' || status === 'room_full' || status === 'taken' || status === 'room_not_found';
+}
+function submitStatusMessage(status) {
+  if (status === 'blocked_word') return "That can't be posted here. Try another.";
+  if (status === 'rate_limited') return "Slow down — try again in a moment.";
+  if (status === 'room_full') return "This board is full — ask your teacher to clear some space.";
+  if (status === 'taken') return "That nickname is already taken in this room — try another.";
+  if (status === 'room_not_found') return "Couldn't find that room. Check the code with your teacher.";
+  return "Couldn't post that — check your connection and try again.";
 }
 
 // Rotates a room's host_secret (used for both teacher access to pending
@@ -1693,8 +1739,16 @@ function setupRealtimeListener(roomCode, tickFunction) {
 /* =========================================================================
    App logic
    ========================================================================= */
-const BAD_WORDS = ['fuck','shit','cunt','bitch','asshole','dick','pussy','nigger','faggot','whore','slut'];
-function isClean(text) { const lower = text.toLowerCase(); return !BAD_WORDS.some(w => lower.includes(w)); }
+// There used to be a client-side profanity pre-check here (a BAD_WORDS
+// list + isClean()). It's gone: shipping the list meant anyone could read
+// it in view-source, and it did nothing against a direct RPC call that
+// skips the browser entirely. Filtering now happens once, server-side, in
+// contains_blocked_word() (see supabase/migrations) — every submit path
+// below checks the RPC's 'blocked_word' status instead of pre-checking
+// locally. The cost is one fewer round trip saved for the common case;
+// a client-side "mild subset" list was considered and rejected, since it
+// would only catch words that were never the problem in the first place,
+// while giving no earlier feedback for anything that actually matters.
 function normalize(text) { return text.trim().replace(/\s+/g, ' ').slice(0, 40); }
 const PALETTE = ['#2B6B5E', '#3D8B7A', '#D4A017', '#C05B3F', '#4A6FA5', '#7A5C8E', '#1F4E45'];
 function colorFor(i) { return PALETTE[i % PALETTE.length]; }
@@ -2041,12 +2095,13 @@ function renderLanding() {
         </p>
         
         <div class="cta-section" style="display:flex; flex-direction:column; gap:16px;">
-          <div class="btn-row" style="display:flex; gap:16px; flex-wrap:wrap; justify-content:flex-start; margin-bottom:0.5rem; position:relative; margin-top:6rem;">
-            <!-- Cartoon Arrow Tooltip -->
-            <div class="cartoon-arrow-tooltip sans">
-              👉 Want a demo? Click through, choose a bower and try demo mode!
-            </div>
-            
+          <!-- Cartoon Arrow Tooltip: sits in normal flow above the buttons now,
+               instead of floating absolutely and reserving space above itself. -->
+          <div class="cartoon-arrow-tooltip sans">
+            👉 Want a demo? Click through, choose a bower and try demo mode!
+          </div>
+
+          <div class="btn-row" style="display:flex; gap:16px; flex-wrap:wrap; justify-content:flex-start; margin-bottom:0.5rem;">
             <button class="btn-primary" id="btn-teacher">Build a bower</button>
             <button class="btn-outline" id="btn-student">Join a bower</button>
           </div>
@@ -2334,6 +2389,7 @@ function renderWordCloudSetup() {
   document.getElementById('btn-create').onclick = async () => {
     if (!state.prompt || !state.prompt.trim()) return;
     state.loading = true; render();
+    await supabaseReady;
     const code = generateCode();
     setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
@@ -2386,6 +2442,7 @@ function renderBrainstormSetup() {
   document.getElementById('btn-create').onclick = async () => {
     if (!state.prompt || !state.prompt.trim()) return;
     state.loading = true; render();
+    await supabaseReady;
     const code = generateCode();
     setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
@@ -2438,6 +2495,7 @@ function renderStickySetup() {
   document.getElementById('btn-create').onclick = async () => {
     if (!state.prompt || !state.prompt.trim()) return;
     state.loading = true; render();
+    await supabaseReady;
     const code = generateCode();
     setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
@@ -2536,6 +2594,7 @@ function renderRankingSetup() {
       return;
     }
     state.loading = true; render();
+    await supabaseReady;
     const code = generateCode();
     setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
@@ -2666,6 +2725,7 @@ function renderMCSetup() {
   document.getElementById('btn-create').onclick = async () => {
     if (!canCreateMC(state)) return;
     state.loading = true; render();
+    await supabaseReady;
     const code = generateCode();
     setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
@@ -3000,6 +3060,7 @@ function renderPollBuildStage() {
       }
     }
     s.loading = true; render();
+    await supabaseReady;
     const code = generateCode();
     setHostSecret(code, generateHostSecret());
     const cleanQuestions = s.questions.map(qq => ({
@@ -5577,6 +5638,7 @@ function renderStudentJoin() {
     if (!clean) return;
     state.checking = true; render();
     document.getElementById('code-input').focus();
+    await supabaseReady;
     const raw = await kvGet('room:' + clean + ':config');
     if (!raw) {
       state = { screen: 'studentJoin', codeInput: clean, error: "Couldn't find that room. Check the code with your teacher.", checking: false };
@@ -5595,7 +5657,8 @@ function renderStudentJoin() {
         code: clean, type: 'poll', questions: cfg.questions, requireNames,
         currentIndex: cfg.currentIndex || 0, revealed: cfg.revealed,
         votes: cfg.questions.map(q => q.options.map(() => 0)),
-        selected: [], hasVoted: false, answeredIndices: {}, studentName: null
+        selected: [], hasVoted: false, answeredIndices: {}, studentName: null,
+        mySessionId: Math.random().toString(36).slice(2) + Date.now().toString(36)
       };
       if (requireNames) {
         state = { screen: 'studentNamePrompt', nameInput: '', nameError: '', pending: pendingState, started: !!cfg.started };
@@ -5642,35 +5705,35 @@ function renderStudentNamePrompt() {
     s.checking = true; s.nameError = '';
     render();
 
+    // Room code lives on s.pending (this screen's own state was never
+    // given a top-level `code`), and mySessionId was generated back in
+    // doJoin() so it's stable across this join and the studentRoom screen
+    // that follows it.
+    const roomCode = s.pending.code;
+    const sessionId = s.pending.mySessionId;
+
+    let status = 'error';
     for (let attempt = 0; attempt < 3; attempt++) {
-      const raw = await kvGet('room:' + s.code + ':roster');
-      let roster = [];
-      if (raw) { try { roster = JSON.parse(raw); } catch (e) {} }
-      const taken = roster.some(n => n.trim().toLowerCase() === nickname.toLowerCase());
-      if (taken) {
-        s.checking = false;
-        s.nameError = 'That nickname is already taken in this room — try another.';
-        render();
-        return;
-      }
-      roster.push(nickname);
-      const ok = await kvSet('room:' + s.code + ':roster', JSON.stringify(roster));
-      if (ok) {
-        const cfgRaw = await kvGet('room:' + s.code + ':config');
-        let started = s.started;
-        if (cfgRaw) { try { started = !!JSON.parse(cfgRaw).started; } catch (e) {} }
-        if (started) {
-          state = Object.assign({ screen: 'studentRoom' }, s.pending, { studentName: nickname });
-        } else {
-          state = { screen: 'studentWaitingRoom', code: s.code, nickname, pending: s.pending };
-        }
-        render();
-        return;
-      }
+      status = await joinRosterRPC(roomCode, nickname, sessionId);
+      if (status === 'ok' || isSoftFailStatus(status)) break;
       await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
     }
+
+    if (status === 'ok') {
+      const cfgRaw = await kvGet('room:' + roomCode + ':config');
+      let started = s.started;
+      if (cfgRaw) { try { started = !!JSON.parse(cfgRaw).started; } catch (e) {} }
+      if (started) {
+        state = Object.assign({ screen: 'studentRoom' }, s.pending, { studentName: nickname });
+      } else {
+        state = { screen: 'studentWaitingRoom', code: roomCode, nickname, pending: s.pending };
+      }
+      render();
+      return;
+    }
+
     s.checking = false;
-    s.nameError = "Couldn't join — check your connection and try again.";
+    s.nameError = submitStatusMessage(status);
     render();
   }
 }
@@ -5729,6 +5792,7 @@ function renderStudentRoom() {
 
 function renderStudentRoomRanking() {
   const s = state;
+  if (!s.mySessionId) s.mySessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
   if (!s.rankingOrder) {
     s.rankingOrder = [...(s.options || [])];
   }
@@ -5763,7 +5827,7 @@ function renderStudentRoomRanking() {
               </div>
             `).join('')}
           </div>
-          <div class="error-text sans" id="answer-error"></div>
+          <div class="error-text sans" id="answer-error">${s.rankingError ? escapeHtml(s.rankingError) : ''}</div>
           <button class="btn-submit sans" id="btn-submit-ranking">Submit ranking</button>
         `}
       </div>
@@ -5815,14 +5879,19 @@ function renderStudentRoomRanking() {
     submitBtn.onclick = async () => {
       submitBtn.disabled = true;
       submitBtn.textContent = 'Submitting...';
-      
+      s.rankingError = '';
+
+      let status = 'error';
       for (let attempt = 0; attempt < 3; attempt++) {
-        const ok = await appendRankingRPC(s.code, [...s.rankingOrder]);
-        if (ok) {
-          s.hasVoted = true;
-          break;
-        }
+        status = await appendRankingRPC(s.code, [...s.rankingOrder], s.mySessionId);
+        if (status === 'ok' || isSoftFailStatus(status)) break;
         await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      }
+
+      if (status === 'ok') {
+        s.hasVoted = true;
+      } else {
+        s.rankingError = submitStatusMessage(status);
       }
 
       renderStudentRoomRanking();
@@ -5920,17 +5989,13 @@ function renderStudentRoomBrainstorm() {
     const clean = normalizeBrainstorm(input.value);
     if (!clean) return;
     document.getElementById('answer-error').textContent = '';
-    if (!isClean(clean)) {
-      document.getElementById('answer-error').textContent = "That can't be posted here. Try another.";
-      return;
-    }
     const targetRoom = getTargetRoom(s);
     if (targetRoom.startsWith('MOD-')) {
       // Moderated: append server-side via RPC. This browser never reads the
       // shared pending list, so it never sees other students' submissions.
-      let submitted = false;
-      for (let attempt = 0; attempt < 3 && !submitted; attempt++) {
-        submitted = await submitPendingItem(s.code, 'posts', {
+      let status = 'error';
+      for (let attempt = 0; attempt < 3; attempt++) {
+        status = await submitPendingItem(s.code, 'posts', {
           id: Math.random().toString(36).slice(2) + Date.now().toString(36),
           text: clean,
           likes: 0,
@@ -5938,22 +6003,27 @@ function renderStudentRoomBrainstorm() {
           ownerSessionIds: [s.mySessionId],
           sessionId: s.mySessionId
         });
-        if (!submitted) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+        if (status === 'ok' || isSoftFailStatus(status)) break;
+        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
       }
-      if (!submitted) {
-        document.getElementById('answer-error').textContent = "Couldn't post that — check your connection and try again.";
+      if (status !== 'ok') {
+        document.getElementById('answer-error').textContent = submitStatusMessage(status);
         return;
       }
     } else {
       const newPost = { id: Math.random().toString(36).slice(2) + Date.now().toString(36), text: clean, likes: 0, count: 1, ownerSessionIds: [s.mySessionId], sessionId: s.mySessionId };
-      let ok = false;
-      for (let attempt = 0; attempt < 3 && !ok; attempt++) {
-        ok = await appendPostRPC(targetRoom, newPost, true);
-        if (!ok) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      let status = 'error';
+      for (let attempt = 0; attempt < 3; attempt++) {
+        status = await appendPostRPC(targetRoom, newPost, true);
+        if (status === 'ok' || isSoftFailStatus(status)) break;
+        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
       }
-      if (ok) {
+      if (status === 'ok') {
         const raw = await kvGet('room:' + targetRoom + ':posts');
         if (raw) { try { s.posts = JSON.parse(raw); } catch (e) {} }
+      } else {
+        document.getElementById('answer-error').textContent = submitStatusMessage(status);
+        return;
       }
     }
     input.value = '';
@@ -5970,14 +6040,20 @@ function renderStudentRoomBrainstorm() {
   async function likePost(id) {
     if (s.likedPostIds.indexOf(id) !== -1) return;
     s.likedPostIds.push(id);
-    let ok = false;
-    for (let attempt = 0; attempt < 3 && !ok; attempt++) {
-      ok = await likePostRPC(s.code, id);
-      if (!ok) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    let status = 'error';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      status = await likePostRPC(s.code, id, s.mySessionId);
+      if (status === 'ok' || isSoftFailStatus(status)) break;
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
     }
-    if (ok) {
+    if (status === 'ok') {
       const raw = await kvGet('room:' + s.code + ':posts');
       if (raw) { try { s.posts = JSON.parse(raw); } catch (e) {} }
+    } else {
+      // Couldn't actually record the like server-side (rate-limited, or a
+      // real failure) — undo the optimistic UI update so the heart isn't
+      // shown as "already liked" for a like that never landed.
+      s.likedPostIds = s.likedPostIds.filter(x => x !== id);
     }
     renderBoard();
   }
@@ -6079,12 +6155,6 @@ function renderStudentRoomSticky() {
     btn.textContent = 'Posting...';
 
     const cleanText = normalizeBrainstorm(text);
-    if (cleanText && !isClean(cleanText)) {
-      document.getElementById('answer-error').textContent = "That word can't be posted here.";
-      btn.disabled = false;
-      btn.textContent = 'Post note';
-      return;
-    }
 
     const postNote = (imageData) => {
       submitStickyNote(cleanText, s.color, imageData);
@@ -6114,29 +6184,37 @@ function renderStudentRoomSticky() {
     if (targetRoom.startsWith('MOD-')) {
       // Moderated: append server-side via RPC so this browser never reads
       // (and can't see) other students' pending sticky notes.
-      let submitted = false;
-      for (let attempt = 0; attempt < 3 && !submitted; attempt++) {
-        submitted = await submitPendingItem(s.code, 'posts', newNote);
-        if (!submitted) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      let status = 'error';
+      for (let attempt = 0; attempt < 3; attempt++) {
+        status = await submitPendingItem(s.code, 'posts', newNote);
+        if (status === 'ok' || isSoftFailStatus(status)) break;
+        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
       }
-      if (!submitted) {
-        alert("Couldn't post that note — check your connection and try again.");
+      if (status !== 'ok') {
+        document.getElementById('answer-error').textContent = submitStatusMessage(status);
         btn.disabled = false;
+        btn.textContent = 'Post note';
         return;
       }
       s.posts = s.posts || [];
     } else {
-      let ok = false;
-      for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+      let status = 'error';
+      for (let attempt = 0; attempt < 3; attempt++) {
         // Sticky notes now merge identical text, like brainstorm ideas —
         // append_post keeps the first note's position/color/image and
         // just bumps its count (see corkBoardHtml's count badge).
-        ok = await appendPostRPC(targetRoom, newNote, true);
-        if (!ok) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+        status = await appendPostRPC(targetRoom, newNote, true);
+        if (status === 'ok' || isSoftFailStatus(status)) break;
+        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
       }
-      if (ok) {
+      if (status === 'ok') {
         const raw = await kvGet('room:' + targetRoom + ':posts');
         if (raw) { try { s.posts = JSON.parse(raw); } catch (e) {} }
+      } else {
+        document.getElementById('answer-error').textContent = submitStatusMessage(status);
+        btn.disabled = false;
+        btn.textContent = 'Post note';
+        return;
       }
     }
 
@@ -6219,14 +6297,20 @@ function renderStudentRoomSticky() {
   async function likePost(id) {
     if (s.likedPostIds.indexOf(id) !== -1) return;
     s.likedPostIds.push(id);
-    let ok = false;
-    for (let attempt = 0; attempt < 3 && !ok; attempt++) {
-      ok = await likePostRPC(s.code, id);
-      if (!ok) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    let status = 'error';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      status = await likePostRPC(s.code, id, s.mySessionId);
+      if (status === 'ok' || isSoftFailStatus(status)) break;
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
     }
-    if (ok) {
+    if (status === 'ok') {
       const raw = await kvGet('room:' + s.code + ':posts');
       if (raw) { try { s.posts = JSON.parse(raw); } catch (e) {} }
+    } else {
+      // Couldn't actually record the like server-side (rate-limited, or a
+      // real failure) — undo the optimistic UI update so the heart isn't
+      // shown as "already liked" for a like that never landed.
+      s.likedPostIds = s.likedPostIds.filter(x => x !== id);
     }
     renderBoard();
   }
@@ -6282,37 +6366,38 @@ function renderStudentRoomWordCloud() {
     const clean = normalize(input.value);
     if (!clean) return;
     document.getElementById('answer-error').textContent = '';
-    if (!isClean(clean)) {
-      document.getElementById('answer-error').textContent = "That word can't be posted here. Try another.";
-      return;
-    }
     const targetRoom = getTargetRoom(s);
     if (targetRoom.startsWith('MOD-')) {
       // Moderated: append server-side via RPC. This browser never reads the
       // shared pending list, so it never sees other students' words.
-      let submitted = false;
-      for (let attempt = 0; attempt < 3 && !submitted; attempt++) {
-        submitted = await submitPendingItem(s.code, 'words', {
+      let status = 'error';
+      for (let attempt = 0; attempt < 3; attempt++) {
+        status = await submitPendingItem(s.code, 'words', {
           id: Math.random().toString(36).slice(2) + Date.now().toString(36),
           text: clean,
           count: 1,
           sessionId: s.mySessionId
         });
-        if (!submitted) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+        if (status === 'ok' || isSoftFailStatus(status)) break;
+        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
       }
-      if (!submitted) {
-        document.getElementById('answer-error').textContent = "Couldn't post that — check your connection and try again.";
+      if (status !== 'ok') {
+        document.getElementById('answer-error').textContent = submitStatusMessage(status);
         return;
       }
     } else {
-      let ok = false;
-      for (let attempt = 0; attempt < 3 && !ok; attempt++) {
-        ok = await submitWordRPC(targetRoom, clean);
-        if (!ok) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      let status = 'error';
+      for (let attempt = 0; attempt < 3; attempt++) {
+        status = await submitWordRPC(targetRoom, clean, s.mySessionId);
+        if (status === 'ok' || isSoftFailStatus(status)) break;
+        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
       }
-      if (ok) {
+      if (status === 'ok') {
         const raw = await kvGet('room:' + targetRoom + ':words');
         if (raw) { try { s.words = JSON.parse(raw); } catch (e) {} }
+      } else {
+        document.getElementById('answer-error').textContent = submitStatusMessage(status);
+        return;
       }
     }
     input.value = '';
@@ -6434,34 +6519,40 @@ async function submitVote() {
   if (isShadow) {
     // Moderated: append server-side via RPC. This browser never reads the
     // shared pending vote list, so it never sees other students' choices.
-    let submitted = false;
-    for (let attempt = 0; attempt < 3 && !submitted; attempt++) {
-      submitted = await submitPendingItem(s.code, 'votes', {
+    let status = 'error';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      status = await submitPendingItem(s.code, 'votes', {
         id: Math.random().toString(36).slice(2) + Date.now().toString(36),
         value: s.selected.slice(),
         qIndex,
         studentName: s.studentName,
         sessionId: s.mySessionId
       });
-      if (!submitted) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      if (status === 'ok' || isSoftFailStatus(status)) break;
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
     }
-    if (!submitted) {
+    if (status !== 'ok') {
       document.getElementById('btn-submit-vote').disabled = false;
-      document.getElementById('mc-status-note').textContent = "Couldn't submit your vote — check your connection and try again.";
+      document.getElementById('mc-status-note').textContent = submitStatusMessage(status);
       return;
     }
   } else {
-    let ok = false;
-    for (let attempt = 0; attempt < 3 && !ok; attempt++) {
-      ok = await incrementVotesRPC(targetRoom, isPoll ? qIndex : null, s.selected.slice());
-      if (!ok) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    let status = 'error';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      status = await incrementVotesRPC(targetRoom, isPoll ? qIndex : null, s.selected.slice(), s.mySessionId);
+      if (status === 'ok' || isSoftFailStatus(status)) break;
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
     }
-    if (ok) {
+    if (status === 'ok') {
       const raw = await kvGet('room:' + targetRoom + ':votes');
       if (raw) { try { s.votes = JSON.parse(raw); } catch (e) {} }
+    } else {
+      document.getElementById('btn-submit-vote').disabled = false;
+      document.getElementById('mc-status-note').textContent = submitStatusMessage(status);
+      return;
     }
   }
-  
+
   s.hasVoted = true;
   if (isPoll) {
     s.answeredIndices[qIndex] = true;
@@ -6474,9 +6565,10 @@ async function submitVote() {
 
 async function recordStudentResponse(s, qIndex, selectedIndices) {
   const targetRoom = getTargetRoom(s);
+  let status = 'error';
   for (let attempt = 0; attempt < 3; attempt++) {
-    const ok = await recordStudentResponseRPC(targetRoom, s.studentName.trim(), qIndex, selectedIndices);
-    if (ok) return;
+    status = await recordStudentResponseRPC(targetRoom, s.studentName.trim(), qIndex, selectedIndices);
+    if (status === 'ok' || isSoftFailStatus(status)) return;
     await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
   }
 }
