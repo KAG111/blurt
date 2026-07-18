@@ -5872,7 +5872,9 @@ function renderStudentRoomSticky() {
   document.querySelectorAll('.color-dot').forEach(dot => {
     dot.onclick = () => {
       s.color = dot.dataset.color;
-      renderStudentRoomSticky();
+      document.querySelectorAll('.color-dot').forEach(d => {
+        d.classList.toggle('selected', d.dataset.color === s.color);
+      });
     };
   });
 
