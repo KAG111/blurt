@@ -5,6 +5,26 @@ a word cloud, brainstorm board, sticky-note board, ranking task, multiple-choice
 question, or multi-question poll/quiz — and shares a room code / QR so people can
 join instantly from their phone and post, vote, or rank in real time.
 
+## Communication style
+
+The person running this project is not a professional developer. When
+working in this repo (explanations, plans, PR descriptions, chat replies):
+
+- Explain things in **very simple terms**. Avoid jargon; when a technical
+  term is unavoidable, briefly say what it means in plain language.
+- Use **analogies** where they'd actually help understanding (e.g.
+  comparing a race condition to two people editing the same paper
+  document at once), especially for anything about databases, security,
+  or how the deployment pipeline works.
+- When there's a decision to make, don't just pick one path — **lay out
+  the options with their trade-offs** in plain terms (what's easier now
+  vs. what's more correct later, what could break, what it costs), then
+  give a recommendation.
+- When it would help narrow down the best approach, **ask multiple-choice
+  questions in simple language** rather than open-ended technical
+  questions — make it easy to just pick an option instead of having to
+  know the "right" technical vocabulary to answer.
+
 ## Audience and terminology
 
 The product is used in two settings: **school classrooms** and **organizational
@@ -42,7 +62,7 @@ iframe, not a separate code path). The project previously deployed via Netlify; 
 connection has been removed in favor of Cloudflare.
 
 Other files in the repo:
-- `logo.png`, `poll_preview.png`, `quiz_preview.png`, `sticky_preview.png` — static
+- `logo.png`, `poll_preview.png`, `ranking_preview.png`, `sticky_preview.png` — static
   assets referenced by the landing page.
 - `bowerboard-manifest.xml`, `bowerboard-powerpoint-instructions.txt`,
   `bowerboard-powerpoint-addin.zip` — PowerPoint add-in packaging. Rarely relevant.
@@ -56,20 +76,35 @@ Other files in the repo:
 
 Storage is a single Supabase table `rooms` (keyed by `code`), accessed through two
 thin wrapper functions:
-- `kvGet(key)` / `kvSet(key, value)` (~line 1332, 1360) — `key` is a synthetic
-  `'room:<code>:<property>'` string; the wrappers split it and read/write that column
-  on the row for `code`. Properties in use: `config`, `words`, `posts`, `votes`,
-  `responses`, `roster`.
-- Realtime updates are polling-based via `setupRealtimeListener` (~line 1392), not
-  raw Supabase subscriptions.
-- Moderation ("Phone Remote" / split-screen mode) shadow-writes to a parallel room
-  keyed `MOD-<code>` before merging into the main room — see `getTargetRoom`,
-  `mergeShadowIntoMain`.
+- `kvGet(key)` / `kvSet(key, value)` — `key` is a synthetic `'room:<code>:<property>'`
+  string; the wrappers split it and read/write that column on the row for `code`.
+  Properties in use: `config`, `words`, `posts`, `votes`, `responses`, `roster`,
+  `host_secret`.
+- Requests are scoped per-room via `x-room-code` / `x-host-secret` request headers
+  (see `clientFor()`), matched by RLS policies in `supabase/migrations/`. Moderation
+  ("Phone Remote" / split-screen mode) shadow-writes to a parallel row keyed
+  `MOD-<code>` before merging into the main room — see `getTargetRoom`,
+  `mergeShadowIntoMain`. Reading/writing a MOD- row requires the room's `host_secret`;
+  students never get direct access to it — moderated submissions go through the
+  `append_pending_item` SECURITY DEFINER RPC instead.
+- Classic (non-moderated) writes to votes/words/posts/responses go through dedicated
+  SECURITY DEFINER RPCs (`increment_votes`, `append_ranking`, `submit_word`,
+  `append_post`, `like_post`, `record_student_response`) rather than client-side
+  read-modify-write, since two participants submitting at the same moment would
+  otherwise silently clobber each other's writes. See `supabase/migrations/` for the
+  SQL and the corresponding `*RPC()` wrapper functions in `index.html` for the client
+  side.
+- Realtime updates are polling-based via `setupRealtimeListener` (~line 1392) — it
+  also holds a Supabase Realtime subscription as a fast-path, but that alone isn't
+  reliable given the header-based RLS scoping above, so don't remove the polling
+  fallback.
 
-The Supabase client library loads from `cdn.jsdelivr.net`. If that's blocked (ad
-blockers, school firewalls, **or sandboxed dev environments** — this includes the
-network policy in some Claude Code remote environments), the app shows a full-page
-"Connection Error" screen and nothing renders. See Testing below.
+The Supabase client library loads from `cdn.jsdelivr.net` (deferred, with a
+`supabaseReady` promise gating anything that depends on it — see near the top of the
+inline script). If that's blocked (ad blockers, school firewalls, **or sandboxed dev
+environments** — this includes the network policy in some Claude Code remote
+environments), the app shows a full-page "Connection Error" screen and nothing
+renders. See Testing below.
 
 ## State model
 
@@ -110,19 +145,24 @@ Board downloads (PDF/JPEG via `html2canvas` + `jspdf`, and CSV built from state)
 in `exportBoard` / `boardToCSVRows` (~6259–6322) and are wired per room type into each
 "Download Board" dropdown — there are multiple near-duplicate copies of that dropdown
 markup across teacher/student views; when changing one, grep for
-`download-dropdown-menu` to catch the others.
+`download-dropdown-menu` to catch the others. `html2canvas`/`jsPDF` are lazy-loaded on
+first export use, not on page load.
 
 ## Conventions
 
 - All styling is inline `style="..."` attributes; there is very little shared CSS by
   class. Match this when adding UI rather than introducing a new stylesheet pattern.
-- User-provided text always goes through `escapeHtml()` (~1425) before being
-  interpolated into a template string — never skip this for anything sourced from a
-  participant.
+- User-provided text always goes through `escapeHtml()` before being interpolated into
+  a template string — never skip this for anything sourced from a participant.
+  User-provided images go through `sanitizeImageSrc()` and colors through
+  `sanitizeColor()` before being interpolated into `src=`/`style=` attributes, for the
+  same reason: these values can come from a direct Supabase REST/RPC call, not just
+  through this app's own UI.
 - No comments by default in this codebase; keep that up unless documenting a genuinely
   non-obvious constraint.
 - Emoji are used liberally in UI copy (📱 🤝 🏆 📊 ⚡ etc.) — this is intentional brand
   voice, not something to clean up.
+- UK English spelling in user-facing copy (e.g. "organise", "favourite").
 
 ## Testing / verification
 

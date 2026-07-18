@@ -1,0 +1,13 @@
+{
+  "name": "bowerboard",
+  "short_name": "bowerboard",
+  "description": "Free, no-login classroom tool for live word clouds, polls, sticky notes and rankings — students join in seconds, teachers moderate from any device.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#A4D4B4",
+  "theme_color": "#A4D4B4",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
