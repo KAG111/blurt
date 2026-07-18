@@ -287,6 +287,37 @@
     font-family: 'Space Grotesk', sans-serif; color: var(--ink);
   }
   .controls-row { display: flex; gap: 0.8rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
+  .density-slider-wrap {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.45rem 0.8rem;
+    background: #fff; border: 2px solid var(--ink); border-radius: 8px;
+    box-shadow: 2px 2px 0 var(--yellow);
+  }
+  .density-slider-icon { font-size: 0.95rem; line-height: 1; }
+  .density-slider-label { font-size: 0.78rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .density-slider {
+    -webkit-appearance: none; appearance: none;
+    width: 110px; height: 6px; margin: 0;
+    background: var(--paper-soft);
+    border: 2px solid var(--ink); border-radius: 4px;
+    cursor: pointer;
+  }
+  .density-slider:focus-visible { outline: 3px auto var(--yellow); outline-offset: 3px; }
+  .density-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--pink); border: 2.5px solid var(--ink);
+    box-shadow: 2px 2px 0 var(--ink); cursor: pointer;
+  }
+  .density-slider::-moz-range-track {
+    height: 6px; background: var(--paper-soft);
+    border: 2px solid var(--ink); border-radius: 4px;
+  }
+  .density-slider::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--pink); border: 2.5px solid var(--ink);
+    box-shadow: 2px 2px 0 var(--ink); cursor: pointer;
+  }
   .btn-reveal { background: var(--green); color: #1B1730; border: 2px solid var(--ink); padding: 0.65rem 1.3rem; border-radius: 8px; font-weight: 700; box-shadow: 3px 3px 0 var(--ink); }
   .btn-hide { background: var(--pink); color: #fff; border: 2px solid var(--ink); padding: 0.65rem 1.3rem; border-radius: 8px; font-weight: 700; box-shadow: 3px 3px 0 var(--ink); }
   .btn-clear { background: transparent; color: rgba(20,17,31,0.65); border: 2px solid rgba(20,17,31,0.3); padding: 0.65rem 1.1rem; border-radius: 8px; font-weight: 600; }
@@ -528,10 +559,10 @@
     overflow: hidden; padding: 1.5rem; user-select: none;
   }
   .sticky-note {
-    position: absolute; width: clamp(100px, 25%, 150px); aspect-ratio: 1 / 1;
+    position: absolute; width: calc(clamp(100px, 25%, 150px) * var(--note-scale, 1)); aspect-ratio: 1 / 1;
     border: 2px solid var(--ink); padding: 0.6rem; box-shadow: 4px 4px 0 var(--shadow);
     display: flex; flex-direction: column; justify-content: space-between;
-    transition: transform 0.15s, box-shadow 0.15s; user-select: none;
+    transition: transform 0.15s, box-shadow 0.15s, width 0.15s ease-out; user-select: none;
     border-radius: 4px; border-bottom-right-radius: 24px 8px;
     background-image: 
       linear-gradient(135deg, rgba(0,0,0,0.035) 25%, transparent 25%),
@@ -564,6 +595,9 @@
   .sticky-note-img {
     width: 100%; height: 52%; object-fit: cover;
     border: 1.5px solid var(--ink); border-radius: 4px; margin-top: 0.3rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sticky-note { transition: none; }
   }
   .note-actions { position: absolute; top: -8px; right: -8px; display: flex; gap: 3px; z-index: 15; }
   .note-action-btn {
@@ -636,7 +670,7 @@
     box-shadow: none !important;
   }
   body.board-mode-active .sticky-note {
-    width: clamp(120px, 20%, 180px) !important;
+    width: calc(clamp(120px, 20%, 180px) * var(--note-scale, 1)) !important;
     font-size: 1.05rem !important;
   }
   body.board-mode-active .sticky-note-text {
@@ -1974,7 +2008,7 @@ async function startDemoSession(type) {
       ownerSessionIds: ["demo_owner_" + idx]
     }));
     await kvSet('room:' + code + ':posts', JSON.stringify(mockStickyPosts));
-    state = { screen: 'teacherLive', type, code, revealed: true, revealMode, prompt, likesEnabled: true, posts: mockStickyPosts };
+    state = { screen: 'teacherLive', type, code, revealed: true, revealMode, prompt, likesEnabled: true, stickyDensity: 0.5, posts: mockStickyPosts };
   } else if (type === 'ranking') {
     const mockRankings = [];
     for (let i = 0; i < 9; i++) {
@@ -2499,11 +2533,11 @@ function renderStickySetup() {
     const code = generateCode();
     setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
-    const config = { type: 'sticky', prompt: state.prompt.trim(), revealMode, revealed: revealMode === 'live', likesEnabled: false, createdAt: Date.now() };
+    const config = { type: 'sticky', prompt: state.prompt.trim(), revealMode, revealed: revealMode === 'live', likesEnabled: false, stickyDensity: 0.5, createdAt: Date.now() };
     const ok = await kvSet('room:' + code + ':config', JSON.stringify(config));
     if (ok) {
       await kvSet('room:' + code + ':posts', JSON.stringify([]));
-      state = { screen: 'teacherLive', type: 'sticky', code, revealed: config.revealed, revealMode, prompt: config.prompt, likesEnabled: false, posts: [] };
+      state = { screen: 'teacherLive', type: 'sticky', code, revealed: config.revealed, revealMode, prompt: config.prompt, likesEnabled: false, stickyDensity: 0.5, posts: [] };
       render();
     } else {
       state.loading = false;
@@ -3668,6 +3702,26 @@ async function blockDevice(sessionId) {
   }
 }
 
+// Debounced config write for the sticky density slider — same
+// read-modify-write shape as every other single-writer config field
+// (likesEnabled, presentationMode, ...), just delayed so a slider drag
+// (which fires 'input' continuously) writes once shortly after the
+// teacher stops moving it, not on every intermediate value.
+let stickyDensitySaveTimer = null;
+function scheduleStickyDensitySave(code, density) {
+  clearTimeout(stickyDensitySaveTimer);
+  stickyDensitySaveTimer = setTimeout(async () => {
+    const raw = await kvGet('room:' + code + ':config');
+    if (raw) {
+      try {
+        const cfg = JSON.parse(raw);
+        cfg.stickyDensity = density;
+        await kvSet('room:' + code + ':config', JSON.stringify(cfg));
+      } catch (e) {}
+    }
+  }, 500);
+}
+
 function renderTeacherLive() {
   const s = state;
   const joinUrl = window.location.href.split('#')[0].split('?')[0] + '?join=' + s.code;
@@ -3720,6 +3774,14 @@ function renderTeacherLive() {
           <button class="${s.mergeMode ? 'btn-hide' : 'btn-nav'} sans" id="btn-toggle-merge">${s.mergeMode ? '✕ Cancel merging' : '🔀 Merge similar ideas'}</button>
           <button class="${s.moveMode ? 'btn-hide' : 'btn-nav'} sans" id="btn-toggle-move">${s.moveMode ? '✕ Lock positions' : '🖐️ Move ideas'}</button>
           <button class="${s.likesEnabled ? 'btn-reveal' : 'btn-clear'} sans" id="btn-toggle-likes">${s.likesEnabled ? '❤️ Liking: Enabled' : '🤍 Liking: Disabled'}</button>
+        ` : ''}
+        ${s.type === 'sticky' ? `
+          <div class="density-slider-wrap" title="Adjust how tightly packed the notes appear">
+            <span class="density-slider-icon">🗂️</span>
+            <span class="density-slider-label sans">Sparse</span>
+            <input type="range" id="sticky-density-slider" class="density-slider" min="0" max="1" step="0.05" value="${s.stickyDensity !== undefined ? s.stickyDensity : 0.5}" aria-label="Note density, from Sparse to Dense" />
+            <span class="density-slider-label sans">Dense</span>
+          </div>
         ` : ''}
         ${s.type === 'ranking' ? `
           <button class="btn-reveal sans" id="btn-reveal-all-ranks">🔓 Reveal all ranks</button>
@@ -3864,6 +3926,19 @@ function renderTeacherLive() {
         } catch (e) {}
       }
       render();
+    };
+  }
+
+  const densitySlider = document.getElementById('sticky-density-slider');
+  if (densitySlider) {
+    densitySlider.oninput = (e) => {
+      s.stickyDensity = parseFloat(e.target.value);
+      // Re-render just the board, not the whole screen — a full render()
+      // would rebuild the slider element itself mid-drag. The config write
+      // is debounced (see scheduleStickyDensitySave) so dragging doesn't
+      // fire a network write on every pixel of movement.
+      renderTeacherStage();
+      scheduleStickyDensitySave(s.code, s.stickyDensity);
     };
   }
 
@@ -4130,9 +4205,10 @@ async function startDisplayOnlyView(code) {
       state.revealed = cfg.revealed;
       state.likesEnabled = !!cfg.likesEnabled;
       state.presentationMode = cfg.presentationMode || 'classic';
+      state.stickyDensity = cfg.stickyDensity;
     } catch (e) {}
   }
-  
+
   if (state.type === 'mc' || state.type === 'poll') {
     const raw = await kvGet('room:' + code + ':votes');
     if (raw) { try { state.votes = JSON.parse(raw); } catch (e) {} }
@@ -4161,9 +4237,10 @@ async function startDisplayOnlyView(code) {
         state.likesEnabled = !!cfg.likesEnabled;
         state.mergeMode = cfg.mergeMode;
         state.moveMode = cfg.moveMode;
+        state.stickyDensity = cfg.stickyDensity;
       } catch (e) {}
     }
-    
+
     if (state.type === 'mc' || state.type === 'poll') {
       const raw = await kvGet('room:' + code + ':votes');
       if (raw) { try { state.votes = JSON.parse(raw); } catch (e) {} }
@@ -5141,12 +5218,14 @@ function renderStickyStage() {
     mergeMode: s.mergeMode,
     moveMode: s.moveMode,
     selectedIds: s.mergeSelectedIds,
-    likesEnabled: s.likesEnabled
+    likesEnabled: s.likesEnabled,
+    density: s.stickyDensity
   });
 
   if (s.moveMode) {
+    const { spread } = stickyDensityFactors(s.stickyDensity);
     stage.querySelectorAll('.sticky-note').forEach(el => {
-      setupPostDragging(el, el.dataset.id);
+      setupPostDragging(el, el.dataset.id, spread);
     });
   }
 
@@ -5347,7 +5426,8 @@ async function confirmMerge(selected) {
   if (document.getElementById('submission-count')) document.getElementById('submission-count').textContent = teacherCountLabel(s);
 }
 
-function setupPostDragging(el, postId) {
+function setupPostDragging(el, postId, spreadFactor) {
+  spreadFactor = spreadFactor || 1;
   let isDragging = false;
   let startX = 0;
   let startY = 0;
@@ -5403,8 +5483,16 @@ function setupPostDragging(el, postId) {
     document.removeEventListener('touchmove', onTouchMove);
     document.removeEventListener('touchend', onEnd);
 
-    const finalLeft = parseFloat(el.style.left);
-    const finalTop = parseFloat(el.style.top);
+    // el.style.left/top are on-screen (density-transformed) coordinates.
+    // Undo the same spread transform corkBoardHtml applied so we save the
+    // note's real, untransformed board position — not where it happens to
+    // render at whichever density is currently selected. Re-clamped since
+    // inverting a display position pinned at the 5-95 drag boundary can
+    // land well outside 0-100 once density has compressed it (spread < 1).
+    const displayLeft = parseFloat(el.style.left);
+    const displayTop = parseFloat(el.style.top);
+    const finalLeft = Math.max(0, Math.min(100, 50 + (displayLeft - 50) / spreadFactor));
+    const finalTop = Math.max(0, Math.min(100, 50 + (displayTop - 50) / spreadFactor));
     const post = state.posts.find(p => p.id === postId);
     if (post) {
       post.left = finalLeft;
@@ -5512,6 +5600,26 @@ function normalizeBrainstorm(text) {
   return text.trim().replace(/\s+/g, ' ').slice(0, 80);
 }
 
+// Sticky board density: a 0 (Sparse) .. 1 (Dense) slider value maps to a
+// note-size multiplier and a position-spread multiplier. 0.5 (the default
+// for rooms that never touched the slider) maps to 1 for both, so density
+// is purely additive — it never changes how an untouched room renders.
+function stickyDensityFactors(density) {
+  const d = (density === undefined || density === null) ? 0.5 : density;
+  return {
+    scale: 1.3 - 0.6 * d,  // 1.3 at Sparse, 1.0 at the midpoint, 0.7 at Dense
+    spread: 1.4 - 0.8 * d  // 1.4 at Sparse, 1.0 at the midpoint, 0.6 at Dense
+  };
+}
+
+// Transforms one stored coordinate (0-100, as saved in post.left/post.top)
+// around the board's centre (50) by the current spread factor, for display
+// only — the stored value in the database never changes just because the
+// density slider moved. Clamped so a note can't visually escape the board.
+function applyDensitySpread(pos, spread) {
+  return Math.max(4, Math.min(96, 50 + (pos - 50) * spread));
+}
+
 function corkBoardHtml(prompt, posts, opts) {
   opts = opts || {};
   const interactive = !!opts.interactive;
@@ -5520,6 +5628,7 @@ function corkBoardHtml(prompt, posts, opts) {
   const likedPostIds = opts.likedPostIds || [];
   const selectedIds = opts.selectedIds || [];
   const likesEnabled = (opts.likesEnabled !== undefined) ? opts.likesEnabled : true;
+  const { scale, spread } = stickyDensityFactors(opts.density);
 
   if (!posts || posts.length === 0) {
     return `
@@ -5528,10 +5637,12 @@ function corkBoardHtml(prompt, posts, opts) {
       </div>`;
   }
 
-  let html = '<div class="cork-board">';
+  let html = `<div class="cork-board" style="--note-scale:${scale};">`;
   posts.forEach(post => {
-    const leftVal = (post.left !== undefined) ? post.left : 50;
-    const topVal = (post.top !== undefined) ? post.top : 50;
+    const storedLeft = (post.left !== undefined) ? post.left : 50;
+    const storedTop = (post.top !== undefined) ? post.top : 50;
+    const leftVal = applyDensitySpread(storedLeft, spread);
+    const topVal = applyDensitySpread(storedTop, spread);
     const angle = post.angle || 0;
     const color = sanitizeColor(post.color);
     const textHtml = escapeHtml(post.text);
@@ -5671,7 +5782,7 @@ function renderStudentJoin() {
         likesEnabled: !!cfg.likesEnabled,
         answer: '', words: [], options: cfg.options || [], allowMultiple: !!cfg.allowMultiple,
         correctIndex: (cfg.correctIndex === undefined) ? null : cfg.correctIndex, votes: (cfg.options || []).map(() => 0),
-        selected: [], hasVoted: false, posts: []
+        selected: [], hasVoted: false, posts: [], stickyDensity: cfg.stickyDensity
       };
     }
     render();
@@ -6240,6 +6351,7 @@ function renderStudentRoomSticky() {
         s.likesEnabled = !!cfg.likesEnabled;
         s.blockedSessions = cfg.blockedSessions || [];
         s.presentationMode = cfg.presentationMode || 'classic';
+        s.stickyDensity = cfg.stickyDensity;
       } catch (e) {}
     }
     if (isBlockedSession()) {
@@ -6274,7 +6386,8 @@ function renderStudentRoomSticky() {
       interactive: true,
       mySessionId: s.mySessionId,
       likedPostIds: s.likedPostIds,
-      likesEnabled: s.likesEnabled
+      likesEnabled: s.likesEnabled,
+      density: s.stickyDensity
     });
 
     const downloadBtn = wrap.querySelector('#btn-download-board');
