@@ -12,7 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
-    --stage: #A4D4B4;
+    --stage: #B9F6CA;
     --stage-dark: #1C3326;
     --paper: #FFFFFF;
     --paper-soft: #FBF9FF;
@@ -820,6 +820,9 @@
   }
   
   @media (max-width: 900px) {
+    .btn-row {
+      margin-top: 0 !important;
+    }
     .cartoon-arrow-tooltip {
       position: relative !important;
       top: 0 !important;
@@ -840,6 +843,9 @@
       flex-direction: column !important;
       gap: 0.5rem !important;
       align-items: stretch !important;
+    }
+    .flow-diagram-container > div {
+      max-width: none !important;
     }
     .flow-arrow {
       transform: rotate(90deg) !important;
@@ -1843,10 +1849,10 @@ function renderLanding() {
         </p>
         
         <div class="cta-section" style="display:flex; flex-direction:column; gap:16px;">
-          <div class="btn-row" style="display:flex; gap:16px; flex-wrap:wrap; justify-content:flex-start; margin-bottom:0.5rem; position:relative; margin-top:3.5rem;">
+          <div class="btn-row" style="display:flex; gap:16px; flex-wrap:wrap; justify-content:flex-start; margin-bottom:0.5rem; position:relative; margin-top:6rem;">
             <!-- Cartoon Arrow Tooltip -->
             <div class="cartoon-arrow-tooltip sans">
-              👉 Click through, choose a bower to build and try it out!
+              👉 Want a demo? Click through, choose a bower and try demo mode!
             </div>
             
             <button class="btn-primary" id="btn-teacher">Build a bower</button>
@@ -1855,39 +1861,9 @@ function renderLanding() {
           <div class="footnote" style="font-size:0.85rem; color:rgba(20,17,31,0.65); font-weight:500;">
             Answers are anonymous — nothing is linked to a name.
           </div>
-          
-          <!-- Fun Flow Diagram -->
-          <div class="flow-diagram-container sans" style="display:flex; gap:0.5rem; align-items:center; margin-top:1.5rem; width:100%; justify-content:space-between; flex-wrap:wrap;">
-            <!-- Step 1 -->
-            <div style="flex:1; min-width:130px; background:#FFE57F; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
-              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 1</div>
-              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Build a Bower</div>
-              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Choose room type & write topic.</div>
-            </div>
-            
-            <!-- Arrow -->
-            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
-            
-            <!-- Step 2 -->
-            <div style="flex:1; min-width:130px; background:#FF8A80; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
-              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 2</div>
-              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Share QR/Code</div>
-              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Students scan or join. Zero logins!</div>
-            </div>
-            
-            <!-- Arrow -->
-            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
-            
-            <!-- Step 3 -->
-            <div style="flex:1; min-width:130px; background:#80D8FF; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
-              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 3</div>
-              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Gather & Build</div>
-              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Moderate, group posts, show feedback!</div>
-            </div>
-          </div>
-          
+
           <!-- Expandable USP Post-It -->
-          <div class="usp-postit sans" data-expanded="false" onclick="const postit = this; const content = postit.querySelector('.usp-content'); const icon = postit.querySelector('.toggle-icon'); const expanded = postit.getAttribute('data-expanded') === 'true'; if (expanded) { content.style.maxHeight = null; icon.textContent = '+'; postit.setAttribute('data-expanded', 'false'); } else { content.style.maxHeight = content.scrollHeight + 'px'; icon.textContent = '−'; postit.setAttribute('data-expanded', 'true'); }" style="background:#FFD180; border:2.5px solid var(--ink); border-radius:12px; box-shadow:3px 3px 0 var(--ink); padding:0.75rem 0.9rem; margin-top:1.5rem; text-align:left; cursor:pointer; position:relative; box-sizing:border-box; transition: transform 0.15s ease;">
+          <div class="usp-postit sans" data-expanded="false" onclick="const postit = this; const content = postit.querySelector('.usp-content'); const icon = postit.querySelector('.toggle-icon'); const expanded = postit.getAttribute('data-expanded') === 'true'; if (expanded) { content.style.maxHeight = '0px'; icon.textContent = '+'; postit.setAttribute('data-expanded', 'false'); } else { content.style.maxHeight = content.scrollHeight + 'px'; icon.textContent = '−'; postit.setAttribute('data-expanded', 'true'); }" style="background:#FFD180; border:2.5px solid var(--ink); border-radius:12px; box-shadow:3px 3px 0 var(--ink); padding:0.75rem 0.9rem; margin-top:1.5rem; text-align:left; cursor:pointer; position:relative; box-sizing:border-box; transition: transform 0.15s ease;">
             <div style="display:flex; justify-content:space-between; align-items:center; font-family:'Outfit', sans-serif; font-size:0.95rem; font-weight:900; color:var(--ink);">
               <span>📌 What makes bowerboard different?</span>
               <span class="toggle-icon" style="font-size:1.1rem; font-weight:900;">+</span>
@@ -1900,6 +1876,46 @@ function renderLanding() {
                 <li>📊 <strong>Your data, yours:</strong> Export results as CSV, PDF or image — every class's work, ready for your spreadsheets and reports.</li>
                 <li>⚡ <strong>Running in 10 seconds:</strong> No sign-ups, passwords or installs to get started.</li>
               </ul>
+            </div>
+          </div>
+
+          <!-- Fun Flow Diagram -->
+          <div class="flow-diagram-container sans" style="display:flex; gap:0.5rem; align-items:center; margin-top:1.5rem; width:100%; justify-content:space-between; flex-wrap:wrap;">
+            <!-- Step 1 -->
+            <div style="flex:1; min-width:130px; max-width:230px; background:#FFE57F; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
+              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 1</div>
+              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Build a Bower</div>
+              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Choose room type & write topic.</div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
+
+            <!-- Step 2 -->
+            <div style="flex:1; min-width:130px; max-width:230px; background:#FF8A80; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
+              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 2</div>
+              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Share QR/Code</div>
+              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Students scan or join. Zero logins!</div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
+
+            <!-- Step 3 -->
+            <div style="flex:1; min-width:130px; max-width:230px; background:#80D8FF; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
+              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 3</div>
+              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Gather & Build</div>
+              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Moderate, group posts, show feedback!</div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
+
+            <!-- Step 4 -->
+            <div style="flex:1; min-width:130px; max-width:230px; background:#B388FF; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
+              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 4</div>
+              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Download Your Bower</div>
+              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Export as CSV, PDF or JPEG.</div>
             </div>
           </div>
         </div>
@@ -2813,9 +2829,13 @@ function renderPollBuildStage() {
       await kvSet('room:' + code + ':responses', JSON.stringify([]));
       await kvSet('room:' + code + ':roster', JSON.stringify([]));
       if (requireNames) {
+        // Pre-create the MOD- shadow row so a phone remote can authorize
+        // itself (by successfully reading it) from the waiting room, before
+        // the teacher ever switches presentationMode away from classic.
+        await kvSet('room:MOD-' + code + ':config', '{}');
         state = {
           screen: 'teacherLobby', code, questions: cleanQuestions,
-          currentIndex: 0, revealMode, requireNames, roster: []
+          currentIndex: 0, revealMode, requireNames, roster: [], remoteConnected: false
         };
       } else {
         state = {
@@ -2856,9 +2876,17 @@ function renderTeacherLobby() {
           </div>
         </div>
       </div>
+      <div class="controls-row">
+        <button class="btn-nav sans" id="btn-show-remote-qr" style="display:flex;align-items:center;gap:0.4rem;padding:0.45rem 0.8rem;">
+          📱 Approve via Phone
+          <span style="font-size:0.75rem;padding:0.15rem 0.4rem;border-radius:4px;background:${s.remoteConnected ? 'var(--green)' : 'var(--pink)'};color:#fff;font-weight:700;">
+            ${s.remoteConnected ? 'Connected' : 'Offline'}
+          </span>
+        </button>
+      </div>
       <div class="prompt-label">Who's joined so far</div>
       <div class="footnote sans" style="color:rgba(20,17,31,0.7);max-width:none;text-align:left;margin-bottom:1rem;">
-        Review nicknames below and remove any before you start. Once you hit Start, everyone jumps to question 1.
+        Review nicknames below and remove any before you start — or keep doing this from your phone once the quiz is live.
       </div>
       <div id="roster-wrap" class="roster-list"></div>
       <button class="btn-primary sans" id="btn-start-quiz" style="margin-top:1.5rem;max-width:280px;">▶ Start quiz</button>
@@ -2872,6 +2900,25 @@ function renderTeacherLobby() {
           </div>
           <div class="sans" style="margin-top:1rem; font-size:1.25rem; font-weight:700; color:#fff; text-align:center;">
             Scan to join Room <span style="color:var(--yellow); font-size:1.6rem; font-weight:800;">${s.code}</span>
+          </div>
+        </div>
+      </div>
+    ` : ''}
+    ${s.showRemoteQrModal ? `
+      <div class="qr-modal-overlay" id="remote-qr-modal" style="z-index:30000;">
+        <div class="qr-modal-content" style="max-width:440px;">
+          <button class="qr-modal-close" id="btn-close-remote-qr">✕</button>
+          <div style="background:#fff; padding:1.5rem; border-radius:12px; border:3px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); text-align:center;">
+            <div class="sans" style="font-weight:800; font-size:1.3rem; margin-bottom:0.8rem; color:var(--ink);">📱 Approve Nicknames on Your Phone</div>
+            <div class="sans" style="font-size:0.85rem; color:var(--muted); margin-bottom:1.2rem; line-height:1.4;">
+              Scan this QR code to review and remove nicknames from your phone — before you start and while the quiz is live. No login required.
+            </div>
+            <div style="display:flex; justify-content:center; margin-bottom:1.2rem;">
+              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code), 240)}
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.6rem;">
+              <button class="btn-nav sans" id="btn-copy-remote-link" style="width:100%; font-size:0.85rem; font-weight:700; border:2px solid var(--ink); padding:0.5rem; background:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">📋 Copy Remote Link</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2914,7 +2961,8 @@ function renderTeacherLobby() {
     const votes = s.questions.map(q => q.options.map(() => 0));
     state = {
       screen: 'teacherLive', type: 'poll', code: s.code, questions: s.questions,
-      currentIndex: 0, revealMode: s.revealMode, revealed: cfg.revealed, requireNames: true, votes
+      currentIndex: 0, revealMode: s.revealMode, revealed: cfg.revealed, requireNames: true, votes,
+      remoteConnected: s.remoteConnected
     };
     render();
   };
@@ -2934,9 +2982,45 @@ function renderTeacherLobby() {
     };
   }
 
+  const showRemoteQrBtn = document.getElementById('btn-show-remote-qr');
+  if (showRemoteQrBtn) {
+    showRemoteQrBtn.onclick = () => {
+      s.showRemoteQrModal = true;
+      render();
+    };
+  }
+  const closeRemoteQrBtn = document.getElementById('btn-close-remote-qr');
+  if (closeRemoteQrBtn) {
+    closeRemoteQrBtn.onclick = () => {
+      s.showRemoteQrModal = false;
+      render();
+    };
+  }
+  const copyRemoteLinkBtn = document.getElementById('btn-copy-remote-link');
+  if (copyRemoteLinkBtn) {
+    copyRemoteLinkBtn.onclick = () => {
+      const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code);
+      navigator.clipboard.writeText(link).then(() => {
+        copyRemoteLinkBtn.textContent = '✓ Copied!';
+        setTimeout(() => { copyRemoteLinkBtn.textContent = '📋 Copy Remote Link'; }, 2000);
+      });
+    };
+  }
+
   const tick = async () => {
     const raw = await kvGet('room:' + s.code + ':roster');
     if (raw) { try { s.roster = JSON.parse(raw); renderRoster(); } catch (e) {} }
+    const cfgRaw = await kvGet('room:' + s.code + ':config');
+    if (cfgRaw) {
+      try {
+        const cfg = JSON.parse(cfgRaw);
+        if (!!cfg.remoteConnected !== !!s.remoteConnected) {
+          s.remoteConnected = !!cfg.remoteConnected;
+          render();
+          return;
+        }
+      } catch (e) {}
+    }
   };
   pollTimer = setupRealtimeListener(s.code, tick);
 }
@@ -3333,88 +3417,6 @@ async function blockDevice(sessionId) {
 
 function renderTeacherLive() {
   const s = state;
-  if (s.presentationMode === 'remote') {
-    renderDisplayView();
-    
-    const showRemoteQrBtn = document.getElementById('btn-show-remote-qr');
-    if (showRemoteQrBtn) {
-      showRemoteQrBtn.onclick = () => {
-        s.showRemoteQrModal = true;
-        render();
-      };
-    }
-    
-    const closeRemoteQrBtn = document.getElementById('btn-close-remote-qr');
-    if (closeRemoteQrBtn) {
-      closeRemoteQrBtn.onclick = () => {
-        s.showRemoteQrModal = false;
-        render();
-      };
-    }
-
-    const copyRemoteLinkBtn = document.getElementById('btn-copy-remote-link');
-    if (copyRemoteLinkBtn) {
-      copyRemoteLinkBtn.onclick = () => {
-        const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code);
-        navigator.clipboard.writeText(link).then(() => {
-          copyRemoteLinkBtn.textContent = '✓ Copied!';
-          setTimeout(() => { copyRemoteLinkBtn.textContent = '📋 Copy Remote Link'; }, 2000);
-        });
-      };
-    }
-
-    const disconnectRemoteBtn = document.getElementById('btn-disconnect-remote');
-    if (disconnectRemoteBtn) {
-      disconnectRemoteBtn.onclick = async () => {
-        if (confirm("Disconnect the current phone remote? This will generate a new secret token.")) {
-          await rotatePhoneRemote(s.code);
-          s.remoteConnected = false;
-          const raw = await kvGet('room:' + s.code + ':config');
-          if (raw) {
-            try {
-              const cfg = JSON.parse(raw);
-              cfg.remoteConnected = false;
-              await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
-            } catch (e) {}
-          }
-          render();
-        }
-      };
-    }
-
-    ['classic', 'split'].forEach(mode => {
-      const modalBtn = document.getElementById('modal-pres-mode-' + mode);
-      if (modalBtn) {
-        modalBtn.onclick = async () => {
-          s.presentationMode = mode;
-          s.showRemoteQrModal = false;
-          const raw = await kvGet('room:' + s.code + ':config');
-          if (raw) {
-            try {
-              const cfg = JSON.parse(raw);
-              cfg.presentationMode = mode;
-              await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
-              
-              if (mode !== 'classic') {
-                await kvSet('room:MOD-' + s.code + ':posts', '[]');
-                await kvSet('room:MOD-' + s.code + ':words', '[]');
-                const initVotes = s.type === 'ranking' ? '[]' : (s.type === 'poll' ? JSON.stringify(s.questions.map(q => q.options.map(() => 0))) : JSON.stringify((s.options || []).map(() => 0)));
-                await kvSet('room:MOD-' + s.code + ':votes', initVotes);
-                await kvSet('room:MOD-' + s.code + ':responses', '[]');
-                await kvSet('room:MOD-' + s.code + ':config', '{}');
-              }
-            } catch (e) {}
-          }
-          if (mode === 'classic') {
-            await mergeShadowIntoMain(s.code);
-          }
-          render();
-        };
-      }
-    });
-    return;
-  }
-
   const joinUrl = window.location.href.split('#')[0].split('?')[0] + '?join=' + s.code;
   const isChoice = s.type === 'mc' || s.type === 'poll';
   const isPoll = s.type === 'poll';
@@ -3470,10 +3472,11 @@ function renderTeacherLive() {
           <button class="btn-reveal sans" id="btn-reveal-all-ranks">🔓 Reveal all ranks</button>
         ` : ''}
         <button class="btn-nav sans" id="btn-toggle-boardmode" style="${s.boardMode ? 'background:var(--pink) !important;color:#fff !important;' : ''}">${s.boardMode ? '✕ Exit Board Mode' : '🖥️ Board Mode'}</button>
-        ${s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' || s.type === 'ranking' ? `
+        ${s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' || s.type === 'ranking' || s.type === 'mc' || s.type === 'poll' ? `
           <div class="download-dropdown-wrap">
             <button class="btn-nav sans" id="btn-download-board">⬇️ Download Board</button>
             <div class="download-dropdown-menu sans" id="download-menu" style="display:none;">
+              <button class="download-menu-item" id="download-csv">Export as CSV</button>
               <button class="download-menu-item" id="download-pdf">Export as PDF</button>
               <button class="download-menu-item" id="download-jpeg">Export as JPEG</button>
             </div>
@@ -3621,6 +3624,7 @@ function renderTeacherLive() {
     document.addEventListener('click', () => {
       downloadMenu.style.display = 'none';
     });
+    document.getElementById('download-csv').onclick = () => exportBoard('csv');
     document.getElementById('download-pdf').onclick = () => exportBoard('pdf');
     document.getElementById('download-jpeg').onclick = () => exportBoard('jpeg');
   }
@@ -4000,7 +4004,7 @@ function renderDisplayView() {
 }
 
 async function startRemoteControlView(code, token) {
-  state = { screen: 'phoneRemote', code: code, token: token, posts: [], words: [], votes: [], config: {} };
+  state = { screen: 'phoneRemote', code: code, token: token, posts: [], words: [], votes: [], roster: [], config: {} };
 
   // The QR/link's "token" is the room's real host_secret. Store it so every
   // subsequent kvGet/kvSet call from this device sends it as the
@@ -4020,6 +4024,7 @@ async function startRemoteControlView(code, token) {
       state.revealed = cfg.revealed;
       state.likesEnabled = !!cfg.likesEnabled;
       state.presentationMode = cfg.presentationMode || 'classic';
+      state.requireNames = !!cfg.requireNames;
     } catch (e) {}
   }
 
@@ -4036,6 +4041,11 @@ async function startRemoteControlView(code, token) {
   } else {
     clearHostSecret(code);
     state.unauthorized = true;
+  }
+
+  if (state.type === 'poll' && state.requireNames) {
+    const rosterRaw = await kvGet('room:' + code + ':roster');
+    if (rosterRaw) { try { state.roster = JSON.parse(rosterRaw); } catch (e) {} }
   }
 
   render();
@@ -4062,10 +4072,14 @@ async function startRemoteControlView(code, token) {
         state.revealed = cfg.revealed;
         state.likesEnabled = !!cfg.likesEnabled;
         state.presentationMode = cfg.presentationMode || 'classic';
+        state.requireNames = !!cfg.requireNames;
       } catch (e) {}
     }
-    
-    if (state.type === 'mc' || state.type === 'poll') {
+
+    if (state.type === 'poll' && state.requireNames) {
+      const raw = await kvGet('room:' + code + ':roster');
+      if (raw) { try { state.roster = JSON.parse(raw); } catch (e) {} }
+    } else if (state.type === 'mc' || state.type === 'poll') {
       const raw = await kvGet('room:' + code + ':votes');
       if (raw) { try { state.votes = JSON.parse(raw); } catch (e) {} }
     } else if (state.type === 'ranking') {
@@ -4130,25 +4144,48 @@ function renderPhoneRemote() {
     return;
   }
   
-  const pending = getPendingItemsList(s);
+  const isRosterMode = s.type === 'poll' && s.requireNames;
+  const pending = isRosterMode ? [] : getPendingItemsList(s);
   const dismissed = s.dismissedItems || [];
-  
-  app.innerHTML = `
-    <div class="student-wrap" style="max-width:480px; margin:0 auto; padding:1rem; box-sizing:border-box;">
-      <div class="student-header" style="text-align:left; display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding-bottom:0.6rem; border-bottom:2.5px solid var(--ink);">
-        <div>
-          <div class="student-room-code sans" style="font-size:0.85rem; padding:0.15rem 0.4rem;">Remote Mode</div>
-          <div class="student-prompt" style="font-size:1rem; font-weight:700; margin-top:0.2rem; color:var(--ink);">Room ${s.code}</div>
-        </div>
-        <button class="btn-clear sans" id="btn-remote-disconnect" style="padding:0.35rem 0.6rem; font-size:0.75rem; font-weight:700; border:2px solid var(--ink); background:var(--pink); color:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">Disconnect</button>
+  const roster = s.roster || [];
+
+  const revealToggleHtml = s.revealMode === 'manual' ? `
+      <button class="${s.revealed ? 'btn-hide' : 'btn-reveal'} sans" id="btn-remote-toggle-reveal" style="width:100%; padding:0.6rem; font-size:0.9rem; font-weight:700; border:2.5px solid var(--ink); box-shadow:3px 3px 0 var(--shadow); cursor:pointer; border-radius:8px; margin-bottom:1rem; color:#fff;">
+        ${s.revealed ? '🙈 Hide answers from class' : '👁️ Reveal answers to class'}
+      </button>
+  ` : '';
+
+  const bodyHtml = isRosterMode ? `
+      ${revealToggleHtml}
+      <div class="sans" style="font-size:0.85rem; color:rgba(20,17,31,0.85); line-height:1.4; margin-bottom:1rem; text-align:left;">
+        Review nicknames as they join and remove any that shouldn't be there. This works before you start the quiz and while it's live — removed names are dropped from the final leaderboard.
       </div>
 
-      ${s.revealMode === 'manual' ? `
-        <button class="${s.revealed ? 'btn-hide' : 'btn-reveal'} sans" id="btn-remote-toggle-reveal" style="width:100%; padding:0.6rem; font-size:0.9rem; font-weight:700; border:2.5px solid var(--ink); box-shadow:3px 3px 0 var(--shadow); cursor:pointer; border-radius:8px; margin-bottom:1rem; color:#fff;">
-          ${s.revealed ? '🙈 Hide answers from class' : '👁️ Reveal answers to class'}
-        </button>
-      ` : ''}
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.6rem; width:100%;">
+        <div class="sans" style="font-weight:800; font-size:1.1rem; color:var(--ink);">
+          👥 Nicknames (${roster.length})
+        </div>
+      </div>
 
+      <div class="pending-list" style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1.5rem; min-height:150px;">
+        ${roster.length === 0 ? `
+          <div class="sans" style="text-align:center; color:rgba(20,17,31,0.7); margin-top:2rem; font-style:italic;">
+            Nobody has joined yet.
+          </div>
+        ` : roster.map((name, i) => `
+            <div class="mod-card sans" data-idx="${i}" style="display:flex; justify-content:space-between; align-items:center; padding:0.8rem; border:2.5px solid var(--ink); border-radius:8px; background:#fff; box-shadow:3px 3px 0 var(--shadow); color:var(--ink);">
+              <div style="font-weight:700; font-size:0.9rem; word-break:break-word; text-align:left;">${escapeHtml(name)}</div>
+              <button class="btn-clear sans btn-remote-roster-remove" data-idx="${i}" style="padding:0.35rem 0.5rem; font-size:0.75rem; background:var(--pink); color:#fff; border:1.5px solid var(--ink); box-shadow:1.5px 1.5px 0 var(--shadow); cursor:pointer; border-radius:4px; font-weight:700; flex-shrink:0; margin-left:0.5rem;">✕ Remove</button>
+            </div>
+        `).join('')}
+      </div>
+
+      <!-- Live smartboard status indicator -->
+      <div style="background:rgba(20,17,31,0.06); border:2px dashed rgba(20,17,31,0.3); padding:0.8rem; border-radius:8px; color:rgba(20,17,31,0.85); font-size:0.85rem; text-align:left;">
+        💡 You are connected to this room. Nicknames you remove here disappear from the leaderboard shown at the end.
+      </div>
+  ` : `
+      ${revealToggleHtml}
       <div class="sans" style="font-size:0.85rem; color:rgba(20,17,31,0.85); line-height:1.4; margin-bottom:1rem; text-align:left;">
         💡 Swipe <strong>Right 👉</strong> to Reveal on Smartboard.<br>
         💡 Swipe <strong>Left 👈</strong> to Dismiss.
@@ -4162,7 +4199,7 @@ function renderPhoneRemote() {
           🔓 Reveal All
         </button>
       </div>
-      
+
       <div class="pending-list" style="display:flex; flex-direction:column; gap:0.8rem; margin-bottom:1.5rem; min-height:150px;">
         ${pending.length === 0 ? `
           <div class="sans" style="text-align:center; color:rgba(20,17,31,0.7); margin-top:2rem; font-style:italic;">
@@ -4183,7 +4220,7 @@ function renderPhoneRemote() {
                     ${escapeHtml(
                       s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky'
                         ? item.text
-                        : (s.type === 'ranking' 
+                        : (s.type === 'ranking'
                             ? item.value.map(idx => s.options[idx]).join(' › ')
                             : (item.studentName ? item.studentName + ': ' : 'Anonymous: ') + item.value.map(idx => s.options[idx] || (s.questions && s.questions[currentIndexOf(s)].options[idx])).join(', ')
                           )
@@ -4205,14 +4242,14 @@ function renderPhoneRemote() {
           `;
         }).join('')}
       </div>
-      
+
       <!-- Dismissed Section -->
       <div class="dismissed-box" style="background:#fff; border:2.5px solid var(--ink); border-radius:10px; box-shadow:4px 4px 0 var(--shadow); padding:0.8rem; box-sizing:border-box; color:var(--ink); text-align:left; display:flex; flex-direction:column; margin-bottom:1.5rem;">
         <button class="sans" id="btn-remote-toggle-dismissed" style="border:none; background:none; width:100%; text-align:left; font-weight:800; font-size:0.95rem; cursor:pointer; padding:0; display:flex; justify-content:space-between; align-items:center; color:var(--ink);">
           <span>🗑️ Dismissed (${dismissed.length})</span>
           <span>${s.showDismissedList ? '▼' : '►'}</span>
         </button>
-        
+
         ${s.showDismissedList ? `
           <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.6rem; max-height:120px; overflow-y:auto; padding-right:0.1rem;">
             ${dismissed.length === 0 ? `
@@ -4230,11 +4267,24 @@ function renderPhoneRemote() {
           </div>
         ` : ''}
       </div>
-      
+
       <!-- Live smartboard status indicator -->
       <div style="background:rgba(20,17,31,0.06); border:2px dashed rgba(20,17,31,0.3); padding:0.8rem; border-radius:8px; color:rgba(20,17,31,0.85); font-size:0.85rem; text-align:left;">
         💡 You are connected to the main screen. Changes you approve here appear instantly on the classroom screen.
       </div>
+  `;
+
+  app.innerHTML = `
+    <div class="student-wrap" style="max-width:480px; margin:0 auto; padding:1rem; box-sizing:border-box;">
+      <div class="student-header" style="text-align:left; display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding-bottom:0.6rem; border-bottom:2.5px solid var(--ink);">
+        <div>
+          <div class="student-room-code sans" style="font-size:0.85rem; padding:0.15rem 0.4rem;">Remote Mode</div>
+          <div class="student-prompt" style="font-size:1rem; font-weight:700; margin-top:0.2rem; color:var(--ink);">Room ${s.code}</div>
+        </div>
+        <button class="btn-clear sans" id="btn-remote-disconnect" style="padding:0.35rem 0.6rem; font-size:0.75rem; font-weight:700; border:2px solid var(--ink); background:var(--pink); color:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">Disconnect</button>
+      </div>
+
+      ${bodyHtml}
     </div>
 
     <!-- Zoom image overlay -->
@@ -4270,6 +4320,21 @@ function renderPhoneRemote() {
     };
   }
   
+  document.querySelectorAll('.btn-remote-roster-remove').forEach(btn => {
+    btn.onclick = async () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      const name = roster[idx];
+      if (name === undefined) return;
+      const raw = await kvGet('room:' + s.code + ':roster');
+      let currentRoster = [];
+      if (raw) { try { currentRoster = JSON.parse(raw); } catch (e) {} }
+      currentRoster = currentRoster.filter(n => n !== name);
+      await kvSet('room:' + s.code + ':roster', JSON.stringify(currentRoster));
+      s.roster = currentRoster;
+      render();
+    };
+  });
+
   const approveAllBtn = document.getElementById('btn-remote-approve-all');
   if (approveAllBtn) approveAllBtn.onclick = approveAllSubmissions;
 
@@ -4398,6 +4463,14 @@ async function renderTeacherResults() {
   const raw = await kvGet('room:' + s.code + ':responses');
   let responses = [];
   if (raw) { try { responses = JSON.parse(raw); } catch (e) { responses = []; } }
+
+  const rosterRaw = await kvGet('room:' + s.code + ':roster');
+  let roster = null;
+  if (rosterRaw) { try { roster = JSON.parse(rosterRaw); } catch (e) {} }
+  if (roster) {
+    const approvedNames = roster.map(n => n.trim().toLowerCase());
+    responses = responses.filter(r => approvedNames.indexOf(r.name.trim().toLowerCase()) !== -1);
+  }
 
   const scored = responses.map(r => scoreResponse(r, s.questions));
   scored.sort((a, b) => b.correct - a.correct);
@@ -5617,6 +5690,7 @@ function renderStudentRoomBrainstorm() {
         <div class="download-dropdown-wrap">
           <button class="btn-nav sans" id="btn-download-board" style="padding:0.4rem 0.8rem;font-size:0.8rem;">⬇️ Download Board</button>
           <div class="download-dropdown-menu sans" id="download-menu" style="display:none;right:0;left:auto;">
+            <button class="download-menu-item" id="download-csv">Export as CSV</button>
             <button class="download-menu-item" id="download-pdf">Export as PDF</button>
             <button class="download-menu-item" id="download-jpeg">Export as JPEG</button>
           </div>
@@ -5634,6 +5708,7 @@ function renderStudentRoomBrainstorm() {
       document.addEventListener('click', () => {
         downloadMenu.style.display = 'none';
       });
+      wrap.querySelector('#download-csv').onclick = () => exportBoard('csv');
       wrap.querySelector('#download-pdf').onclick = () => exportBoard('pdf');
       wrap.querySelector('#download-jpeg').onclick = () => exportBoard('jpeg');
     }
@@ -5916,6 +5991,7 @@ function renderStudentRoomSticky() {
         <div class="download-dropdown-wrap">
           <button class="btn-nav sans" id="btn-download-board" style="padding:0.4rem 0.8rem;font-size:0.8rem;">⬇️ Download Board</button>
           <div class="download-dropdown-menu sans" id="download-menu" style="display:none;right:0;left:auto;">
+            <button class="download-menu-item" id="download-csv">Export as CSV</button>
             <button class="download-menu-item" id="download-pdf">Export as PDF</button>
             <button class="download-menu-item" id="download-jpeg">Export as JPEG</button>
           </div>
@@ -5938,6 +6014,7 @@ function renderStudentRoomSticky() {
       document.addEventListener('click', () => {
         downloadMenu.style.display = 'none';
       });
+      wrap.querySelector('#download-csv').onclick = () => exportBoard('csv');
       wrap.querySelector('#download-pdf').onclick = () => exportBoard('pdf');
       wrap.querySelector('#download-jpeg').onclick = () => exportBoard('jpeg');
     }
@@ -6259,6 +6336,7 @@ function renderStudentCloud() {
       <div class="download-dropdown-wrap">
         <button class="btn-nav sans" id="btn-download-board" style="padding:0.4rem 0.8rem;font-size:0.8rem;">⬇️ Download Board</button>
         <div class="download-dropdown-menu sans" id="download-menu" style="display:none;right:0;left:auto;">
+          <button class="download-menu-item" id="download-csv">Export as CSV</button>
           <button class="download-menu-item" id="download-pdf">Export as PDF</button>
           <button class="download-menu-item" id="download-jpeg">Export as JPEG</button>
         </div>
@@ -6276,14 +6354,95 @@ function renderStudentCloud() {
     document.addEventListener('click', () => {
       downloadMenu.style.display = 'none';
     });
+    wrap.querySelector('#download-csv').onclick = () => exportBoard('csv');
     wrap.querySelector('#download-pdf').onclick = () => exportBoard('pdf');
     wrap.querySelector('#download-jpeg').onclick = () => exportBoard('jpeg');
   }
 }
 
+function boardToCSVRows(s) {
+  if (s.type === 'wordcloud') {
+    const rows = [['Word', 'Count']];
+    (s.words || []).slice().sort((a, b) => b.count - a.count).forEach(w => {
+      rows.push([w.text, w.count]);
+    });
+    return rows;
+  }
+  if (s.type === 'brainstorm') {
+    const rows = [['Idea', 'Likes']];
+    (s.posts || []).slice().sort((a, b) => (b.likes || 0) - (a.likes || 0)).forEach(p => {
+      rows.push([p.text, p.likes || 0]);
+    });
+    return rows;
+  }
+  if (s.type === 'sticky') {
+    const rows = [['Note', 'Likes', 'Has Image']];
+    (s.posts || []).slice().sort((a, b) => (b.likes || 0) - (a.likes || 0)).forEach(p => {
+      rows.push([p.text, p.likes || 0, p.image ? 'Yes' : 'No']);
+    });
+    return rows;
+  }
+  if (s.type === 'ranking') {
+    const N = (s.options || []).length;
+    const scores = {};
+    (s.options || []).forEach(opt => { scores[opt] = 0; });
+    (s.votes || []).forEach(sub => {
+      sub.forEach((opt, idx) => {
+        if (scores[opt] !== undefined) scores[opt] += (N - idx);
+      });
+    });
+    const sorted = (s.options || []).map(opt => ({ text: opt, points: scores[opt] })).sort((a, b) => b.points - a.points);
+    const rows = [['Rank', 'Option', 'Points']];
+    sorted.forEach((item, idx) => rows.push([idx + 1, item.text, item.points]));
+    return rows;
+  }
+  if (s.type === 'mc' || s.type === 'poll') {
+    const isPoll = s.type === 'poll';
+    const questions = isPoll ? (s.questions || []) : [{ prompt: s.prompt, options: s.options, correctIndex: s.correctIndex }];
+    const rows = [isPoll
+      ? ['Question #', 'Question', 'Option', 'Votes', 'Percentage', 'Correct']
+      : ['Option', 'Votes', 'Percentage', 'Correct']];
+    questions.forEach((q, qIdx) => {
+      const votes = isPoll ? ((s.votes && s.votes[qIdx]) || (q.options || []).map(() => 0)) : (s.votes || (q.options || []).map(() => 0));
+      const total = votes.reduce((a, v) => a + v, 0);
+      const correctIndex = (q.correctIndex === undefined || q.correctIndex === null) ? null : q.correctIndex;
+      (q.options || []).forEach((opt, i) => {
+        const count = votes[i] || 0;
+        const pct = (total > 0 ? Math.round((count / total) * 100) : 0) + '%';
+        const isCorrect = correctIndex === i ? 'Yes' : '';
+        rows.push(isPoll ? [qIdx + 1, q.prompt, opt, count, pct, isCorrect] : [opt, count, pct, isCorrect]);
+      });
+    });
+    return rows;
+  }
+  return [];
+}
+
+function csvEscape(val) {
+  const str = String(val === undefined || val === null ? '' : val);
+  return /[",\r\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+}
+
 function exportBoard(format) {
-  const target = document.getElementById('cloud-stage') || 
-                 document.getElementById('brainstorm-board-wrap') || 
+  if (format === 'csv') {
+    const rows = boardToCSVRows(state);
+    if (rows.length <= 1) {
+      alert("No data to export yet.");
+      return;
+    }
+    const csvContent = rows.map(row => row.map(csvEscape).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bowerboard-${state.code}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  const target = document.getElementById('cloud-stage') ||
+                 document.getElementById('brainstorm-board-wrap') ||
                  document.getElementById('student-cloud-wrap');
   if (!target) {
     alert("Could not find the board element to export.");
@@ -6294,7 +6453,7 @@ function exportBoard(format) {
   document.body.style.cursor = 'wait';
 
   html2canvas(target, {
-    backgroundColor: '#A4D4B4',
+    backgroundColor: '#B9F6CA',
     scale: 2,
     logging: false,
     useCORS: true

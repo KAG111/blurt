@@ -12,17 +12,17 @@
   <DisplayName DefaultValue="Bowerboard" />
   <Description DefaultValue="Live word clouds, polls, brainstorms, and sticky notes directly inside your PowerPoint slides." />
   
-  <IconUrl DefaultValue="https://blurtapp.netlify.app/favicon.ico" />
-  <SupportUrl DefaultValue="https://blurtapp.netlify.app/" />
+  <IconUrl DefaultValue="https://bowerboard.app/favicon.ico" />
+  <SupportUrl DefaultValue="https://bowerboard.app/" />
 
   <!-- Register host as PowerPoint Presentation -->
   <Hosts>
     <Host Name="Presentation" />
   </Hosts>
-  
+
   <DefaultSettings>
     <!-- Point to the live Bowerboard Web URL -->
-    <SourceLocation DefaultValue="https://blurtapp.netlify.app/" />
+    <SourceLocation DefaultValue="https://bowerboard.app/" />
     <RequestedWidth>1000</RequestedWidth>
     <RequestedHeight>600</RequestedHeight>
   </DefaultSettings>
