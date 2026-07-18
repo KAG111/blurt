@@ -35,10 +35,11 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@800;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@800;900&display=swap" rel="stylesheet">
+<!-- html2canvas / jsPDF are only needed for the export-to-image/PDF feature,
+     used well after initial load — loaded on demand from exportBoard()
+     instead of blocking here. -->
+<script id="supabase-js-script" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <style>
   :root {
     --stage: #A4D4B4;
@@ -847,7 +848,10 @@
     border-top: 10px solid var(--yellow);
     z-index: 1;
   }
-  
+  @media (prefers-reduced-motion: reduce) {
+    .cartoon-arrow-tooltip { animation: none; }
+  }
+
   @media (max-width: 900px) {
     .cartoon-arrow-tooltip {
       position: relative !important;
@@ -1340,30 +1344,57 @@ function qrToSVGString(text, sizePx) {
 const SUPABASE_URL = 'https://qlrvlxcqlzntyasfivvn.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_OERR7S0ZN418zNPDrqaJFQ_SbkdUo7K';
 let supabaseClient;
-try {
-  if (!window.supabase) {
-    throw new Error("Supabase library not loaded. This is usually caused by an adblocker or firewall blocking 'cdn.jsdelivr.net'.");
-  }
-  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch (err) {
-  console.error("Database initialization failed:", err);
-  document.addEventListener("DOMContentLoaded", () => {
-    const appEl = document.getElementById('app');
-    if (appEl) {
-      appEl.innerHTML = `
-        <div class="screen" style="max-width:500px;margin:2rem auto;text-align:center;">
-          <div style="font-size:1.5rem;font-weight:700;color:var(--pink);margin-bottom:1rem;">⚠️ Connection Error</div>
-          <div class="sans" style="color:var(--ink);line-height:1.6;font-size:0.95rem;">
-            Failed to load the real-time database library. This usually happens if:
-            <ul style="text-align:left;margin-top:0.8rem;padding-left:1.5rem;">
-              <li style="margin-bottom:0.4rem;">An ad blocker or browser extension is blocking <code>cdn.jsdelivr.net</code>.</li>
-              <li style="margin-bottom:0.4rem;">Your school or organization network firewall is blocking the library connection.</li>
-            </ul>
-            Please try disabling your ad blocker, opening the page on a personal device/cellular connection, or reloading.
-          </div>
-        </div>`;
+
+function initSupabaseClient() {
+  try {
+    if (!window.supabase) {
+      throw new Error("Supabase library not loaded. This is usually caused by an adblocker or firewall blocking 'cdn.jsdelivr.net'.");
     }
-  });
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (err) {
+    console.error("Database initialization failed:", err);
+    document.addEventListener("DOMContentLoaded", () => {
+      const appEl = document.getElementById('app');
+      if (appEl) {
+        appEl.innerHTML = `
+          <div class="screen" style="max-width:500px;margin:2rem auto;text-align:center;">
+            <div style="font-size:1.5rem;font-weight:700;color:var(--pink);margin-bottom:1rem;">⚠️ Connection Error</div>
+            <div class="sans" style="color:var(--ink);line-height:1.6;font-size:0.95rem;">
+              Failed to load the real-time database library. This usually happens if:
+              <ul style="text-align:left;margin-top:0.8rem;padding-left:1.5rem;">
+                <li style="margin-bottom:0.4rem;">An ad blocker or browser extension is blocking <code>cdn.jsdelivr.net</code>.</li>
+                <li style="margin-bottom:0.4rem;">Your school or organization network firewall is blocking the library connection.</li>
+              </ul>
+              Please try disabling your ad blocker, opening the page on a personal device/cellular connection, or reloading.
+            </div>
+          </div>`;
+      }
+    });
+  }
+}
+
+// The Supabase script tag is `defer`red so it doesn't block initial HTML
+// parsing — but `defer` has no effect on this inline script (it has no
+// src, so browsers run it immediately at this point regardless), so
+// window.supabase may not exist yet. Wait for the tag's load/error event
+// (with a timeout fallback, in case neither fires) before initializing,
+// and before running anything at the bottom of this file that depends on
+// supabaseClient existing.
+let supabaseReady;
+if (window.supabase) {
+  initSupabaseClient();
+  supabaseReady = Promise.resolve();
+} else {
+  supabaseReady = new Promise((resolve) => {
+    const scriptEl = document.getElementById('supabase-js-script');
+    let settled = false;
+    const finish = () => { if (!settled) { settled = true; resolve(); } };
+    if (scriptEl) {
+      scriptEl.addEventListener('load', finish, { once: true });
+      scriptEl.addEventListener('error', finish, { once: true });
+    }
+    setTimeout(finish, 8000);
+  }).then(initSupabaseClient);
 }
 
 function baseRoomCode(code) {
@@ -1496,6 +1527,87 @@ async function submitPendingItem(code, column, item) {
   }
 }
 
+// Atomic main-room mutations (mirrors submitPendingItem's shape). These
+// replace client-side read-modify-write for classic (non-moderated) rooms,
+// where concurrent students writing the same JSON column would otherwise
+// silently clobber each other's submissions.
+async function incrementVotesRPC(code, qIndex, optionIndices) {
+  if (!supabaseClient) return false;
+  try {
+    const { error } = await supabaseClient.rpc('increment_votes', {
+      p_code: baseRoomCode(code),
+      p_qindex: qIndex,
+      p_option_indices: optionIndices
+    });
+    if (error) { console.error("increment_votes error:", error); return false; }
+    return true;
+  } catch (e) {
+    console.error("increment_votes Exception:", e);
+    return false;
+  }
+}
+
+async function appendRankingRPC(code, ranking) {
+  if (!supabaseClient) return false;
+  try {
+    const { error } = await supabaseClient.rpc('append_ranking', {
+      p_code: baseRoomCode(code),
+      p_ranking: ranking
+    });
+    if (error) { console.error("append_ranking error:", error); return false; }
+    return true;
+  } catch (e) {
+    console.error("append_ranking Exception:", e);
+    return false;
+  }
+}
+
+async function submitWordRPC(code, text) {
+  if (!supabaseClient) return false;
+  try {
+    const { error } = await supabaseClient.rpc('submit_word', {
+      p_code: baseRoomCode(code),
+      p_text: text
+    });
+    if (error) { console.error("submit_word error:", error); return false; }
+    return true;
+  } catch (e) {
+    console.error("submit_word Exception:", e);
+    return false;
+  }
+}
+
+async function appendPostRPC(code, post, dedupe) {
+  if (!supabaseClient) return false;
+  try {
+    const { error } = await supabaseClient.rpc('append_post', {
+      p_code: baseRoomCode(code),
+      p_post: post,
+      p_dedupe: dedupe
+    });
+    if (error) { console.error("append_post error:", error); return false; }
+    return true;
+  } catch (e) {
+    console.error("append_post Exception:", e);
+    return false;
+  }
+}
+
+async function likePostRPC(code, postId) {
+  if (!supabaseClient) return false;
+  try {
+    const { error } = await supabaseClient.rpc('like_post', {
+      p_code: baseRoomCode(code),
+      p_post_id: postId
+    });
+    if (error) { console.error("like_post error:", error); return false; }
+    return true;
+  } catch (e) {
+    console.error("like_post Exception:", e);
+    return false;
+  }
+}
+
 // Rotates a room's host_secret (used for both teacher access to pending
 // content and the phone-moderation-remote link). Authorizes the rotation
 // with the OLD secret, so only a device that already holds it can invalidate
@@ -1564,7 +1676,22 @@ function normalize(text) { return text.trim().replace(/\s+/g, ' ').slice(0, 40);
 const PALETTE = ['#2B6B5E', '#3D8B7A', '#D4A017', '#C05B3F', '#4A6FA5', '#7A5C8E', '#1F4E45'];
 function colorFor(i) { return PALETTE[i % PALETTE.length]; }
 function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+// posts/words/votes are shared JSON columns writable directly via the
+// Supabase REST API by anyone with a room code — not just through this
+// app's own UI. A crafted post.image value could otherwise break out of
+// the src="..." (or data-img="...") attribute it's interpolated into.
+// Only ever render it if it's actually a data: image URI.
+function sanitizeImageSrc(src) {
+  if (typeof src !== 'string') return null;
+  return /^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(src) ? src : null;
+}
+// Same threat model as above: post.color is rendered straight into a
+// style="background-color:...` attribute. Only accept a plausible hex
+// color; anything else falls back to the app's default note color.
+function sanitizeColor(color) {
+  return (typeof color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(color)) ? color : '#FFE57F';
 }
 function generateCode() {
   const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -1809,6 +1936,17 @@ let state = { screen: 'landing' };
 let pollTimer = null;
 let shadowTimer = null;
 
+// Single click-away listener for the export "download" dropdown, attached
+// once here rather than re-added inside every render (it was previously
+// re-registered on every poll tick, leaking one new listener per tick).
+// Looked up fresh on each click rather than captured, since only one
+// #download-menu exists in the DOM at a time regardless of which board is
+// showing.
+document.addEventListener('click', () => {
+  const downloadMenu = document.getElementById('download-menu');
+  if (downloadMenu) downloadMenu.style.display = 'none';
+});
+
 function stopPolling() {
   if (pollTimer) {
     if (pollTimer.close) {
@@ -2012,7 +2150,7 @@ function renderLanding() {
           <span>© 2026. Gather the pieces. Build the picture.</span>
         </div>
         <div style="display:flex; gap:1.5rem; font-weight:500;">
-          <a href="#" style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">Contact Support</a>
+          <a href="mailto:support@bowerboard.app" style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">Contact Support</a>
           <a href="bowerboard-powerpoint-addin.zip" download style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">PowerPoint Add-in</a>
         </div>
       </div>
@@ -2151,7 +2289,7 @@ function renderWordCloudSetup() {
           <button class="btn-primary sans" id="btn-create" style="flex:1;" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
             ${s.loading ? 'Creating room…' : 'Create room'}
           </button>
-          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--yellow);color:var(--yellow);font-weight:700;">✨ Try Demo</button>
+          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--ink);background:var(--yellow);color:var(--ink);font-weight:700;">✨ Try Demo</button>
         </div>
       </div>
     </div>`;
@@ -2203,7 +2341,7 @@ function renderBrainstormSetup() {
           <button class="btn-primary sans" id="btn-create" style="flex:1;" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
             ${s.loading ? 'Creating room…' : 'Create room'}
           </button>
-          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--yellow);color:var(--yellow);font-weight:700;">✨ Try Demo</button>
+          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--ink);background:var(--yellow);color:var(--ink);font-weight:700;">✨ Try Demo</button>
         </div>
       </div>
     </div>`;
@@ -2255,7 +2393,7 @@ function renderStickySetup() {
           <button class="btn-primary sans" id="btn-create" style="flex:1;" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
             ${s.loading ? 'Creating room…' : 'Create room'}
           </button>
-          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--yellow);color:var(--yellow);font-weight:700;">✨ Try Demo</button>
+          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--ink);background:var(--yellow);color:var(--ink);font-weight:700;">✨ Try Demo</button>
         </div>
       </div>
     </div>`;
@@ -2322,7 +2460,7 @@ function renderRankingSetup() {
           <button class="btn-primary sans" id="btn-create" style="flex:1;" ${!(s.prompt && s.prompt.trim()) ? 'disabled' : ''}>
             ${s.loading ? 'Creating room…' : 'Create room'}
           </button>
-          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--yellow);color:var(--yellow);font-weight:700;">✨ Try Demo</button>
+          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--ink);background:var(--yellow);color:var(--ink);font-weight:700;">✨ Try Demo</button>
         </div>
       </div>
     </div>`;
@@ -2449,7 +2587,7 @@ function renderMCSetup() {
           <button class="btn-primary sans" id="btn-create" style="flex:1;" ${!canCreateMC(s) ? 'disabled' : ''}>
             ${s.loading ? 'Creating room…' : 'Create room'}
           </button>
-          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--yellow);color:var(--yellow);font-weight:700;">✨ Try Demo</button>
+          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--ink);background:var(--yellow);color:var(--ink);font-weight:700;">✨ Try Demo</button>
         </div>
         <button class="btn-add-option sans" id="btn-go-paste-mc" style="width:100%;">📋 Or paste in one or more questions</button>
       </div>
@@ -2561,7 +2699,7 @@ function renderPollCountStage() {
         </div>
         <div style="display:flex;gap:0.8rem;width:100%;margin-top:1rem;">
           <button class="btn-primary sans" id="btn-continue" style="flex:1;">Continue to build questions</button>
-          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--yellow);color:var(--yellow);font-weight:700;">✨ Try Demo</button>
+          <button class="btn-outline sans" id="btn-demo" style="flex:1;border-color:var(--ink);background:var(--yellow);color:var(--ink);font-weight:700;">✨ Try Demo</button>
         </div>
         <button class="btn-add-option sans" id="btn-go-paste" style="width:100%;margin-top:0.5rem;">📋 Or paste in a list of questions instead</button>
       </div>
@@ -3554,12 +3692,12 @@ function renderTeacherLive() {
         </div>
       </div>
     ` : ''}
-    ${s.zoomedImage ? `
+    ${sanitizeImageSrc(s.zoomedImage) ? `
       <div class="qr-modal-overlay" id="img-zoom-modal" style="z-index:30000;cursor:zoom-out;">
         <div class="qr-modal-content" style="max-width:90vw;max-height:85vh;">
           <button class="qr-modal-close" id="btn-close-img-zoom" style="top:-35px;right:-10px;">✕</button>
           <div style="background:#fff; padding:1rem; border-radius:12px; border:3.5px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); max-height:80vh; display:flex; flex-direction:column; align-items:center; justify-content:center;cursor:default;">
-            <img src="${s.zoomedImage}" style="max-width:100%; max-height:70vh; object-fit:contain; border-radius:4px; border:2px solid var(--ink);" />
+            <img src="${sanitizeImageSrc(s.zoomedImage)}" style="max-width:100%; max-height:70vh; object-fit:contain; border-radius:4px; border:2px solid var(--ink);" />
             ${s.zoomedImageCaption ? `<div class="sans" style="margin-top:0.8rem; font-weight:700; color:var(--ink); font-size:1.05rem; text-align:center; max-width:500px; word-break:break-word;">${escapeHtml(s.zoomedImageCaption)}</div>` : ''}
           </div>
         </div>
@@ -3655,9 +3793,6 @@ function renderTeacherLive() {
       e.stopPropagation();
       downloadMenu.style.display = downloadMenu.style.display === 'none' ? 'flex' : 'none';
     };
-    document.addEventListener('click', () => {
-      downloadMenu.style.display = 'none';
-    });
     document.getElementById('download-pdf').onclick = () => exportBoard('pdf');
     document.getElementById('download-jpeg').onclick = () => exportBoard('jpeg');
   }
@@ -4139,16 +4274,25 @@ async function startRemoteControlView(code, token) {
   shadowTimer = setupRealtimeListener('MOD-' + code, shadowTick);
 }
 
-window.addEventListener('beforeunload', async () => {
-  if (state.screen === 'phoneRemote') {
-    const raw = await kvGet('room:' + state.code + ':config');
-    if (raw) {
-      try {
-        const cfg = JSON.parse(raw);
-        cfg.remoteConnected = false;
-        await kvSet('room:' + state.code + ':config', JSON.stringify(cfg));
-      } catch (e) {}
-    }
+window.addEventListener('beforeunload', () => {
+  // Browsers do not wait for async beforeunload handlers to finish, so the
+  // previous kvGet-then-kvSet round trip never actually completed before
+  // the page unloaded. keepalive fetch is specifically designed to survive
+  // page teardown; this is best-effort (network failures are swallowed —
+  // there's nothing meaningful to do about them at this point anyway).
+  if (state.screen === 'phoneRemote' && state.code) {
+    try {
+      fetch(SUPABASE_URL + '/rest/v1/rpc/set_remote_disconnected', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify({ p_code: baseRoomCode(state.code) }),
+        keepalive: true
+      }).catch(() => {});
+    } catch (e) {}
   }
 });
 
@@ -4208,11 +4352,11 @@ function renderPhoneRemote() {
         ` : pending.map((item, index) => {
           const isNew = index === pending.length - 1;
           return `
-            <div class="mod-card sans phone-mod-card" data-id="${item.id}" style="display:flex; justify-content:space-between; align-items:center; padding:0.8rem; border:2.5px solid var(--ink); border-radius:8px; background:${isNew ? '#FFF9C4' : '#fff'}; box-shadow:3px 3px 0 var(--shadow); transition:transform 0.2s, opacity 0.2s; position:relative; overflow:hidden; touch-action:pan-y; color:var(--ink);">
+            <div class="mod-card sans phone-mod-card" data-id="${escapeHtml(item.id)}" style="display:flex; justify-content:space-between; align-items:center; padding:0.8rem; border:2.5px solid var(--ink); border-radius:8px; background:${isNew ? '#FFF9C4' : '#fff'}; box-shadow:3px 3px 0 var(--shadow); transition:transform 0.2s, opacity 0.2s; position:relative; overflow:hidden; touch-action:pan-y; color:var(--ink);">
               <div style="display:flex; align-items:center; gap:0.6rem; flex:1;">
-                ${item.image ? `
-                  <div class="mod-img-thumbnail" data-img="${item.image}" style="cursor:zoom-in; width:45px; height:45px; border:1.8px solid var(--ink); border-radius:4px; overflow:hidden; box-shadow:1px 1px 0 var(--shadow); flex-shrink:0;">
-                    <img src="${item.image}" style="width:100%; height:100%; object-fit:cover;" />
+                ${sanitizeImageSrc(item.image) ? `
+                  <div class="mod-img-thumbnail" data-img="${sanitizeImageSrc(item.image)}" style="cursor:zoom-in; width:45px; height:45px; border:1.8px solid var(--ink); border-radius:4px; overflow:hidden; box-shadow:1px 1px 0 var(--shadow); flex-shrink:0;">
+                    <img src="${sanitizeImageSrc(item.image)}" style="width:100%; height:100%; object-fit:cover;" />
                   </div>
                 ` : ''}
                 <div style="text-align:left; flex:1; overflow:hidden;">
@@ -4229,14 +4373,14 @@ function renderPhoneRemote() {
                   ${item.sessionId ? `
                     <div style="font-size:0.7rem; color:var(--muted); margin-top:0.15rem; display:flex; gap:0.5rem;">
                       <span>Student: ${item.sessionId.slice(0, 5)}</span>
-                      <button class="block-dev-btn" data-session="${item.sessionId}" style="border:none; background:none; color:var(--pink); cursor:pointer; padding:0; font-size:0.7rem; text-decoration:underline; font-weight:700;">Block</button>
+                      <button class="block-dev-btn" data-session="${escapeHtml(item.sessionId)}" style="border:none; background:none; color:var(--pink); cursor:pointer; padding:0; font-size:0.7rem; text-decoration:underline; font-weight:700;">Block</button>
                     </div>
                   ` : ''}
                 </div>
               </div>
               <div style="display:flex; gap:0.3rem; align-items:center; margin-left:0.5rem; flex-shrink:0;">
-                <button class="btn-reveal sans btn-remote-card-approve" data-id="${item.id}" style="padding:0.35rem 0.5rem; font-size:0.75rem; background:var(--green); color:#fff; border:1.5px solid var(--ink); box-shadow:1.5px 1.5px 0 var(--shadow); cursor:pointer; border-radius:4px; font-weight:700;">Reveal</button>
-                <button class="btn-clear sans btn-remote-card-dismiss" data-id="${item.id}" style="padding:0.35rem 0.5rem; font-size:0.75rem; background:var(--pink); color:#fff; border:1.5px solid var(--ink); box-shadow:1.5px 1.5px 0 var(--shadow); cursor:pointer; border-radius:4px; font-weight:700;">✕</button>
+                <button class="btn-reveal sans btn-remote-card-approve" data-id="${escapeHtml(item.id)}" style="padding:0.35rem 0.5rem; font-size:0.75rem; background:var(--green); color:#fff; border:1.5px solid var(--ink); box-shadow:1.5px 1.5px 0 var(--shadow); cursor:pointer; border-radius:4px; font-weight:700;">Reveal</button>
+                <button class="btn-clear sans btn-remote-card-dismiss" data-id="${escapeHtml(item.id)}" style="padding:0.35rem 0.5rem; font-size:0.75rem; background:var(--pink); color:#fff; border:1.5px solid var(--ink); box-shadow:1.5px 1.5px 0 var(--shadow); cursor:pointer; border-radius:4px; font-weight:700;">✕</button>
               </div>
             </div>
           `;
@@ -4261,7 +4405,7 @@ function renderPhoneRemote() {
                 <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;">
                   ${escapeHtml(s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' ? item.text : 'MC/Poll/Ranking Vote')}
                 </span>
-                <button class="btn-remote-undo" data-id="${item.id}" style="border:1px solid var(--ink); background:#fff; cursor:pointer; font-size:0.7rem; font-weight:700; border-radius:3px; padding:0.1rem 0.3rem;">Undo</button>
+                <button class="btn-remote-undo" data-id="${escapeHtml(item.id)}" style="border:1px solid var(--ink); background:#fff; cursor:pointer; font-size:0.7rem; font-weight:700; border-radius:3px; padding:0.1rem 0.3rem;">Undo</button>
               </div>
             `).join('')}
           </div>
@@ -4275,12 +4419,12 @@ function renderPhoneRemote() {
     </div>
 
     <!-- Zoom image overlay -->
-    ${s.zoomedImage ? `
+    ${sanitizeImageSrc(s.zoomedImage) ? `
       <div class="qr-modal-overlay" id="img-zoom-modal" style="z-index:30000; cursor:zoom-out; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center;">
         <div class="qr-modal-content" style="max-width:90vw; max-height:85vh;">
           <button class="qr-modal-close" id="btn-close-img-zoom" style="top:-35px; right:-10px;">✕</button>
           <div style="background:#fff; padding:1rem; border-radius:12px; border:3.5px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); max-height:80vh; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <img src="${s.zoomedImage}" style="max-width:100%; max-height:70vh; object-fit:contain; border-radius:4px; border:2px solid var(--ink);" />
+            <img src="${sanitizeImageSrc(s.zoomedImage)}" style="max-width:100%; max-height:70vh; object-fit:contain; border-radius:4px; border:2px solid var(--ink);" />
           </div>
         </div>
       </div>
@@ -4616,9 +4760,9 @@ function renderSplitModerationDashboard() {
               <div class="mod-card sans" style="display:flex;justify-content:space-between;align-items:center;padding:0.8rem;border:2.5px solid var(--ink);border-radius:8px;background:${isNew ? '#FFF9C4' : '#fff'};box-shadow:3px 3px 0 var(--shadow);transition:transform 0.1s;position:relative;">
                 ${isNew ? `<div style="position:absolute;top:-8px;left:8px;background:var(--yellow);color:var(--ink);border:1.5px solid var(--ink);font-size:0.65rem;font-weight:800;padding:0.05rem 0.3rem;border-radius:4px;box-shadow:1px 1px 0 var(--shadow);">NEW</div>` : ''}
                 <div style="display:flex;align-items:center;gap:0.8rem;flex:1;">
-                  ${item.image ? `
-                    <div class="mod-img-thumbnail" data-img="${item.image}" style="cursor:zoom-in;width:50px;height:50px;border:2px solid var(--ink);border-radius:4px;overflow:hidden;box-shadow:1px 1px 0 var(--shadow);">
-                      <img src="${item.image}" style="width:100%;height:100%;object-fit:cover;" />
+                  ${sanitizeImageSrc(item.image) ? `
+                    <div class="mod-img-thumbnail" data-img="${sanitizeImageSrc(item.image)}" style="cursor:zoom-in;width:50px;height:50px;border:2px solid var(--ink);border-radius:4px;overflow:hidden;box-shadow:1px 1px 0 var(--shadow);">
+                      <img src="${sanitizeImageSrc(item.image)}" style="width:100%;height:100%;object-fit:cover;" />
                     </div>
                   ` : ''}
                   <div style="text-align:left;flex:1;">
@@ -4635,14 +4779,14 @@ function renderSplitModerationDashboard() {
                     ${item.sessionId ? `
                       <div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem;display:flex;gap:0.5rem;align-items:center;">
                         <span>Session: ${item.sessionId.slice(0, 6)}</span>
-                        <button class="block-dev-btn" data-session="${item.sessionId}" style="border:none;background:none;color:var(--pink);cursor:pointer;padding:0;font-size:0.75rem;text-decoration:underline;font-weight:700;">Block student</button>
+                        <button class="block-dev-btn" data-session="${escapeHtml(item.sessionId)}" style="border:none;background:none;color:var(--pink);cursor:pointer;padding:0;font-size:0.75rem;text-decoration:underline;font-weight:700;">Block student</button>
                       </div>
                     ` : ''}
                   </div>
                 </div>
                 <div style="display:flex;gap:0.4rem;align-items:center;margin-left:0.6rem;">
-                  <button class="btn-reveal sans mod-approve-btn" data-id="${item.id}" style="padding:0.35rem 0.6rem;font-size:0.8rem;background:var(--green);color:#fff;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--shadow);cursor:pointer;border-radius:4px;font-weight:700;">Reveal</button>
-                  <button class="btn-clear sans mod-dismiss-btn" data-id="${item.id}" style="padding:0.35rem 0.6rem;font-size:0.8rem;background:var(--pink);color:#fff;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--shadow);cursor:pointer;border-radius:4px;font-weight:700;">Dismiss</button>
+                  <button class="btn-reveal sans mod-approve-btn" data-id="${escapeHtml(item.id)}" style="padding:0.35rem 0.6rem;font-size:0.8rem;background:var(--green);color:#fff;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--shadow);cursor:pointer;border-radius:4px;font-weight:700;">Reveal</button>
+                  <button class="btn-clear sans mod-dismiss-btn" data-id="${escapeHtml(item.id)}" style="padding:0.35rem 0.6rem;font-size:0.8rem;background:var(--pink);color:#fff;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--shadow);cursor:pointer;border-radius:4px;font-weight:700;">Dismiss</button>
                 </div>
               </div>
             `;
@@ -4681,7 +4825,7 @@ function renderSplitModerationDashboard() {
                   <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;text-align:left;">
                     ${escapeHtml(s.type === 'wordcloud' || s.type === 'brainstorm' || s.type === 'sticky' ? item.text : 'MC/Poll/Ranking Vote')}
                   </span>
-                  <button class="mod-undo-btn" data-id="${item.id}" style="border:1.5px solid var(--ink);background:#fff;cursor:pointer;font-size:0.75rem;font-weight:700;border-radius:4px;padding:0.2rem 0.4rem;box-shadow:1px 1px 0 var(--shadow);">Undo</button>
+                  <button class="mod-undo-btn" data-id="${escapeHtml(item.id)}" style="border:1.5px solid var(--ink);background:#fff;cursor:pointer;font-size:0.75rem;font-weight:700;border-radius:4px;padding:0.2rem 0.4rem;box-shadow:1px 1px 0 var(--shadow);">Undo</button>
                 </div>
               `).join('')}
             </div>
@@ -4854,6 +4998,13 @@ function renderStickyStage() {
       setupPostDragging(el, el.dataset.id);
     });
   }
+
+  stage.querySelectorAll('.sticky-edit-btn').forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); editSticky(btn.dataset.id); };
+  });
+  stage.querySelectorAll('.sticky-delete-btn').forEach(btn => {
+    btn.onclick = (e) => { e.stopPropagation(); deleteSticky(btn.dataset.id); };
+  });
 
   stage.querySelectorAll('.sticky-note-img').forEach(img => {
     img.style.cursor = 'zoom-in';
@@ -5168,7 +5319,7 @@ function brainstormBoardHtml(prompt, posts, opts) {
     const likeEl = mergeMode
       ? ''
       : (interactive
-          ? `<button class="${small ? 'brainstorm-like-btn-sm' : 'brainstorm-like-btn'}" data-id="${post.id}" ${canLike ? '' : 'disabled'}>❤️ ${post.likes}</button>`
+          ? `<button class="${small ? 'brainstorm-like-btn-sm' : 'brainstorm-like-btn'}" data-id="${escapeHtml(post.id)}" ${canLike ? '' : 'disabled'}>❤️ ${post.likes}</button>`
           : `<${small ? 'span' : 'div'} class="${small ? 'brainstorm-like-count-sm' : 'brainstorm-like-count'}">❤️ ${post.likes}</${small ? 'span' : 'div'}>`);
     return { countBadge, likeEl, canLike };
   }
@@ -5182,7 +5333,7 @@ function brainstormBoardHtml(prompt, posts, opts) {
     const scale = maxW === minW ? 1 : (0.85 + 0.5 * ((postWeight(post) - minW) / (maxW - minW)));
     const { countBadge, likeEl } = postInner(post, false);
     const isSelected = selectedIds.indexOf(post.id) !== -1;
-    html += `<div class="brainstorm-post ${mergeMode ? 'mergeable' : ''} ${opts.moveMode ? 'movable' : ''} ${isSelected ? 'merge-selected' : ''}" data-id="${post.id}" style="left:${leftVal}%;top:${topVal}%;transform:translate(-50%,-50%) scale(${scale.toFixed(2)});">
+    html += `<div class="brainstorm-post ${mergeMode ? 'mergeable' : ''} ${opts.moveMode ? 'movable' : ''} ${isSelected ? 'merge-selected' : ''}" data-id="${escapeHtml(post.id)}" style="left:${leftVal}%;top:${topVal}%;transform:translate(-50%,-50%) scale(${scale.toFixed(2)});">
       ${mergeMode ? `<span class="merge-tick-box">${isSelected ? '✓' : ''}</span>` : ''}
       <div class="brainstorm-post-text">${escapeHtml(post.text)} ${countBadge}</div>
       ${likeEl}
@@ -5195,7 +5346,7 @@ function brainstormBoardHtml(prompt, posts, opts) {
     rest.forEach(post => {
       const { countBadge, likeEl } = postInner(post, true);
       const isSelected = selectedIds.indexOf(post.id) !== -1;
-      html += `<div class="brainstorm-chip ${mergeMode ? 'mergeable' : ''} ${isSelected ? 'merge-selected' : ''}" data-id="${post.id}">
+      html += `<div class="brainstorm-chip ${mergeMode ? 'mergeable' : ''} ${isSelected ? 'merge-selected' : ''}" data-id="${escapeHtml(post.id)}">
         ${mergeMode ? `<span class="merge-tick-box">${isSelected ? '✓' : ''}</span>` : ''}
         <span>${escapeHtml(post.text)} ${countBadge}</span>
         ${likeEl}
@@ -5231,9 +5382,10 @@ function corkBoardHtml(prompt, posts, opts) {
     const leftVal = (post.left !== undefined) ? post.left : 50;
     const topVal = (post.top !== undefined) ? post.top : 50;
     const angle = post.angle || 0;
-    const color = post.color || '#FFE57F';
+    const color = sanitizeColor(post.color);
     const textHtml = escapeHtml(post.text);
-    const imgHtml = post.image ? `<img src="${post.image}" class="sticky-note-img" draggable="false" />` : '';
+    const safeImageSrc = sanitizeImageSrc(post.image);
+    const imgHtml = safeImageSrc ? `<img src="${safeImageSrc}" class="sticky-note-img" draggable="false" />` : '';
     
     const canLike = interactive && !mergeMode && likesEnabled && (post.ownerSessionIds || []).indexOf(mySessionId) === -1 && likedPostIds.indexOf(post.id) === -1;
     const isSelected = selectedIds.indexOf(post.id) !== -1;
@@ -5241,20 +5393,20 @@ function corkBoardHtml(prompt, posts, opts) {
     const likeEl = mergeMode
       ? ''
       : (interactive
-          ? `<button class="brainstorm-like-btn-sm" data-id="${post.id}" ${canLike ? '' : 'disabled'} style="align-self:flex-start;margin-top:0.3rem;">❤️ ${post.likes || 0}</button>`
+          ? `<button class="brainstorm-like-btn-sm" data-id="${escapeHtml(post.id)}" ${canLike ? '' : 'disabled'} style="align-self:flex-start;margin-top:0.3rem;">❤️ ${post.likes || 0}</button>`
           : `<div class="brainstorm-like-count-sm" style="align-self:flex-start;margin-top:0.3rem;">❤️ ${post.likes || 0}</div>`);
           
     html += `
-      <div class="sticky-note ${opts.moveMode ? 'movable' : ''} ${mergeMode ? 'mergeable' : ''} ${isSelected ? 'merge-selected' : ''}" data-id="${post.id}" style="left:${leftVal}%;top:${topVal}%;transform:translate(-50%,-50%) rotate(${angle}deg);background-color:${color};">
+      <div class="sticky-note ${opts.moveMode ? 'movable' : ''} ${mergeMode ? 'mergeable' : ''} ${isSelected ? 'merge-selected' : ''}" data-id="${escapeHtml(post.id)}" style="left:${leftVal}%;top:${topVal}%;transform:translate(-50%,-50%) rotate(${angle}deg);background-color:${color};">
         <div class="pushpin"></div>
         ${opts.isTeacher ? `
           <div class="note-actions">
-            <button class="note-action-btn btn-edit" title="Edit text" onclick="editSticky('${post.id}')">✏️</button>
-            <button class="note-action-btn btn-delete" title="Delete note" onclick="deleteSticky('${post.id}')">✕</button>
+            <button class="note-action-btn btn-edit sticky-edit-btn" title="Edit text" data-id="${escapeHtml(post.id)}">✏️</button>
+            <button class="note-action-btn btn-delete sticky-delete-btn" title="Delete note" data-id="${escapeHtml(post.id)}">✕</button>
           </div>
         ` : ''}
         ${mergeMode ? `<span class="merge-tick-box" style="position:absolute;bottom:4px;right:4px;margin:0;">${isSelected ? '✓' : ''}</span>` : ''}
-        <div class="sticky-note-text" style="${post.image ? 'max-height:42%' : 'max-height:85%'}">${textHtml}</div>
+        <div class="sticky-note-text" style="${safeImageSrc ? 'max-height:42%' : 'max-height:85%'}">${textHtml}</div>
         ${imgHtml}
         ${likeEl}
       </div>`;
@@ -5574,20 +5726,14 @@ function renderStudentRoomRanking() {
       submitBtn.textContent = 'Submitting...';
       
       for (let attempt = 0; attempt < 3; attempt++) {
-        const raw = await kvGet('room:' + s.code + ':votes');
-        let list = [];
-        if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
-        
-        list.push([...s.rankingOrder]);
-        
-        const ok = await kvSet('room:' + s.code + ':votes', JSON.stringify(list));
+        const ok = await appendRankingRPC(s.code, [...s.rankingOrder]);
         if (ok) {
           s.hasVoted = true;
           break;
         }
         await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
       }
-      
+
       renderStudentRoomRanking();
     };
   }
@@ -5668,9 +5814,6 @@ function renderStudentRoomBrainstorm() {
         e.stopPropagation();
         downloadMenu.style.display = downloadMenu.style.display === 'none' ? 'flex' : 'none';
       };
-      document.addEventListener('click', () => {
-        downloadMenu.style.display = 'none';
-      });
       wrap.querySelector('#download-pdf').onclick = () => exportBoard('pdf');
       wrap.querySelector('#download-jpeg').onclick = () => exportBoard('jpeg');
     }
@@ -5709,22 +5852,15 @@ function renderStudentRoomBrainstorm() {
         return;
       }
     } else {
-      for (let attempt = 0; attempt < 3; attempt++) {
+      const newPost = { id: Math.random().toString(36).slice(2) + Date.now().toString(36), text: clean, likes: 0, count: 1, ownerSessionIds: [s.mySessionId], sessionId: s.mySessionId };
+      let ok = false;
+      for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+        ok = await appendPostRPC(targetRoom, newPost, true);
+        if (!ok) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      }
+      if (ok) {
         const raw = await kvGet('room:' + targetRoom + ':posts');
-        let list = [];
-        if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
-        const lower = clean.toLowerCase();
-        const existing = list.find(p => p.text.toLowerCase() === lower);
-        if (existing) {
-          existing.count = (existing.count || 1) + 1;
-          existing.ownerSessionIds = existing.ownerSessionIds || [];
-          if (existing.ownerSessionIds.indexOf(s.mySessionId) === -1) existing.ownerSessionIds.push(s.mySessionId);
-        } else {
-          list.push({ id: Math.random().toString(36).slice(2) + Date.now().toString(36), text: clean, likes: 0, count: 1, ownerSessionIds: [s.mySessionId], sessionId: s.mySessionId });
-        }
-        const ok = await kvSet('room:' + targetRoom + ':posts', JSON.stringify(list));
-        if (ok) { s.posts = list; break; }
-        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+        if (raw) { try { s.posts = JSON.parse(raw); } catch (e) {} }
       }
     }
     input.value = '';
@@ -5741,15 +5877,14 @@ function renderStudentRoomBrainstorm() {
   async function likePost(id) {
     if (s.likedPostIds.indexOf(id) !== -1) return;
     s.likedPostIds.push(id);
-    for (let attempt = 0; attempt < 3; attempt++) {
+    let ok = false;
+    for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+      ok = await likePostRPC(s.code, id);
+      if (!ok) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    }
+    if (ok) {
       const raw = await kvGet('room:' + s.code + ':posts');
-      let list = [];
-      if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
-      const post = list.find(p => p.id === id);
-      if (post) post.likes = (post.likes || 0) + 1;
-      const ok = await kvSet('room:' + s.code + ':posts', JSON.stringify(list));
-      if (ok) { s.posts = list; break; }
-      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      if (raw) { try { s.posts = JSON.parse(raw); } catch (e) {} }
     }
     renderBoard();
   }
@@ -5896,14 +6031,16 @@ function renderStudentRoomSticky() {
       }
       s.posts = s.posts || [];
     } else {
-      for (let attempt = 0; attempt < 3; attempt++) {
+      let ok = false;
+      for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+        // dedupe=false: each sticky note is a distinct pinned object
+        // (position/color/image) and was never merged by text client-side.
+        ok = await appendPostRPC(targetRoom, newNote, false);
+        if (!ok) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      }
+      if (ok) {
         const raw = await kvGet('room:' + targetRoom + ':posts');
-        let list = [];
-        if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
-        list.push(newNote);
-        const ok = await kvSet('room:' + targetRoom + ':posts', JSON.stringify(list));
-        if (ok) { s.posts = list; break; }
-        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+        if (raw) { try { s.posts = JSON.parse(raw); } catch (e) {} }
       }
     }
 
@@ -5972,9 +6109,6 @@ function renderStudentRoomSticky() {
         e.stopPropagation();
         downloadMenu.style.display = downloadMenu.style.display === 'none' ? 'flex' : 'none';
       };
-      document.addEventListener('click', () => {
-        downloadMenu.style.display = 'none';
-      });
       wrap.querySelector('#download-pdf').onclick = () => exportBoard('pdf');
       wrap.querySelector('#download-jpeg').onclick = () => exportBoard('jpeg');
     }
@@ -5987,15 +6121,14 @@ function renderStudentRoomSticky() {
   async function likePost(id) {
     if (s.likedPostIds.indexOf(id) !== -1) return;
     s.likedPostIds.push(id);
-    for (let attempt = 0; attempt < 3; attempt++) {
+    let ok = false;
+    for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+      ok = await likePostRPC(s.code, id);
+      if (!ok) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    }
+    if (ok) {
       const raw = await kvGet('room:' + s.code + ':posts');
-      let list = [];
-      if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
-      const post = list.find(p => p.id === id);
-      if (post) post.likes = (post.likes || 0) + 1;
-      const ok = await kvSet('room:' + s.code + ':posts', JSON.stringify(list));
-      if (ok) { s.posts = list; break; }
-      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      if (raw) { try { s.posts = JSON.parse(raw); } catch (e) {} }
     }
     renderBoard();
   }
@@ -6074,16 +6207,14 @@ function renderStudentRoomWordCloud() {
         return;
       }
     } else {
-      for (let attempt = 0; attempt < 3; attempt++) {
+      let ok = false;
+      for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+        ok = await submitWordRPC(targetRoom, clean);
+        if (!ok) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      }
+      if (ok) {
         const raw = await kvGet('room:' + targetRoom + ':words');
-        let list = [];
-        if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
-        const lower = clean.toLowerCase();
-        const existing = list.find(w => w.text.toLowerCase() === lower);
-        if (existing) existing.count += 1; else list.push({ text: clean, count: 1 });
-        const ok = await kvSet('room:' + targetRoom + ':words', JSON.stringify(list));
-        if (ok) { s.words = list; break; }
-        await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+        if (raw) { try { s.words = JSON.parse(raw); } catch (e) {} }
       }
     }
     input.value = '';
@@ -6222,21 +6353,14 @@ async function submitVote() {
       return;
     }
   } else {
-    for (let attempt = 0; attempt < 3; attempt++) {
+    let ok = false;
+    for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+      ok = await incrementVotesRPC(targetRoom, isPoll ? qIndex : null, s.selected.slice());
+      if (!ok) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    }
+    if (ok) {
       const raw = await kvGet('room:' + targetRoom + ':votes');
-      let votes = emptyVotesStructure(s);
-      if (raw) { try { votes = JSON.parse(raw); } catch (e) {} }
-      let target;
-      if (isPoll) {
-        if (!votes[qIndex]) votes[qIndex] = currentOptions(s).map(() => 0);
-        target = votes[qIndex];
-      } else {
-        target = votes;
-      }
-      s.selected.forEach(idx => { target[idx] = (target[idx] || 0) + 1; });
-      const ok = await kvSet('room:' + targetRoom + ':votes', JSON.stringify(votes));
-      if (ok) { s.votes = votes; break; }
-      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      if (raw) { try { s.votes = JSON.parse(raw); } catch (e) {} }
     }
   }
   
@@ -6310,21 +6434,54 @@ function renderStudentCloud() {
       e.stopPropagation();
       downloadMenu.style.display = downloadMenu.style.display === 'none' ? 'flex' : 'none';
     };
-    document.addEventListener('click', () => {
-      downloadMenu.style.display = 'none';
-    });
     wrap.querySelector('#download-pdf').onclick = () => exportBoard('pdf');
     wrap.querySelector('#download-jpeg').onclick = () => exportBoard('jpeg');
   }
 }
 
-function exportBoard(format) {
-  const target = document.getElementById('cloud-stage') || 
-                 document.getElementById('brainstorm-board-wrap') || 
+// html2canvas/jsPDF are only needed for this export feature, used well
+// after initial load — fetched on first use instead of blocking startup.
+const _scriptLoadPromises = {};
+function loadScriptOnce(src) {
+  if (!_scriptLoadPromises[src]) {
+    _scriptLoadPromises[src] = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load ' + src));
+      document.head.appendChild(script);
+    });
+  }
+  return _scriptLoadPromises[src];
+}
+function ensureExportLibraries() {
+  return Promise.all([
+    loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+    loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+  ]);
+}
+
+async function exportBoard(format) {
+  const target = document.getElementById('cloud-stage') ||
+                 document.getElementById('brainstorm-board-wrap') ||
                  document.getElementById('student-cloud-wrap');
   if (!target) {
     alert("Could not find the board element to export.");
     return;
+  }
+
+  const btn = document.getElementById(format === 'pdf' ? 'download-pdf' : 'download-jpeg');
+  const originalBtnText = btn ? btn.textContent : '';
+  if (!window.html2canvas || !window.jspdf) {
+    if (btn) { btn.disabled = true; btn.textContent = 'Loading export tools…'; }
+    try {
+      await ensureExportLibraries();
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = originalBtnText; }
+      alert("Couldn't load the export tools — check your connection and try again.");
+      return;
+    }
+    if (btn) { btn.disabled = false; btn.textContent = originalBtnText; }
   }
 
   const originalCursor = document.body.style.cursor;
@@ -6367,17 +6524,25 @@ function exportBoard(format) {
   const remoteCode = params.get('remote');
   const remoteToken = params.get('token');
 
-  if (joinCode) {
-    state = { screen: 'studentJoin', codeInput: joinCode.toUpperCase(), error: '' };
+  // The plain landing page doesn't touch Supabase at all — render it
+  // immediately rather than waiting on supabaseReady, so deferring the
+  // Supabase script doesn't add latency to the common case.
+  if (!joinCode && !displayCode && !remoteCode) {
     render();
-    document.getElementById('btn-join').click();
-  } else if (displayCode) {
-    startDisplayOnlyView(displayCode.toUpperCase());
-  } else if (remoteCode) {
-    startRemoteControlView(remoteCode.toUpperCase(), remoteToken);
-  } else {
-    render();
+    return;
   }
+
+  supabaseReady.then(() => {
+    if (joinCode) {
+      state = { screen: 'studentJoin', codeInput: joinCode.toUpperCase(), error: '' };
+      render();
+      document.getElementById('btn-join').click();
+    } else if (displayCode) {
+      startDisplayOnlyView(displayCode.toUpperCase());
+    } else if (remoteCode) {
+      startRemoteControlView(remoteCode.toUpperCase(), remoteToken);
+    }
+  });
 })();
 </script>
 </body>
