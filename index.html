@@ -1608,6 +1608,23 @@ async function likePostRPC(code, postId) {
   }
 }
 
+async function recordStudentResponseRPC(code, name, qIndex, selected) {
+  if (!supabaseClient) return false;
+  try {
+    const { error } = await supabaseClient.rpc('record_student_response', {
+      p_code: baseRoomCode(code),
+      p_name: name,
+      p_qindex: qIndex,
+      p_selected: selected
+    });
+    if (error) { console.error("record_student_response error:", error); return false; }
+    return true;
+  } catch (e) {
+    console.error("record_student_response Exception:", e);
+    return false;
+  }
+}
+
 // Rotates a room's host_secret (used for both teacher access to pending
 // content and the phone-moderation-remote link). Authorizes the rotation
 // with the OLD secret, so only a device that already holds it can invalidate
@@ -3235,17 +3252,17 @@ async function approveSubmission(item) {
       let mainList = [];
       if (raw) { try { mainList = JSON.parse(raw); } catch (e) {} }
       
-      if (s.type === 'brainstorm') {
-        const existing = mainList.find(p => p.text.toLowerCase() === item.text.toLowerCase());
-        if (existing) {
-          existing.count = (existing.count || 1) + (item.count || 1);
-          existing.ownerSessionIds = existing.ownerSessionIds || [];
-          (item.ownerSessionIds || []).forEach(id => {
-            if (existing.ownerSessionIds.indexOf(id) === -1) existing.ownerSessionIds.push(id);
-          });
-        } else {
-          mainList.push(item);
-        }
+      // Sticky notes merge on identical text too, like brainstorm — except
+      // when the text is empty (a sticky note can be a photo with no text
+      // at all), since two different photo-only notes would otherwise both
+      // "match" on empty text and get merged, silently losing one photo.
+      const existing = item.text ? mainList.find(p => p.text && p.text.toLowerCase() === item.text.toLowerCase()) : null;
+      if (existing) {
+        existing.count = (existing.count || 1) + (item.count || 1);
+        existing.ownerSessionIds = existing.ownerSessionIds || [];
+        (item.ownerSessionIds || []).forEach(id => {
+          if (existing.ownerSessionIds.indexOf(id) === -1) existing.ownerSessionIds.push(id);
+        });
       } else {
         mainList.push(item);
       }
@@ -5386,7 +5403,8 @@ function corkBoardHtml(prompt, posts, opts) {
     const textHtml = escapeHtml(post.text);
     const safeImageSrc = sanitizeImageSrc(post.image);
     const imgHtml = safeImageSrc ? `<img src="${safeImageSrc}" class="sticky-note-img" draggable="false" />` : '';
-    
+    const countBadge = (post.count || 1) > 1 ? `<span class="brainstorm-count-badge" title="${post.count} people wrote this">×${post.count}</span>` : '';
+
     const canLike = interactive && !mergeMode && likesEnabled && (post.ownerSessionIds || []).indexOf(mySessionId) === -1 && likedPostIds.indexOf(post.id) === -1;
     const isSelected = selectedIds.indexOf(post.id) !== -1;
     
@@ -5406,7 +5424,7 @@ function corkBoardHtml(prompt, posts, opts) {
           </div>
         ` : ''}
         ${mergeMode ? `<span class="merge-tick-box" style="position:absolute;bottom:4px;right:4px;margin:0;">${isSelected ? '✓' : ''}</span>` : ''}
-        <div class="sticky-note-text" style="${safeImageSrc ? 'max-height:42%' : 'max-height:85%'}">${textHtml}</div>
+        <div class="sticky-note-text" style="${safeImageSrc ? 'max-height:42%' : 'max-height:85%'}">${textHtml} ${countBadge}</div>
         ${imgHtml}
         ${likeEl}
       </div>`;
@@ -6033,9 +6051,10 @@ function renderStudentRoomSticky() {
     } else {
       let ok = false;
       for (let attempt = 0; attempt < 3 && !ok; attempt++) {
-        // dedupe=false: each sticky note is a distinct pinned object
-        // (position/color/image) and was never merged by text client-side.
-        ok = await appendPostRPC(targetRoom, newNote, false);
+        // Sticky notes now merge identical text, like brainstorm ideas —
+        // append_post keeps the first note's position/color/image and
+        // just bumps its count (see corkBoardHtml's count badge).
+        ok = await appendPostRPC(targetRoom, newNote, true);
         if (!ok) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
       }
       if (ok) {
@@ -6375,22 +6394,9 @@ async function submitVote() {
 }
 
 async function recordStudentResponse(s, qIndex, selectedIndices) {
+  const targetRoom = getTargetRoom(s);
   for (let attempt = 0; attempt < 3; attempt++) {
-    const targetRoom = getTargetRoom(s);
-    const raw = await kvGet('room:' + targetRoom + ':responses');
-    let list = [];
-    if (raw) { try { list = JSON.parse(raw); } catch (e) { list = []; } }
-    const lower = s.studentName.trim().toLowerCase();
-    let record = list.find(r => r.name.trim().toLowerCase() === lower);
-    if (!record) {
-      record = { name: s.studentName.trim(), answers: s.questions.map(() => null) };
-      list.push(record);
-    }
-    if (!record.answers || record.answers.length !== s.questions.length) {
-      record.answers = s.questions.map((_, i) => (record.answers && record.answers[i]) || null);
-    }
-    record.answers[qIndex] = selectedIndices;
-    const ok = await kvSet('room:' + targetRoom + ':responses', JSON.stringify(list));
+    const ok = await recordStudentResponseRPC(targetRoom, s.studentName.trim(), qIndex, selectedIndices);
     if (ok) return;
     await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
   }
