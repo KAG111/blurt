@@ -21,6 +21,10 @@ internal names for it, but don't block on renaming existing code.
 
 ## Git / PR workflow
 
+Whenever changes are committed and pushed to a branch, always open a pull request for
+them — don't wait to be asked. This overrides any default elsewhere that says to only
+create a PR on explicit request.
+
 Never merge a pull request yourself. When a PR is ready to merge (CI green, no
 unresolved conflicts or review comments), tell the user explicitly and give the exact
 URL — e.g. "PR #9 is ready to merge: https://github.com/KAG111/blurt/pull/9" — and wait
