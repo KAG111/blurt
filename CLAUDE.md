@@ -51,6 +51,11 @@ URL — e.g. "PR #9 is ready to merge: https://github.com/KAG111/blurt/pull/9" �
 for them to merge it themselves. Don't just mention that a PR exists or is "ready";
 call out clearly that merging is the next step and it's on them to do it.
 
+Every single time you tell the user to merge — not just the first time a PR is
+mentioned, but any later reminder, status update, or "that one's ready too" — restate
+the full URL again. Never say something like "merge it when ready" or "that PR's still
+open" without the link right there; the user shouldn't have to scroll back to find it.
+
 ## Architecture
 
 This is a **single static HTML file with no build step**: `index.html` (~6,400 lines)
