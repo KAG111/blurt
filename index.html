@@ -342,6 +342,12 @@
   .student-header { text-align: center; max-width: 480px; }
   .student-room-code { font-size: 0.85rem; color: rgba(20,17,31,0.65); font-weight: 700; letter-spacing: 0.03em; }
   .student-prompt { font-size: 1.6rem; font-weight: 700; margin-top: 0.4rem; color: var(--ink); font-family: 'Space Grotesk', sans-serif; }
+  .btn-leave-room {
+    background: none; border: none; color: rgba(20,17,31,0.55); font-size: 0.78rem; font-weight: 600;
+    text-decoration: underline; text-underline-offset: 2px; margin-top: -0.6rem;
+  }
+  .btn-leave-room:hover { color: var(--ink); }
+  .btn-leave-room:focus-visible { outline: 3px auto var(--yellow); outline-offset: 3px; }
   .answer-form { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; max-width: 400px; }
   .answer-input {
     font-size: 1.2rem; padding: 0.85rem 1rem; border-radius: 10px;
@@ -2077,6 +2083,22 @@ function stopPolling() {
   }
 }
 
+// Wires the "Join a different bower" link present on every participant
+// board screen. Confirms first — unlike the teacher's equivalent button,
+// there's no history/resume list for a participant to find their way back
+// with, so an accidental tap here is harder to undo.
+function wireLeaveRoomBtn() {
+  const btn = document.getElementById('btn-leave-room');
+  if (btn) {
+    btn.onclick = () => {
+      if (confirm("Leave this bower and join a different one? You'll need the new room code.")) {
+        state = { screen: 'studentJoin', codeInput: '', error: '' };
+        render();
+      }
+    };
+  }
+}
+
 function render() {
   if ((state.boardMode && state.screen === 'teacherLive') || state.screen === 'displayView') {
     document.body.classList.add('board-mode-active');
@@ -3797,6 +3819,7 @@ function renderTeacherLive() {
             </div>
           </div>
         ` : ''}
+        <button class="btn-nav sans" id="btn-new-bower">🏗️ Build another bower</button>
         <div class="count-note sans" id="submission-count">${teacherCountLabel(s)}</div>
       </div>
       <div class="cloud-stage" id="cloud-stage"></div>
@@ -3958,6 +3981,16 @@ function renderTeacherLive() {
   if (toggleBoardModeBtn) {
     toggleBoardModeBtn.onclick = () => {
       s.boardMode = !s.boardMode;
+      render();
+    };
+  }
+  const newBowerBtn = document.getElementById('btn-new-bower');
+  if (newBowerBtn) {
+    newBowerBtn.onclick = () => {
+      // This room keeps running (nothing is deleted) and stays in the
+      // "recent bowers" list on this screen with a Resume button, so
+      // there's no confirm() here — leaving is never a one-way door.
+      state = { screen: 'activityPicker' };
       render();
     };
   }
@@ -5924,6 +5957,7 @@ function renderStudentRoomRanking() {
         <div class="student-room-code sans">Room ${s.code}</div>
         <div class="student-prompt">${escapeHtml(s.prompt)}</div>
       </div>
+      <button class="btn-leave-room sans" id="btn-leave-room">🔁 Join a different bower</button>
       <div class="answer-form" id="ranking-form-stage">
         ${s.hasVoted ? `
           <div class="sans" style="text-align:center;font-size:1.1rem;font-weight:700;color:var(--green);margin:1.5rem 0;">
@@ -5953,6 +5987,7 @@ function renderStudentRoomRanking() {
         `}
       </div>
     </div>`;
+  wireLeaveRoomBtn();
 
   stopPolling();
   const tick = async () => {
@@ -6030,6 +6065,7 @@ function renderStudentRoomBrainstorm() {
         <div class="student-room-code sans">Room ${s.code}</div>
         <div class="student-prompt">${escapeHtml(s.prompt)}</div>
       </div>
+      <button class="btn-leave-room sans" id="btn-leave-room">🔁 Join a different bower</button>
       <div class="answer-form">
         <input class="answer-input" id="answer-input" placeholder="Type a word or phrase and press Enter…" autofocus maxlength="80" />
         <div class="error-text sans" id="answer-error"></div>
@@ -6038,6 +6074,7 @@ function renderStudentRoomBrainstorm() {
       </div>
       <div style="width:100%;margin-top:1.5rem;" id="brainstorm-board-wrap"></div>
     </div>`;
+  wireLeaveRoomBtn();
 
   const input = document.getElementById('answer-input');
   const btn = document.getElementById('btn-submit-answer');
@@ -6228,6 +6265,7 @@ function renderStudentRoomSticky() {
         <div class="student-room-code sans">Room ${s.code}</div>
         <div class="student-prompt">${escapeHtml(s.prompt)}</div>
       </div>
+      <button class="btn-leave-room sans" id="btn-leave-room">🔁 Join a different bower</button>
       <div class="answer-form">
         <textarea class="answer-input" id="answer-input" rows="2" placeholder="Write a note..." maxlength="120" style="width:100%;font-family:sans-serif;padding:0.6rem;border-radius:8px;border:2.5px solid var(--ink);margin-bottom:0.6rem;text-align:left;"></textarea>
         
@@ -6251,6 +6289,7 @@ function renderStudentRoomSticky() {
       </div>
       <div style="width:100%;margin-top:1.5rem;" id="sticky-board-wrap"></div>
     </div>`;
+  wireLeaveRoomBtn();
 
   const input = document.getElementById('answer-input');
   const fileInput = document.getElementById('image-upload');
@@ -6447,6 +6486,7 @@ function renderStudentRoomWordCloud() {
         <div class="student-room-code sans">Room ${s.code}</div>
         <div class="student-prompt">${escapeHtml(s.prompt)}</div>
       </div>
+      <button class="btn-leave-room sans" id="btn-leave-room">🔁 Join a different bower</button>
       <div class="answer-form">
         <input class="answer-input" id="answer-input" placeholder="Type your answer and press Enter…" autofocus />
         <div class="error-text sans" id="answer-error"></div>
@@ -6455,6 +6495,7 @@ function renderStudentRoomWordCloud() {
       </div>
       <div style="width:100%;max-width:640px;margin-top:1rem;" id="student-cloud-wrap"></div>
     </div>`;
+  wireLeaveRoomBtn();
 
   const input = document.getElementById('answer-input');
   const btn = document.getElementById('btn-submit-answer');
@@ -6545,11 +6586,13 @@ function renderStudentRoomMC() {
         <div class="student-prompt" id="mc-prompt-text">${escapeHtml(currentPromptText(s))}</div>
         <div class="footnote sans" id="mc-multi-hint" style="margin-top:0.4rem;">${currentAllowMultiple(s) ? 'Select all that apply' : ''}</div>
       </div>
+      <button class="btn-leave-room sans" id="btn-leave-room">🔁 Join a different bower</button>
       <div style="display:flex;flex-direction:column;gap:0.6rem;width:100%;max-width:420px;" id="mc-options-wrap"></div>
       <button class="btn-submit sans" id="btn-submit-vote" style="max-width:420px;width:100%;" disabled>Submit</button>
       <div class="flash-note sans show" id="mc-status-note" style="height:auto;"></div>
       <div style="width:100%;max-width:640px;margin-top:1rem;" id="mc-results-wrap"></div>
     </div>`;
+  wireLeaveRoomBtn();
   s.selected = [];
   if (isPoll) s.hasVoted = !!s.answeredIndices[s.currentIndex];
   renderMCOptions();
