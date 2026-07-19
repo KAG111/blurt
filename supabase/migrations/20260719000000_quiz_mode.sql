@@ -244,6 +244,138 @@ $$;
 revoke all on function public.submit_quiz_answer(text, text, int, int, text) from public;
 grant execute on function public.submit_quiz_answer(text, text, int, int, text) to anon, authenticated;
 
+-- get_quiz_reveal_result() is the one narrow, phase-gated window a
+-- participant's own browser gets into the MOD- row's quizResponses. It's a
+-- read (not a write), but still needs to run SECURITY DEFINER and stay
+-- narrow: without it, a student could never learn whether their own answer
+-- was right (that data structurally lives in a row they can't read), but
+-- with an unrestricted version they could call it the instant they submit
+-- and learn correctness before the timer ends — same leak the whole MOD-
+-- shadow design exists to prevent, just moved one step later.
+--
+-- "Visible" is defined the same way the teacher's own reveal step defines
+-- it: a question is visible once the room has moved past 'answering' for
+-- it. Concretely: any qIndex strictly before config.currentIndex is always
+-- visible; qIndex = currentIndex is visible once phase is 'reveal',
+-- 'leaderboard' or 'finished' (not 'answering'); nothing is visible before
+-- the first question has started (phase 'lobby' or null).
+--
+-- p_qindex is either a specific question, or -1 to mean "give me
+-- everything that's currently visible" (used for the end-of-quiz personal
+-- revision list) — questions past the visibility cutoff come back as null
+-- entries rather than being omitted, so the array stays index-aligned with
+-- the room's question list.
+create or replace function public.get_quiz_reveal_result(
+  p_code text,
+  p_name text,
+  p_qindex int,
+  p_session_id text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  mod_code text := 'MOD-' || p_code;
+  main_cfg jsonb;
+  mod_cfg jsonb;
+  clean_name text := lower(trim(both from p_name));
+  phase text;
+  current_q int;
+  visible_upto int;
+  quiz_responses jsonb;
+  answer_key jsonb;
+  per_q jsonb;
+  redacted jsonb;
+  redacted_key jsonb;
+  i int;
+  j int;
+  result jsonb := null;
+begin
+  -- Generous budget: this is a read, polled a handful of times per phase
+  -- transition, not a write that needs tight throttling.
+  if not public.check_rate_limit(p_code, p_session_id, 'get_quiz_reveal_result', 20, 30) then
+    return null;
+  end if;
+
+  select config into main_cfg from public.rooms where code = p_code;
+  if not found then
+    return null;
+  end if;
+
+  phase := main_cfg ->> 'phase';
+  if phase is null or phase = 'lobby' then
+    return null;
+  end if;
+  current_q := coalesce((main_cfg ->> 'currentIndex')::int, 0);
+  visible_upto := case when phase = 'answering' then current_q - 1 else current_q end;
+
+  if p_qindex <> -1 and p_qindex > visible_upto then
+    return null;
+  end if;
+
+  select config into mod_cfg from public.rooms where code = mod_code;
+  if not found then
+    return null;
+  end if;
+
+  quiz_responses := coalesce(mod_cfg -> 'quizResponses', '[]'::jsonb);
+  if jsonb_typeof(quiz_responses) <> 'array' then
+    return null;
+  end if;
+
+  for i in 0 .. jsonb_array_length(quiz_responses) - 1 loop
+    if lower(trim(both from (quiz_responses -> i ->> 'name'))) = clean_name then
+      if p_qindex = -1 then
+        per_q := coalesce(quiz_responses -> i -> 'perQuestion', '[]'::jsonb);
+        redacted := '[]'::jsonb;
+        for j in 0 .. jsonb_array_length(per_q) - 1 loop
+          if j <= visible_upto then
+            redacted := redacted || jsonb_build_array(per_q -> j);
+          else
+            redacted := redacted || jsonb_build_array('null'::jsonb);
+          end if;
+        end loop;
+        -- Also hand back each visible question's correct-option index. Safe
+        -- here specifically because visibility already means that
+        -- question's answering phase is closed — this is the same
+        -- disclosure a fresh reveal already gave everyone at the time, just
+        -- summarized for the end-of-quiz revision list.
+        answer_key := coalesce(mod_cfg -> 'answerKey', '[]'::jsonb);
+        redacted_key := '[]'::jsonb;
+        for j in 0 .. jsonb_array_length(answer_key) - 1 loop
+          if j <= visible_upto then
+            redacted_key := redacted_key || jsonb_build_array(answer_key -> j);
+          else
+            redacted_key := redacted_key || jsonb_build_array('null'::jsonb);
+          end if;
+        end loop;
+        result := jsonb_build_object(
+          'perQuestionAll', redacted,
+          'answerKeyVisible', redacted_key,
+          'streak', quiz_responses -> i -> 'streak',
+          'totalScore', quiz_responses -> i -> 'totalScore'
+        );
+      else
+        result := jsonb_build_object(
+          'perQuestion', quiz_responses -> i -> 'perQuestion' -> p_qindex,
+          'qIndex', p_qindex,
+          'streak', quiz_responses -> i -> 'streak',
+          'totalScore', quiz_responses -> i -> 'totalScore'
+        );
+      end if;
+      exit;
+    end if;
+  end loop;
+
+  return result;
+end;
+$$;
+
+revoke all on function public.get_quiz_reveal_result(text, text, int, text) from public;
+grant execute on function public.get_quiz_reveal_result(text, text, int, text) to anon, authenticated;
+
 commit;
 
 -- ---------------------------------------------------------------------------

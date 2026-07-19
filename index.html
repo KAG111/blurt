@@ -426,6 +426,9 @@
   .mc-bar-label { display: flex; justify-content: space-between; font-size: 1rem; font-weight: 700; color: var(--ink); }
   .mc-bar-track { background: var(--paper-soft); border: 2px solid var(--line); border-radius: 8px; height: 30px; overflow: hidden; }
   .mc-bar-fill { height: 100%; border-radius: 6px; transition: width 0.4s ease; display: flex; align-items: center; }
+  @media (prefers-reduced-motion: reduce) {
+    .mc-bar-fill { transition: none; }
+  }
   .mc-bar-count { font-size: 0.8rem; color: var(--faint); font-weight: 600; }
   .correct-badge { color: var(--green); font-size: 0.8rem; font-weight: 700; }
   .answer-banner {
@@ -445,6 +448,44 @@
   .btn-nav { background: #fff; border: 2px solid var(--ink); color: var(--ink); padding: 0.6rem 1rem; border-radius: 8px; font-weight: 700; box-shadow: 2px 2px 0 var(--yellow); }
   .btn-nav:disabled { opacity: 0.4; box-shadow: none; }
   .poll-question-counter { font-size: 0.95rem; font-weight: 700; color: var(--muted); min-width: 90px; text-align: center; }
+
+  .quiz-review-card {
+    text-align: left; background: var(--paper-soft); border: 2px solid var(--line);
+    border-radius: 10px; padding: 0.8rem 1rem; cursor: pointer; transition: border-color 0.15s, transform 0.1s;
+  }
+  .quiz-review-card:hover { border-color: var(--ink); transform: translate(-1px, -1px); }
+  .quiz-review-card.invalid { border-color: var(--pink); background: rgba(255,62,127,0.06); }
+  .quiz-review-qnum { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  .quiz-review-card.invalid .quiz-review-qnum { color: var(--pink); }
+  .quiz-review-prompt { font-weight: 700; color: var(--ink); margin: 0.2rem 0 0.5rem; }
+  .quiz-review-options { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .quiz-review-opt { font-size: 0.8rem; padding: 0.25rem 0.55rem; border-radius: 6px; background: #fff; border: 1.5px solid var(--line); color: var(--muted); }
+  .quiz-review-opt.correct { background: var(--green); border-color: var(--ink); color: #1B1730; font-weight: 700; }
+
+  .quiz-timer-badge {
+    font-family: 'Space Mono', monospace; font-weight: 800; font-size: 1.3rem; color: var(--ink);
+    background: var(--yellow); border: 2.5px solid var(--ink); border-radius: 10px;
+    padding: 0.4rem 0.9rem; box-shadow: 3px 3px 0 var(--shadow); min-width: 3.2rem; text-align: center;
+  }
+  .quiz-timer-badge.low { background: var(--pink); color: #fff; }
+  .quiz-answered-count { font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .quiz-answered-tally { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; max-width: 700px; margin: 1rem auto; }
+  .quiz-name-chip {
+    font-size: 0.85rem; font-weight: 700; color: var(--muted); background: var(--paper-soft);
+    border: 1.5px solid var(--line); border-radius: 20px; padding: 0.35rem 0.8rem; transition: all 0.2s ease;
+  }
+  .quiz-name-chip.done { color: #1B1730; background: var(--green); border-color: var(--ink); }
+  .quiz-name-chip.done::before { content: '✓ '; }
+  @media (prefers-reduced-motion: reduce) {
+    .quiz-name-chip { transition: none; }
+  }
+  .quiz-climber {
+    display: flex; align-items: center; gap: 0.6rem; justify-content: center; font-size: 1rem;
+    font-weight: 700; color: var(--ink); background: #FFF4D6; border: 2px solid var(--ink);
+    border-radius: 10px; padding: 0.6rem 1rem; margin-top: 1rem;
+  }
+  .quiz-phase-label { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); text-align: center; }
+  .quiz-locked-note { text-align: center; color: var(--muted); font-size: 0.95rem; margin-top: 0.6rem; }
 
   .results-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 2.5rem 1.5rem; gap: 2rem; width: 100%; max-width: 800px; margin: 0 auto; }
   .results-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 2rem; color: var(--ink); text-align: center; }
@@ -1700,13 +1741,59 @@ async function joinRosterRPC(code, name, sessionId) {
   }
 }
 
+// Server-side scoring for Quiz — see submit_quiz_answer() in
+// supabase/migrations/20260719000000_quiz_mode.sql. Returns only a status,
+// never correctness: the server won't tell even the submitting student
+// whether they were right until the room's phase flips to 'reveal'.
+async function submitQuizAnswerRPC(code, name, qIndex, selected, sessionId) {
+  if (!supabaseClient) return 'error';
+  try {
+    const { data, error } = await supabaseClient.rpc('submit_quiz_answer', {
+      p_code: baseRoomCode(code),
+      p_name: name,
+      p_qindex: qIndex,
+      p_selected: selected,
+      p_session_id: sessionId
+    });
+    if (error) { console.error("submit_quiz_answer error:", error); return 'error'; }
+    return data;
+  } catch (e) {
+    console.error("submit_quiz_answer Exception:", e);
+    return 'error';
+  }
+}
+
+// The one narrow, phase-gated read into a student's own quiz result — see
+// get_quiz_reveal_result() in supabase/migrations/20260719000000_quiz_mode.sql.
+// Pass qIndex -1 for "everything visible so far" (used on the final screen).
+// Returns null on any rejection (still answering, rate limited, no record
+// for this name, etc.) — callers can't tell those apart, which is fine
+// since the UI response to all of them is the same: try again shortly.
+async function getQuizRevealResultRPC(code, name, qIndex, sessionId) {
+  if (!supabaseClient) return null;
+  try {
+    const { data, error } = await supabaseClient.rpc('get_quiz_reveal_result', {
+      p_code: baseRoomCode(code),
+      p_name: name,
+      p_qindex: qIndex,
+      p_session_id: sessionId
+    });
+    if (error) { console.error("get_quiz_reveal_result error:", error); return null; }
+    return data;
+  } catch (e) {
+    console.error("get_quiz_reveal_result Exception:", e);
+    return null;
+  }
+}
+
 // A write RPC status is "soft-fail" if the room itself is fine and this
 // one submission just wasn't accepted — as opposed to 'error', which means
 // something went wrong worth retrying (network blip, room briefly
 // unreachable). Submit paths should stop retrying and show a message on
 // soft-fail, but keep retrying on 'error'.
 function isSoftFailStatus(status) {
-  return status === 'blocked_word' || status === 'rate_limited' || status === 'room_full' || status === 'taken' || status === 'room_not_found';
+  return status === 'blocked_word' || status === 'rate_limited' || status === 'room_full' || status === 'taken' || status === 'room_not_found'
+    || status === 'not_answering_phase' || status === 'time_expired' || status === 'already_answered';
 }
 function submitStatusMessage(status) {
   if (status === 'blocked_word') return "That can't be posted here. Try another.";
@@ -1714,6 +1801,9 @@ function submitStatusMessage(status) {
   if (status === 'room_full') return "This board is full — ask your teacher to clear some space.";
   if (status === 'taken') return "That nickname is already taken in this room — try another.";
   if (status === 'room_not_found') return "Couldn't find that room. Check the code with your teacher.";
+  if (status === 'not_answering_phase') return "Time's up for this question — wait for the next one.";
+  if (status === 'time_expired') return "Just missed it — the timer ran out.";
+  if (status === 'already_answered') return "You've already answered this one.";
   return "Couldn't post that — check your connection and try again.";
 }
 
@@ -2052,6 +2142,7 @@ const app = document.getElementById('app');
 let state = { screen: 'landing' };
 let pollTimer = null;
 let shadowTimer = null;
+let quizCountdownHandle = null;
 
 // Single click-away listener for the export "download" dropdown, attached
 // once here rather than re-added inside every render (it was previously
@@ -2080,6 +2171,10 @@ function stopPolling() {
       clearInterval(shadowTimer);
     }
     shadowTimer = null;
+  }
+  if (quizCountdownHandle) {
+    clearInterval(quizCountdownHandle);
+    quizCountdownHandle = null;
   }
 }
 
@@ -2358,9 +2453,9 @@ function renderActivityPicker() {
           <div class="activity-card-title">Word Cloud</div>
           <div class="activity-card-desc">Students type a word or phrase. Answers grow bigger the more people say them.</div>
         </button>
-        <button class="activity-card sans" id="pick-mc">
-          <div class="activity-card-title">Multiple Choice</div>
-          <div class="activity-card-desc">Give students options to pick from. Great for quick polls or quiz questions.</div>
+        <button class="activity-card sans" id="pick-quiz">
+          <div class="activity-card-title">Quiz</div>
+          <div class="activity-card-desc">Timed multiple-choice questions with live scoring and a leaderboard — nicknames required.</div>
         </button>
         <button class="activity-card sans" id="pick-poll">
           <div class="activity-card-title">Poll (multiple questions)</div>
@@ -2393,7 +2488,7 @@ function renderActivityPicker() {
     
   document.getElementById('btn-back').onclick = () => { state = { screen: 'landing' }; render(); };
   document.getElementById('pick-wordcloud').onclick = () => { state = { screen: 'teacherSetup', activityType: 'wordcloud' }; render(); };
-  document.getElementById('pick-mc').onclick = () => { state = { screen: 'teacherSetup', activityType: 'mc', options: ['', ''], allowMultiple: false, correctIndex: null }; render(); };
+  document.getElementById('pick-quiz').onclick = () => { state = { screen: 'teacherSetup', activityType: 'quiz', quizStage: 'count', numQuestions: 5, questions: [], timerSeconds: 20, scoringEnabled: true, shuffleAnswers: true }; render(); };
   document.getElementById('pick-poll').onclick = () => { state = { screen: 'teacherSetup', activityType: 'poll', pollStage: 'count', numQuestions: 3, questions: [], revealMode: 'live' }; render(); };
   document.getElementById('pick-brainstorm').onclick = () => { state = { screen: 'teacherSetup', activityType: 'brainstorm' }; render(); };
   document.getElementById('pick-sticky').onclick = () => { state = { screen: 'teacherSetup', activityType: 'sticky' }; render(); };
@@ -2402,6 +2497,7 @@ function renderActivityPicker() {
 
 function renderTeacherSetup() {
   if (state.pasteMode) return renderPasteStage();
+  if (state.activityType === 'quiz') return renderQuizSetup();
   if (state.activityType === 'mc') return renderMCSetup();
   if (state.activityType === 'poll') return renderPollSetup();
   if (state.activityType === 'brainstorm') return renderBrainstormSetup();
@@ -2878,13 +2974,14 @@ function renderPasteStage() {
   stopPolling();
   const s = state;
   const fromMC = s.activityType === 'mc';
+  const fromQuiz = s.activityType === 'quiz';
   app.innerHTML = `
     <div class="screen">
       <button class="back-btn sans" id="btn-back">← back</button>
       <div class="field-wrap" style="max-width:600px;">
         <div style="font-size:1.6rem;font-weight:700;">Paste your questions</div>
         <div class="footnote sans" style="color:var(--muted);max-width:none;text-align:left;">
-          One question per block, with lettered options underneath.${fromMC ? ' Paste just one question, or several to build a quick multi-question quiz.' : ''} For example:
+          One question per block, with lettered options underneath.${fromMC ? ' Paste just one question, or several to build a quick multi-question quiz.' : ''}${fromQuiz ? ' Mark the correct answer as you paste — you\'ll get a chance to check every one before the room is created.' : ''} For example:
         </div>
         <div class="field-label sans" style="margin-bottom:-0.6rem;">Example format (not editable)</div>
         <div class="mono sans" style="background:transparent;border:2px dashed var(--line);border-radius:8px;padding:0.8rem 1rem;font-size:0.82rem;color:var(--faint);white-space:pre-line;line-height:1.6;">1. What is the capital of France?
@@ -2918,7 +3015,12 @@ d. Saturn</div>
       return;
     }
     s.pasteMode = false;
-    if (fromMC && result.questions.length === 1) {
+    if (fromQuiz) {
+      s.questions = result.questions.map(q => ({ prompt: q.prompt, options: q.options.slice(0, 6), correctIndex: q.correctIndex }));
+      s.numQuestions = result.questions.length;
+      s.quizStage = 'build';
+      s.buildIndex = 0;
+    } else if (fromMC && result.questions.length === 1) {
       // single question -> populate the simple MC form
       const q = result.questions[0];
       s.prompt = q.prompt;
@@ -3166,6 +3268,261 @@ function refreshPollNextBtn(q) {
   if (btn) btn.disabled = !canCreatePollQuestion(q);
 }
 
+/* =========================================================================
+   Quiz setup (scored, timed, multi-question — see supabase/migrations/
+   20260719000000_quiz_mode.sql for the anti-cheat model this feeds into).
+   Shape mirrors Poll's count -> build stages, plus a review stage before
+   creation (questions here always need a marked correct answer).
+   ========================================================================= */
+function renderQuizSetup() {
+  if (state.quizStage === 'review') return renderQuizReviewStage();
+  if (state.quizStage === 'build') return renderQuizBuildStage();
+  return renderQuizCountStage();
+}
+
+function renderQuizCountStage() {
+  stopPolling();
+  const s = state;
+  app.innerHTML = `
+    <div class="screen">
+      <button class="back-btn sans" id="btn-back">← back</button>
+      <div class="field-wrap" style="align-items:center;text-align:center;">
+        <div style="font-size:1.6rem;font-weight:700;">How many questions?</div>
+        <div class="stepper-row">
+          <button class="stepper-btn" id="step-down">−</button>
+          <div class="stepper-value" id="step-value">${s.numQuestions}</div>
+          <button class="stepper-btn" id="step-up">+</button>
+        </div>
+        <div>
+          <label class="field-label sans">Timer per question</label>
+          <div class="stepper-row">
+            <button class="stepper-btn" id="timer-down">−</button>
+            <div class="stepper-value" id="timer-value" style="font-size:1.3rem;">${s.timerSeconds === 0 ? 'Off' : s.timerSeconds + 's'}</div>
+            <button class="stepper-btn" id="timer-up">+</button>
+          </div>
+        </div>
+        <div class="checkbox-row sans">
+          <input type="checkbox" id="scoring-enabled" ${s.scoringEnabled ? 'checked' : ''} />
+          <label for="scoring-enabled">Score answers and show a leaderboard</label>
+        </div>
+        <div class="checkbox-row sans">
+          <input type="checkbox" id="shuffle-answers" ${s.shuffleAnswers ? 'checked' : ''} />
+          <label for="shuffle-answers">Shuffle answer order per student (stops "psst, it's B")</label>
+        </div>
+        <div class="footnote sans" style="color:var(--muted);max-width:none;">
+          Everyone picks a nickname to join — that's how scores and the leaderboard work. Nothing is downloaded or saved anywhere.
+        </div>
+        <button class="btn-primary sans" id="btn-continue" style="width:100%;margin-top:1rem;">Continue to build questions</button>
+        <button class="btn-add-option sans" id="btn-go-paste" style="width:100%;margin-top:0.5rem;">📋 Or paste in a list of questions instead</button>
+      </div>
+    </div>`;
+  document.getElementById('btn-back').onclick = () => { state = { screen: 'activityPicker' }; render(); };
+  document.getElementById('step-down').onclick = () => { s.numQuestions = Math.max(1, s.numQuestions - 1); document.getElementById('step-value').textContent = s.numQuestions; };
+  document.getElementById('step-up').onclick = () => { s.numQuestions = Math.min(20, s.numQuestions + 1); document.getElementById('step-value').textContent = s.numQuestions; };
+  document.getElementById('timer-down').onclick = () => { s.timerSeconds = Math.max(0, s.timerSeconds - 5); document.getElementById('timer-value').textContent = s.timerSeconds === 0 ? 'Off' : s.timerSeconds + 's'; };
+  document.getElementById('timer-up').onclick = () => { s.timerSeconds = Math.min(120, s.timerSeconds + 5); document.getElementById('timer-value').textContent = s.timerSeconds === 0 ? 'Off' : s.timerSeconds + 's'; };
+  document.getElementById('scoring-enabled').onchange = (e) => { s.scoringEnabled = e.target.checked; };
+  document.getElementById('shuffle-answers').onchange = (e) => { s.shuffleAnswers = e.target.checked; };
+  document.getElementById('btn-go-paste').onclick = () => { s.pasteMode = true; s.pasteText = s.pasteText || ''; s.pasteError = ''; render(); };
+  document.getElementById('btn-continue').onclick = () => {
+    const existing = s.questions || [];
+    const next = [];
+    for (let i = 0; i < s.numQuestions; i++) {
+      next.push(existing[i] || { prompt: '', options: ['', ''], correctIndex: null });
+    }
+    s.questions = next;
+    s.quizStage = 'build';
+    s.buildIndex = 0;
+    render();
+  };
+}
+
+function canCreateQuizQuestion(q) {
+  if (!q || !q.prompt || !q.prompt.trim()) return false;
+  const filled = (q.options || []).map(o => o.trim()).filter(o => o.length > 0);
+  if (filled.length < 2) return false;
+  return q.correctIndex !== null && q.correctIndex !== undefined && q.correctIndex < filled.length;
+}
+
+function renderQuizBuildStage() {
+  stopPolling();
+  const s = state;
+  const idx = s.buildIndex;
+  const q = s.questions[idx];
+  const total = s.questions.length;
+  const isLast = idx === total - 1;
+
+  const optionRows = q.options.map((opt, i) => `
+    <div class="option-row">
+      <input type="text" class="quiz-option-input" data-idx="${i}" placeholder="Option ${i + 1}" value="${escapeHtml(opt)}" />
+      ${q.options.length > 2 ? `<button class="option-remove" data-idx="${i}" id="quiz-remove-opt-${i}">✕</button>` : ''}
+    </div>`).join('');
+
+  const correctChoices = q.options.map((opt, i) => `
+    <div class="correct-option-choice sans ${q.correctIndex === i ? 'marked' : ''}" data-idx="${i}" id="quiz-correct-opt-${i}">
+      <span class="correct-tick-box">${q.correctIndex === i ? '✓' : ''}</span>
+      <span class="correct-opt-text">${opt.trim() ? escapeHtml(opt) : `Option ${i + 1}`}</span>
+    </div>`).join('');
+
+  app.innerHTML = `
+    <div class="screen">
+      <button class="back-btn sans" id="btn-back">← back</button>
+      <div class="field-wrap">
+        <div class="poll-progress sans">Question ${idx + 1} of ${total}</div>
+        <div>
+          <label class="field-label sans">Question</label>
+          <textarea id="prompt-input" rows="2" placeholder="e.g. What year did World War II end?">${escapeHtml(q.prompt)}</textarea>
+        </div>
+        <div>
+          <label class="field-label sans">Options</label>
+          <div id="quiz-options-list" style="display:flex;flex-direction:column;gap:0.5rem;">${optionRows}</div>
+          ${q.options.length < 6 ? '<button class="btn-add-option sans" id="btn-add-option" style="margin-top:0.5rem;">+ Add option</button>' : ''}
+        </div>
+        <div>
+          <label class="field-label sans">Mark the correct answer</label>
+          <div class="correct-marker-row" id="correct-marker-row">${correctChoices}</div>
+        </div>
+        <div class="poll-nav-row">
+          <button class="btn-nav sans" id="btn-quiz-back">← Back</button>
+          <button class="btn-primary sans" id="btn-quiz-next" ${!canCreateQuizQuestion(q) ? 'disabled' : ''} style="flex:1;">
+            ${isLast ? 'Review questions →' : 'Next question →'}
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('btn-back').onclick = () => { state = { screen: 'activityPicker' }; render(); };
+  document.getElementById('prompt-input').oninput = (e) => { q.prompt = e.target.value; refreshQuizNextBtn(q); };
+  document.querySelectorAll('.quiz-option-input').forEach(inp => {
+    inp.oninput = (e) => {
+      const i = parseInt(e.target.dataset.idx, 10);
+      q.options[i] = e.target.value;
+      refreshQuizNextBtn(q);
+      const label = document.querySelector('#quiz-correct-opt-' + i + ' .correct-opt-text');
+      if (label) label.textContent = e.target.value.trim() ? e.target.value : ('Option ' + (i + 1));
+    };
+  });
+  document.querySelectorAll('#quiz-options-list .option-remove').forEach(btn => {
+    btn.onclick = (e) => {
+      const i = parseInt(e.target.dataset.idx, 10);
+      q.options.splice(i, 1);
+      if (q.correctIndex === i) q.correctIndex = null;
+      else if (q.correctIndex > i) q.correctIndex -= 1;
+      render();
+    };
+  });
+  const addBtn = document.getElementById('btn-add-option');
+  if (addBtn) addBtn.onclick = () => { q.options.push(''); render(); };
+  document.querySelectorAll('.correct-option-choice').forEach(el => {
+    el.onclick = () => {
+      const i = parseInt(el.dataset.idx, 10);
+      q.correctIndex = i;
+      render();
+    };
+  });
+
+  document.getElementById('btn-quiz-back').onclick = () => {
+    if (idx === 0) { s.quizStage = 'count'; render(); }
+    else { s.buildIndex -= 1; render(); }
+  };
+  document.getElementById('btn-quiz-next').onclick = () => {
+    if (!canCreateQuizQuestion(q)) return;
+    if (!isLast) { s.buildIndex += 1; render(); return; }
+    s.quizStage = 'review';
+    render();
+  };
+}
+
+function refreshQuizNextBtn(q) {
+  const btn = document.getElementById('btn-quiz-next');
+  if (btn) btn.disabled = !canCreateQuizQuestion(q);
+}
+
+function renderQuizReviewStage() {
+  stopPolling();
+  const s = state;
+  const allValid = s.questions.every(canCreateQuizQuestion);
+
+  app.innerHTML = `
+    <div class="screen">
+      <button class="back-btn sans" id="btn-back">← back</button>
+      <div class="field-wrap" style="max-width:640px;">
+        <div style="font-size:1.6rem;font-weight:700;">Spot-check your questions</div>
+        <div class="footnote sans" style="color:var(--muted);max-width:none;text-align:left;">
+          The correct answer is marked in green on each card. Click a card to edit it.
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.7rem;">
+          ${s.questions.map((q, i) => `
+            <div class="quiz-review-card sans ${!canCreateQuizQuestion(q) ? 'invalid' : ''}" data-idx="${i}">
+              <div class="quiz-review-qnum">Q${i + 1}${!canCreateQuizQuestion(q) ? ' — needs a correct answer marked' : ''}</div>
+              <div class="quiz-review-prompt">${escapeHtml(q.prompt || '(no question text)')}</div>
+              <div class="quiz-review-options">
+                ${q.options.map((opt, oi) => `
+                  <span class="quiz-review-opt ${q.correctIndex === oi ? 'correct' : ''}">${q.correctIndex === oi ? '✓ ' : ''}${escapeHtml(opt || '(empty)')}</span>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="display:flex;gap:0.8rem;margin-top:1rem;">
+          <button class="btn-nav sans" id="btn-review-back" style="flex:1;">← Back to editing</button>
+          <button class="btn-primary sans" id="btn-create-quiz" style="flex:1;" ${!allValid ? 'disabled' : ''}>
+            ${s.loading ? 'Creating room…' : 'Create room'}
+          </button>
+        </div>
+        ${!allValid ? '<div class="error-text sans">Every question needs at least 2 options and a marked correct answer before you can create the room.</div>' : ''}
+      </div>
+    </div>`;
+
+  document.getElementById('btn-back').onclick = () => { state = { screen: 'activityPicker' }; render(); };
+  document.getElementById('btn-review-back').onclick = () => { s.quizStage = 'build'; s.buildIndex = 0; render(); };
+  document.querySelectorAll('.quiz-review-card').forEach(card => {
+    card.onclick = () => {
+      s.buildIndex = parseInt(card.dataset.idx, 10);
+      s.quizStage = 'build';
+      render();
+    };
+  });
+
+  const createBtn = document.getElementById('btn-create-quiz');
+  if (createBtn) createBtn.onclick = async () => {
+    if (!allValid) return;
+    s.loading = true; render();
+    await supabaseReady;
+    const code = generateCode();
+    setHostSecret(code, generateHostSecret());
+    const cleanQuestions = s.questions.map(q => ({
+      prompt: q.prompt.trim(),
+      options: q.options.map(o => o.trim()).filter(o => o.length > 0)
+    }));
+    const answerKey = s.questions.map(q => q.correctIndex);
+    const config = {
+      type: 'quiz', questions: cleanQuestions, currentIndex: 0,
+      phase: 'lobby', phaseStartedAt: null,
+      timerSeconds: s.timerSeconds || 0,
+      scoringEnabled: s.scoringEnabled !== false,
+      shuffleAnswers: s.shuffleAnswers !== false,
+      requireNames: true, started: false, answeredNames: [],
+      revealStats: null, createdAt: Date.now()
+    };
+    const ok = await kvSet('room:' + code + ':config', JSON.stringify(config));
+    if (ok) {
+      await kvSet('room:MOD-' + code + ':config', JSON.stringify({ answerKey, quizResponses: [] }));
+      await kvSet('room:' + code + ':roster', JSON.stringify([]));
+      state = {
+        screen: 'teacherLobby', code, questions: cleanQuestions,
+        currentIndex: 0, requireNames: true, roster: [], remoteConnected: false,
+        timerSeconds: config.timerSeconds, scoringEnabled: config.scoringEnabled, shuffleAnswers: config.shuffleAnswers
+      };
+      render();
+    } else {
+      s.loading = false;
+      alert("Couldn't create the room — check your internet connection and try again.");
+      render();
+    }
+  };
+}
+
 function renderTeacherLobby() {
   stopPolling();
   const s = state;
@@ -3266,6 +3623,23 @@ function renderTeacherLobby() {
     if (raw) { try { cfg = JSON.parse(raw); } catch (e) {} }
     if (!cfg) { alert("Couldn't reach the room — check your connection and try again."); return; }
     cfg.started = true;
+
+    if (cfg.type === 'quiz') {
+      cfg.phase = 'answering';
+      cfg.phaseStartedAt = Date.now();
+      cfg.answeredNames = [];
+      await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
+      state = {
+        screen: 'teacherLive', type: 'quiz', code: s.code, questions: s.questions,
+        currentIndex: 0, phase: 'answering', phaseStartedAt: cfg.phaseStartedAt,
+        timerSeconds: cfg.timerSeconds, scoringEnabled: cfg.scoringEnabled !== false,
+        shuffleAnswers: cfg.shuffleAnswers !== false, answeredNames: [],
+        roster: s.roster, remoteConnected: s.remoteConnected, autoRevealTriggered: false
+      };
+      render();
+      return;
+    }
+
     await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
     const votes = s.questions.map(q => q.options.map(() => 0));
     state = {
@@ -3744,8 +4118,507 @@ function scheduleStickyDensitySave(code, density) {
   }, 500);
 }
 
+// ---------------------------------------------------------------------------
+// Quiz live play (teacher side). A teacher-paced state machine cycling
+// config.phase through 'answering' -> 'reveal' -> 'leaderboard' per question,
+// then 'finished'. Every phase transition here is a plain host-authenticated
+// kvGet/kvSet — no RPC needed, since only the teacher's own client (which
+// already holds host_secret) ever calls these. The only RPC in the whole
+// quiz flow is submit_quiz_answer, called from the student side.
+// ---------------------------------------------------------------------------
+
+function stopQuizCountdown() {
+  if (quizCountdownHandle) {
+    clearInterval(quizCountdownHandle);
+    quizCountdownHandle = null;
+  }
+}
+
+function quizTimeRemaining(s) {
+  if (!s.timerSeconds || !s.phaseStartedAt) return null;
+  const elapsed = (Date.now() - s.phaseStartedAt) / 1000;
+  return Math.max(0, Math.ceil(s.timerSeconds - elapsed));
+}
+
+function startQuizTimerDisplay() {
+  stopQuizCountdown();
+  const s = state;
+  if (!s.timerSeconds || s.phase !== 'answering') return;
+  quizCountdownHandle = setInterval(() => {
+    const badge = document.getElementById('quiz-timer-badge');
+    if (!badge) { stopQuizCountdown(); return; }
+    const remaining = quizTimeRemaining(s);
+    badge.textContent = remaining + 's';
+    badge.classList.toggle('low', remaining <= 5);
+    if (remaining <= 0 && !s.autoRevealTriggered) {
+      s.autoRevealTriggered = true;
+      stopQuizCountdown();
+      quizRevealCurrentQuestion();
+    }
+  }, 250);
+}
+
+function renderQuizTeacherLive() {
+  const s = state;
+  stopQuizCountdown();
+  s.roster = s.roster || [];
+  const joinUrl = window.location.href.split('#')[0].split('?')[0] + '?join=' + s.code;
+  app.innerHTML = `
+    <div class="live-wrap">
+      <div class="live-header">
+        <div class="sans" style="font-size:0.85rem;color:rgba(20,17,31,0.65);">Quiz</div>
+        <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+          <div class="room-badge">
+            <div class="room-badge-label sans">ROOM CODE</div>
+            <div class="room-badge-code">${s.code}</div>
+          </div>
+          <div class="qr-panel" id="btn-zoom-qr" style="cursor:pointer;position:relative;">
+            ${qrToSVGString(joinUrl, 140)}
+            <div class="qr-caption sans">🔍 Click to zoom QR</div>
+          </div>
+        </div>
+      </div>
+      <div class="controls-row">
+        <button class="btn-nav sans" id="btn-show-remote-qr" style="display:flex;align-items:center;gap:0.4rem;padding:0.45rem 0.8rem;">
+          📱 Phone Remote
+          <span style="font-size:0.75rem;padding:0.15rem 0.4rem;border-radius:4px;background:${s.remoteConnected ? 'var(--green)' : 'var(--pink)'};color:#fff;font-weight:700;">
+            ${s.remoteConnected ? 'Connected' : 'Offline'}
+          </span>
+        </button>
+        <button class="btn-nav sans" id="btn-new-bower">🏗️ Build another bower</button>
+      </div>
+      <div id="quiz-stage" class="cloud-stage" style="flex-direction:column;gap:0.5rem;"></div>
+    </div>
+    ${s.qrExpanded ? `
+      <div class="qr-modal-overlay" id="qr-modal">
+        <div class="qr-modal-content">
+          <button class="qr-modal-close" id="btn-close-qr">✕</button>
+          <div style="background:#fff; padding:1.5rem; border-radius:12px; border:3px solid var(--ink); box-shadow:6px 6px 0 var(--shadow);">
+            ${qrToSVGString(joinUrl, 320)}
+          </div>
+          <div class="sans" style="margin-top:1rem; font-size:1.25rem; font-weight:700; color:#fff; text-align:center;">
+            Scan to join Room <span style="color:var(--yellow); font-size:1.6rem; font-weight:800;">${s.code}</span>
+          </div>
+        </div>
+      </div>
+    ` : ''}
+    ${s.showRemoteQrModal ? `
+      <div class="qr-modal-overlay" id="remote-qr-modal" style="z-index:30000;">
+        <div class="qr-modal-content" style="max-width:440px;">
+          <button class="qr-modal-close" id="btn-close-remote-qr">✕</button>
+          <div style="background:#fff; padding:1.5rem; border-radius:12px; border:3px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); text-align:center;">
+            <div class="sans" style="font-weight:800; font-size:1.3rem; margin-bottom:0.8rem; color:var(--ink);">📱 Use Your Phone as a Clicker</div>
+            <div class="sans" style="font-size:0.85rem; color:var(--muted); margin-bottom:1.2rem; line-height:1.4;">
+              Scan this QR code to reveal answers and move to the next question from your phone — handy if you're walking around the room. No login required.
+            </div>
+            <div style="display:flex; justify-content:center; margin-bottom:1.2rem;">
+              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code), 240)}
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.6rem;">
+              <button class="btn-nav sans" id="btn-copy-remote-link" style="width:100%; font-size:0.85rem; font-weight:700; border:2px solid var(--ink); padding:0.5rem; background:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">📋 Copy Remote Link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    ` : ''}`;
+
+  document.getElementById('btn-zoom-qr').onclick = () => { s.qrExpanded = true; render(); };
+  const closeBtn = document.getElementById('btn-close-qr');
+  if (closeBtn) closeBtn.onclick = () => { s.qrExpanded = false; render(); };
+  document.getElementById('btn-show-remote-qr').onclick = () => { s.showRemoteQrModal = true; render(); };
+  const closeRemoteBtn = document.getElementById('btn-close-remote-qr');
+  if (closeRemoteBtn) closeRemoteBtn.onclick = () => { s.showRemoteQrModal = false; render(); };
+  const copyRemoteBtn = document.getElementById('btn-copy-remote-link');
+  if (copyRemoteBtn) copyRemoteBtn.onclick = () => {
+    const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code);
+    navigator.clipboard.writeText(link).catch(() => {});
+    copyRemoteBtn.textContent = '✅ Copied!';
+    setTimeout(() => { copyRemoteBtn.textContent = '📋 Copy Remote Link'; }, 1500);
+  };
+  document.getElementById('btn-new-bower').onclick = () => {
+    if (confirm('Leave this quiz and build another bower? The room stays live for anyone still on it.')) {
+      state = { screen: 'activityPicker' };
+      render();
+    }
+  };
+
+  renderQuizStage();
+
+  async function tick() {
+    const raw = await kvGet('room:' + s.code + ':config');
+    if (raw) {
+      try {
+        const cfg = JSON.parse(raw);
+        if (cfg.phase === 'answering' && (cfg.currentIndex !== s.currentIndex || cfg.phaseStartedAt !== s.phaseStartedAt)) {
+          s.autoRevealTriggered = false;
+        }
+        s.currentIndex = cfg.currentIndex;
+        s.phase = cfg.phase;
+        s.phaseStartedAt = cfg.phaseStartedAt;
+        s.answeredNames = cfg.answeredNames || [];
+        s.revealStats = cfg.revealStats || null;
+        s.leaderboard = cfg.leaderboard || null;
+        s.climber = cfg.climber || null;
+      } catch (e) {}
+    }
+    const rosterRaw = await kvGet('room:' + s.code + ':roster');
+    if (rosterRaw) { try { s.roster = JSON.parse(rosterRaw); } catch (e) {} }
+    render();
+  }
+  // tick() calls the top-level render(), which re-enters this function on
+  // every poll — guard the (re)subscribe so that doesn't stack up a new
+  // realtime channel + 4s interval fallback every single cycle.
+  if (state.lastListenerCode !== s.code || state.lastListenerScreen !== 'quizTeacherLive') {
+    stopPolling();
+    state.lastListenerCode = s.code;
+    state.lastListenerScreen = 'quizTeacherLive';
+    pollTimer = setupRealtimeListener(s.code, tick);
+  }
+}
+
+function renderQuizStage() {
+  const stage = document.getElementById('quiz-stage');
+  if (!stage) return;
+  const s = state;
+  if (s.phase === 'reveal') return renderQuizRevealTeacher(stage);
+  if (s.phase === 'leaderboard') return renderQuizLeaderboardTeacher(stage);
+  if (s.phase === 'finished') return renderQuizFinishedTeacher(stage);
+  return renderQuizAnsweringTeacher(stage);
+}
+
+function renderQuizAnsweringTeacher(stage) {
+  const s = state;
+  const question = s.questions[s.currentIndex];
+  const answered = (s.answeredNames || []).map(n => n.trim().toLowerCase());
+  const answeredCount = answered.length;
+  const totalCount = (s.roster || []).length;
+  const remaining = quizTimeRemaining(s);
+  stage.innerHTML = `
+    <div class="quiz-phase-label">Question ${s.currentIndex + 1} of ${s.questions.length} · Answering</div>
+    <div class="prompt-label">${escapeHtml(question.prompt)}</div>
+    <div style="display:flex;gap:1rem;align-items:center;justify-content:center;margin:1rem 0;flex-wrap:wrap;">
+      ${s.timerSeconds > 0 ? `<div class="quiz-timer-badge sans ${remaining !== null && remaining <= 5 ? 'low' : ''}" id="quiz-timer-badge">${remaining !== null ? remaining : s.timerSeconds}s</div>` : ''}
+      <div class="quiz-answered-count sans">${answeredCount}/${totalCount} answered</div>
+    </div>
+    <div class="quiz-answered-tally">
+      ${(s.roster || []).length === 0 ? '<span class="empty-results sans">Nobody has joined yet.</span>' : (s.roster || []).map(name => `
+        <span class="quiz-name-chip sans ${answered.indexOf(name.trim().toLowerCase()) !== -1 ? 'done' : ''}">${escapeHtml(name)}</span>
+      `).join('')}
+    </div>
+    <div class="results-actions" style="margin-top:1.5rem;">
+      <button class="btn-reveal sans" id="btn-quiz-reveal">${totalCount > 0 && answeredCount >= totalCount ? "Everyone's in → Reveal" : 'Reveal now'}</button>
+    </div>`;
+  document.getElementById('btn-quiz-reveal').onclick = () => {
+    s.autoRevealTriggered = true;
+    quizRevealCurrentQuestion();
+  };
+  startQuizTimerDisplay();
+}
+
+function renderQuizRevealTeacher(stage) {
+  const s = state;
+  const stats = s.revealStats;
+  const question = s.questions[s.currentIndex];
+  if (!stats) {
+    stage.innerHTML = '<div class="hidden-note sans">Loading results…</div>';
+    return;
+  }
+  stage.innerHTML = `
+    <div class="quiz-phase-label">Question ${s.currentIndex + 1} of ${s.questions.length} · Reveal</div>
+    <div class="prompt-label">${escapeHtml(question.prompt)}</div>
+    <div style="width:100%;max-width:600px;margin:0 auto;">${mcResultsHtml(question.options, stats.votes, stats.correctIndex, true)}</div>
+    <div class="quiz-locked-note sans">${stats.totalAnswered} answer${stats.totalAnswered === 1 ? '' : 's'} counted for this question.</div>
+    <div class="results-actions" style="margin-top:1.5rem;">
+      <button class="btn-reveal sans" id="btn-quiz-leaderboard">🏆 Show leaderboard</button>
+    </div>`;
+  document.getElementById('btn-quiz-leaderboard').onclick = () => quizShowLeaderboard();
+}
+
+function renderQuizLeaderboardTeacher(stage) {
+  const s = state;
+  const top5 = (s.leaderboard || []).slice(0, 5);
+  const climber = s.climber;
+  const isLast = s.currentIndex >= s.questions.length - 1;
+  stage.innerHTML = `
+    <div class="quiz-phase-label">Leaderboard</div>
+    <div class="leaderboard-list">
+      ${top5.length === 0 ? '<div class="empty-results sans">No scores yet.</div>' : top5.map((r, i) => `
+        <div class="leaderboard-row">
+          <span><span class="leaderboard-rank sans">#${i + 1}</span><span class="sans">${escapeHtml(r.name)}</span></span>
+          <span class="sans">${r.totalScore} pts</span>
+        </div>`).join('')}
+    </div>
+    ${climber ? `<div class="quiz-climber">📈 Biggest climber: <strong>${escapeHtml(climber.name)}</strong> — up ${climber.spots} spot${climber.spots === 1 ? '' : 's'}!</div>` : ''}
+    <div class="results-actions" style="margin-top:1.5rem;">
+      <button class="btn-primary sans" id="btn-quiz-next">${isLast ? '🏁 Finish quiz' : 'Next question →'}</button>
+    </div>`;
+  document.getElementById('btn-quiz-next').onclick = () => quizNextQuestion();
+}
+
+// Per-question accuracy, most-common wrong answer, sorted worst-first so
+// the questions most worth revisiting float to the top.
+function computeQuizQuestionStats(questions, quizResponses) {
+  return questions.map((q, i) => {
+    let attempted = 0, correctCount = 0;
+    const wrongTally = {};
+    quizResponses.forEach(r => {
+      const pq = r.perQuestion && r.perQuestion[i];
+      if (!pq || typeof pq.selected !== 'number') return;
+      attempted++;
+      if (pq.correct) correctCount++;
+      else wrongTally[pq.selected] = (wrongTally[pq.selected] || 0) + 1;
+    });
+    let mostCommonWrong = null, mostCommonWrongCount = 0;
+    Object.keys(wrongTally).forEach(idx => {
+      if (wrongTally[idx] > mostCommonWrongCount) { mostCommonWrongCount = wrongTally[idx]; mostCommonWrong = parseInt(idx, 10); }
+    });
+    return {
+      index: i, prompt: q.prompt, attempted, correctCount,
+      pctCorrect: attempted > 0 ? Math.round((correctCount / attempted) * 100) : null,
+      mostCommonWrong, mostCommonWrongCount
+    };
+  });
+}
+
+function quizAutoSummary(questionStats) {
+  const attempted = questionStats.filter(qs => qs.attempted > 0);
+  if (attempted.length === 0) return 'No answers were recorded for this quiz.';
+  const weak = attempted.filter(qs => qs.pctCorrect < 60).sort((a, b) => a.pctCorrect - b.pctCorrect);
+  if (weak.length === 0) return "🎉 Everyone did well — no question dropped below 60% correct.";
+  const names = weak.slice(0, 2).map(qs => 'Q' + (qs.index + 1));
+  const label = names.length === 2 ? names.join(' and ') : names[0];
+  return `${label} need${names.length === 1 ? 's' : ''} revisiting — under 60% got ${names.length === 1 ? 'it' : 'these'} right.`;
+}
+
+function quizResultsCSVRows(questions, quizResponses) {
+  const header = ['Name', 'Total Score', 'Streak'];
+  questions.forEach((q, i) => { header.push('Q' + (i + 1) + ' Answer', 'Q' + (i + 1) + ' Correct', 'Q' + (i + 1) + ' Points'); });
+  const rows = [header];
+  quizResponses.slice().sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0)).forEach(r => {
+    const row = [r.name, r.totalScore || 0, r.streak || 0];
+    questions.forEach((q, i) => {
+      const pq = r.perQuestion && r.perQuestion[i];
+      if (pq && typeof pq.selected === 'number') {
+        row.push(q.options[pq.selected] || '', pq.correct ? 'Yes' : 'No', pq.pointsEarned || 0);
+      } else {
+        row.push('', '', '');
+      }
+    });
+    rows.push(row);
+  });
+  return rows;
+}
+
+function quizAnalysisCSVRows(questionStats, questions) {
+  const rows = [['Question #', 'Question', '% Correct', 'Answered', 'Correct', 'Most Common Wrong Answer', 'Wrong Answer Count']];
+  questionStats.forEach(qs => {
+    rows.push([
+      qs.index + 1, qs.prompt, qs.pctCorrect === null ? '' : qs.pctCorrect + '%', qs.attempted, qs.correctCount,
+      qs.mostCommonWrong !== null ? (questions[qs.index].options[qs.mostCommonWrong] || '') : '',
+      qs.mostCommonWrong !== null ? qs.mostCommonWrongCount : ''
+    ]);
+  });
+  return rows;
+}
+
+function downloadCsv(rows, filename) {
+  const csvContent = rows.map(row => row.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function renderQuizFinishedTeacher(stage) {
+  const s = state;
+  // The per-student, per-question breakdown lives only in the MOD- shadow
+  // row (same anti-cheat boundary as everywhere else in this feature) — the
+  // teacher's own client already holds host_secret, so one plain kvGet is
+  // all this needs, same as every other host-only read in this app.
+  if (!s.quizResponses) {
+    stage.innerHTML = '<div class="hidden-note sans">Crunching the numbers…</div>';
+    const modRaw = await kvGet('room:MOD-' + s.code + ':config');
+    let modCfg = null;
+    if (modRaw) { try { modCfg = JSON.parse(modRaw); } catch (e) {} }
+    s.quizResponses = (modCfg && Array.isArray(modCfg.quizResponses)) ? modCfg.quizResponses : [];
+    renderQuizStage();
+    return;
+  }
+
+  const ranked = s.leaderboard || [];
+  const top3 = ranked.slice(0, 3);
+  const visualOrder = top3.length === 3 ? [1, 0, 2] : top3.map((_, i) => i);
+  const medalEmoji = ['🥇', '🥈', '🥉'];
+  const barClass = ['first', 'second', 'third'];
+  const questionStats = computeQuizQuestionStats(s.questions, s.quizResponses);
+  const sortedStats = questionStats.slice().sort((a, b) => {
+    if (a.pctCorrect === null) return 1;
+    if (b.pctCorrect === null) return -1;
+    return a.pctCorrect - b.pctCorrect;
+  });
+  const summary = quizAutoSummary(questionStats);
+
+  stage.innerHTML = `
+    <div class="quiz-phase-label">🏁 Final results</div>
+    ${ranked.length === 0 ? '<div class="empty-results sans">No scores recorded — nobody answered a question.</div>' : `
+    <div class="podium-row">
+      ${visualOrder.map(rank => { const r = top3[rank]; return `
+        <div class="podium-slot">
+          <div class="podium-medal">${medalEmoji[rank]}</div>
+          <div class="podium-name sans">${escapeHtml(r.name)}</div>
+          <div class="podium-score sans">${r.totalScore} pts</div>
+          <div class="podium-bar ${barClass[rank]}"></div>
+        </div>`; }).join('')}
+    </div>
+    <div class="leaderboard-list">
+      ${ranked.map((r, i) => `
+        <div class="leaderboard-row">
+          <span><span class="leaderboard-rank sans">#${i + 1}</span><span class="sans">${escapeHtml(r.name)}</span></span>
+          <span class="sans">${r.totalScore} pts</span>
+        </div>`).join('')}
+    </div>`}
+
+    <div class="quiz-phase-label" style="margin-top:2rem;">Question insights</div>
+    <div class="sans" style="text-align:center;color:var(--muted);font-size:0.95rem;margin:0.4rem 0 1rem;max-width:560px;">${escapeHtml(summary)}</div>
+    <div class="leaderboard-list">
+      ${sortedStats.map(qs => `
+        <div class="leaderboard-row" style="flex-direction:column;align-items:flex-start;gap:0.3rem;">
+          <div style="display:flex;justify-content:space-between;width:100%;gap:1rem;">
+            <span class="sans">Q${qs.index + 1}: ${escapeHtml(qs.prompt)}</span>
+            <span class="sans" style="flex-shrink:0;color:${qs.pctCorrect === null ? 'var(--muted)' : (qs.pctCorrect < 60 ? 'var(--pink)' : 'var(--green)')};">${qs.pctCorrect === null ? 'No answers' : qs.pctCorrect + '% correct'}</span>
+          </div>
+          ${qs.mostCommonWrong !== null ? `<div class="sans" style="font-size:0.8rem;color:var(--muted);">Most common wrong answer: ${escapeHtml(s.questions[qs.index].options[qs.mostCommonWrong])} (${qs.mostCommonWrongCount})</div>` : ''}
+        </div>`).join('')}
+    </div>
+
+    <div class="results-actions" style="margin-top:1.5rem;">
+      <div class="download-dropdown-wrap">
+        <button class="btn-nav sans" id="btn-quiz-download">⬇️ Download Results</button>
+        <div class="download-dropdown-menu sans" id="download-menu" style="display:none;">
+          <button class="download-menu-item" id="download-quiz-results-csv">Results CSV (per student)</button>
+          <button class="download-menu-item" id="download-quiz-analysis-csv">Question analysis CSV</button>
+        </div>
+      </div>
+      <button class="btn-nav sans" id="btn-new-bower-quiz">🏗️ Build another bower</button>
+    </div>`;
+
+  document.getElementById('btn-new-bower-quiz').onclick = () => { state = { screen: 'activityPicker' }; render(); };
+
+  const downloadBtn = document.getElementById('btn-quiz-download');
+  const downloadMenu = document.getElementById('download-menu');
+  if (downloadBtn && downloadMenu) {
+    downloadBtn.onclick = (e) => {
+      e.stopPropagation();
+      downloadMenu.style.display = downloadMenu.style.display === 'none' ? 'flex' : 'none';
+    };
+    document.getElementById('download-quiz-results-csv').onclick = () => {
+      downloadCsv(quizResultsCSVRows(s.questions, s.quizResponses), `bowerboard-quiz-results-${s.code}.csv`);
+    };
+    document.getElementById('download-quiz-analysis-csv').onclick = () => {
+      downloadCsv(quizAnalysisCSVRows(questionStats, s.questions), `bowerboard-quiz-analysis-${s.code}.csv`);
+    };
+  }
+}
+
+async function quizRevealCurrentQuestion() {
+  stopQuizCountdown();
+  const s = state;
+  const raw = await kvGet('room:' + s.code + ':config');
+  let cfg = null;
+  if (raw) { try { cfg = JSON.parse(raw); } catch (e) {} }
+  if (!cfg) return;
+  const modRaw = await kvGet('room:MOD-' + s.code + ':config');
+  let modCfg = null;
+  if (modRaw) { try { modCfg = JSON.parse(modRaw); } catch (e) {} }
+  const responses = (modCfg && Array.isArray(modCfg.quizResponses)) ? modCfg.quizResponses : [];
+  const answerKey = (modCfg && Array.isArray(modCfg.answerKey)) ? modCfg.answerKey : [];
+  const qIndex = cfg.currentIndex;
+  const correctIdx = answerKey[qIndex];
+  const question = s.questions[qIndex];
+  const votes = question.options.map(() => 0);
+  let totalAnswered = 0;
+  responses.forEach(r => {
+    const pq = r.perQuestion && r.perQuestion[qIndex];
+    if (pq && typeof pq.selected === 'number') {
+      if (votes[pq.selected] !== undefined) votes[pq.selected]++;
+      totalAnswered++;
+    }
+  });
+  cfg.phase = 'reveal';
+  cfg.revealStats = { qIndex, correctIndex: correctIdx, votes, totalAnswered };
+  await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
+  s.phase = 'reveal';
+  s.revealStats = cfg.revealStats;
+  render();
+}
+
+async function quizShowLeaderboard() {
+  stopQuizCountdown();
+  const s = state;
+  const raw = await kvGet('room:' + s.code + ':config');
+  let cfg = null;
+  if (raw) { try { cfg = JSON.parse(raw); } catch (e) {} }
+  if (!cfg) return;
+  const modRaw = await kvGet('room:MOD-' + s.code + ':config');
+  let modCfg = null;
+  if (modRaw) { try { modCfg = JSON.parse(modRaw); } catch (e) {} }
+  const responses = (modCfg && Array.isArray(modCfg.quizResponses)) ? modCfg.quizResponses : [];
+  const ranked = responses.slice().sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+  const newRanks = ranked.map(r => r.name);
+  const previousRanks = Array.isArray(cfg.previousRanks) ? cfg.previousRanks : [];
+  let climber = null;
+  if (previousRanks.length > 0) {
+    newRanks.forEach((name, newIdx) => {
+      const oldIdx = previousRanks.findIndex(n => n.trim().toLowerCase() === name.trim().toLowerCase());
+      if (oldIdx === -1) return;
+      const gain = oldIdx - newIdx;
+      if (gain > 0 && (!climber || gain > climber.spots)) climber = { name, spots: gain };
+    });
+  }
+  cfg.leaderboard = ranked.map(r => ({ name: r.name, totalScore: r.totalScore || 0, streak: r.streak || 0 }));
+  cfg.climber = climber;
+  cfg.previousRanks = newRanks;
+  cfg.phase = 'leaderboard';
+  await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
+  s.leaderboard = cfg.leaderboard;
+  s.climber = climber;
+  s.phase = 'leaderboard';
+  render();
+}
+
+async function quizNextQuestion() {
+  stopQuizCountdown();
+  const s = state;
+  const raw = await kvGet('room:' + s.code + ':config');
+  let cfg = null;
+  if (raw) { try { cfg = JSON.parse(raw); } catch (e) {} }
+  if (!cfg) return;
+  const nextIndex = (cfg.currentIndex || 0) + 1;
+  if (nextIndex >= s.questions.length) {
+    cfg.phase = 'finished';
+  } else {
+    cfg.currentIndex = nextIndex;
+    cfg.phase = 'answering';
+    cfg.phaseStartedAt = Date.now();
+    cfg.answeredNames = [];
+    cfg.revealStats = null;
+  }
+  await kvSet('room:' + s.code + ':config', JSON.stringify(cfg));
+  s.currentIndex = cfg.currentIndex;
+  s.phase = cfg.phase;
+  s.phaseStartedAt = cfg.phaseStartedAt;
+  s.answeredNames = cfg.answeredNames || [];
+  s.revealStats = null;
+  s.autoRevealTriggered = false;
+  render();
+}
+
 function renderTeacherLive() {
   const s = state;
+  if (s.type === 'quiz') return renderQuizTeacherLive();
   const joinUrl = window.location.href.split('#')[0].split('?')[0] + '?join=' + s.code;
   const isChoice = s.type === 'mc' || s.type === 'poll';
   const isPoll = s.type === 'poll';
@@ -4385,6 +5258,13 @@ async function startRemoteControlView(code, token) {
       state.likesEnabled = !!cfg.likesEnabled;
       state.presentationMode = cfg.presentationMode || 'classic';
       state.requireNames = !!cfg.requireNames;
+      state.phase = cfg.phase;
+      state.phaseStartedAt = cfg.phaseStartedAt;
+      state.timerSeconds = cfg.timerSeconds;
+      state.answeredNames = cfg.answeredNames || [];
+      state.revealStats = cfg.revealStats || null;
+      state.leaderboard = cfg.leaderboard || null;
+      state.climber = cfg.climber || null;
     } catch (e) {}
   }
 
@@ -4403,7 +5283,7 @@ async function startRemoteControlView(code, token) {
     state.unauthorized = true;
   }
 
-  if (state.type === 'poll' && state.requireNames) {
+  if ((state.type === 'poll' || state.type === 'quiz') && state.requireNames) {
     const rosterRaw = await kvGet('room:' + code + ':roster');
     if (rosterRaw) { try { state.roster = JSON.parse(rosterRaw); } catch (e) {} }
   }
@@ -4433,10 +5313,17 @@ async function startRemoteControlView(code, token) {
         state.likesEnabled = !!cfg.likesEnabled;
         state.presentationMode = cfg.presentationMode || 'classic';
         state.requireNames = !!cfg.requireNames;
+        state.phase = cfg.phase;
+        state.phaseStartedAt = cfg.phaseStartedAt;
+        state.timerSeconds = cfg.timerSeconds;
+        state.answeredNames = cfg.answeredNames || [];
+        state.revealStats = cfg.revealStats || null;
+        state.leaderboard = cfg.leaderboard || null;
+        state.climber = cfg.climber || null;
       } catch (e) {}
     }
 
-    if (state.type === 'poll' && state.requireNames) {
+    if ((state.type === 'poll' || state.type === 'quiz') && state.requireNames) {
       const raw = await kvGet('room:' + code + ':roster');
       if (raw) { try { state.roster = JSON.parse(raw); } catch (e) {} }
     } else if (state.type === 'mc' || state.type === 'poll') {
@@ -4456,6 +5343,12 @@ async function startRemoteControlView(code, token) {
   };
   
   const shadowTick = async () => {
+    if (state.type === 'quiz') {
+      // Nothing to poll here for quiz: correctness/scores only change at
+      // teacher-driven phase transitions, which write straight into the
+      // main config that `tick` already re-fetches every cycle.
+      return;
+    }
     if (state.type === 'mc' || state.type === 'poll') {
       const raw = await kvGet('room:MOD-' + code + ':votes');
       if (raw) { try { state.pendingVotes = JSON.parse(raw); } catch (e) {} }
@@ -4471,7 +5364,7 @@ async function startRemoteControlView(code, token) {
     }
     render();
   };
-  
+
   pollTimer = setupRealtimeListener(code, tick);
   shadowTimer = setupRealtimeListener('MOD-' + code, shadowTick);
 }
@@ -4498,6 +5391,43 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
+// Phone-remote "clicker" body for a live quiz — lets the teacher advance
+// phases from anywhere in the room instead of walking back to their laptop.
+// Reuses quizRevealCurrentQuestion/quizShowLeaderboard/quizNextQuestion
+// unchanged: those functions only ever touch the shared global `state`, so
+// calling them from this screen works exactly like calling them from
+// renderQuizTeacherLive.
+function quizRemoteHtml(s) {
+  const question = s.questions ? s.questions[s.currentIndex] : null;
+  const answeredCount = (s.answeredNames || []).length;
+  const totalCount = (s.roster || []).length;
+  const phaseLabel = s.phase === 'answering' ? 'Answering' : s.phase === 'reveal' ? 'Reveal' : s.phase === 'leaderboard' ? 'Leaderboard' : 'Finished';
+  const btnStyle = 'width:100%; padding:0.7rem; font-size:0.95rem; font-weight:700; border:2.5px solid var(--ink); box-shadow:3px 3px 0 var(--shadow); cursor:pointer; border-radius:8px;';
+  let actionButton = '';
+  if (s.phase === 'answering') {
+    actionButton = `<button class="btn-reveal sans" id="btn-remote-quiz-action" style="${btnStyle}color:#fff;">${totalCount > 0 && answeredCount >= totalCount ? "Everyone's in → Reveal" : 'Reveal now'}</button>`;
+  } else if (s.phase === 'reveal') {
+    actionButton = `<button class="btn-reveal sans" id="btn-remote-quiz-action" style="${btnStyle}color:#fff;">🏆 Show leaderboard</button>`;
+  } else if (s.phase === 'leaderboard') {
+    const isLast = s.currentIndex >= (s.questions || []).length - 1;
+    actionButton = `<button class="btn-primary sans" id="btn-remote-quiz-action" style="${btnStyle}">${isLast ? '🏁 Finish quiz' : 'Next question →'}</button>`;
+  }
+  return `
+      <div class="sans" style="font-size:0.85rem; color:rgba(20,17,31,0.85); line-height:1.4; margin-bottom:1rem; text-align:left;">
+        💡 Use this screen as a clicker to control pacing from anywhere in the room.
+      </div>
+      <div style="text-align:left; margin-bottom:1rem;">
+        <div class="sans" style="font-weight:800; font-size:1.05rem; color:var(--ink);">Question ${s.currentIndex + 1} of ${(s.questions || []).length}</div>
+        <div class="sans" style="font-size:0.8rem; color:var(--muted); text-transform:uppercase; font-weight:700; letter-spacing:0.05em; margin-top:0.2rem;">${phaseLabel}</div>
+        ${question ? `<div class="sans" style="font-weight:700; color:var(--ink); margin-top:0.5rem;">${escapeHtml(question.prompt)}</div>` : ''}
+      </div>
+      ${s.phase === 'answering' ? `<div class="sans" style="font-weight:700; color:var(--ink); margin-bottom:1rem;">${answeredCount}/${totalCount} answered</div>` : ''}
+      ${actionButton}
+      <div style="background:rgba(20,17,31,0.06); border:2px dashed rgba(20,17,31,0.3); padding:0.8rem; border-radius:8px; color:rgba(20,17,31,0.85); font-size:0.85rem; text-align:left; margin-top:1rem;">
+        💡 You are connected to this room. Changes you make here appear instantly on the main screen.
+      </div>`;
+}
+
 function renderPhoneRemote() {
   const s = state;
   if (s.unauthorized) {
@@ -4513,8 +5443,9 @@ function renderPhoneRemote() {
     return;
   }
   
-  const isRosterMode = s.type === 'poll' && s.requireNames;
-  const pending = isRosterMode ? [] : getPendingItemsList(s);
+  const isRosterMode = (s.type === 'poll' && s.requireNames) || (s.type === 'quiz' && (!s.phase || s.phase === 'lobby'));
+  const isQuizLiveMode = s.type === 'quiz' && s.phase && s.phase !== 'lobby';
+  const pending = (isRosterMode || isQuizLiveMode) ? [] : getPendingItemsList(s);
   const dismissed = s.dismissedItems || [];
   const roster = s.roster || [];
 
@@ -4553,7 +5484,7 @@ function renderPhoneRemote() {
       <div style="background:rgba(20,17,31,0.06); border:2px dashed rgba(20,17,31,0.3); padding:0.8rem; border-radius:8px; color:rgba(20,17,31,0.85); font-size:0.85rem; text-align:left;">
         💡 You are connected to this room. Nicknames you remove here disappear from the leaderboard shown at the end.
       </div>
-  ` : `
+  ` : isQuizLiveMode ? quizRemoteHtml(s) : `
       ${revealToggleHtml}
       <div class="sans" style="font-size:0.85rem; color:rgba(20,17,31,0.85); line-height:1.4; margin-bottom:1rem; text-align:left;">
         💡 Swipe <strong>Right 👉</strong> to Reveal on Smartboard.<br>
@@ -4706,6 +5637,16 @@ function renderPhoneRemote() {
 
   const approveAllBtn = document.getElementById('btn-remote-approve-all');
   if (approveAllBtn) approveAllBtn.onclick = approveAllSubmissions;
+
+  const quizActionBtn = document.getElementById('btn-remote-quiz-action');
+  if (quizActionBtn) {
+    quizActionBtn.onclick = () => {
+      quizActionBtn.disabled = true;
+      if (s.phase === 'answering') { s.autoRevealTriggered = true; quizRevealCurrentQuestion(); }
+      else if (s.phase === 'reveal') quizShowLeaderboard();
+      else if (s.phase === 'leaderboard') quizNextQuestion();
+    };
+  }
 
   const remoteToggleRevealBtn = document.getElementById('btn-remote-toggle-reveal');
   if (remoteToggleRevealBtn) {
@@ -5819,6 +6760,17 @@ function renderStudentJoin() {
       } else {
         state = Object.assign({ screen: 'studentRoom' }, pendingState);
       }
+    } else if (cfg.type === 'quiz') {
+      const pendingState = {
+        code: clean, type: 'quiz', questions: cfg.questions, requireNames: true,
+        currentIndex: cfg.currentIndex || 0, phase: cfg.phase, phaseStartedAt: cfg.phaseStartedAt,
+        timerSeconds: cfg.timerSeconds || 0, scoringEnabled: cfg.scoringEnabled !== false,
+        shuffleAnswers: cfg.shuffleAnswers !== false,
+        revealStats: cfg.revealStats || null, leaderboard: cfg.leaderboard || null, climber: cfg.climber || null,
+        studentName: null, hasAnsweredCurrent: false, myAnswerIndex: null, myRevealResult: null,
+        mySessionId: Math.random().toString(36).slice(2) + Date.now().toString(36)
+      };
+      state = { screen: 'studentNamePrompt', nameInput: '', nameError: '', pending: pendingState, started: !!cfg.started };
     } else {
       state = {
         screen: 'studentRoom', code: clean, type: cfg.type || 'wordcloud', prompt: cfg.prompt, revealed: cfg.revealed,
@@ -5921,7 +6873,15 @@ function renderStudentWaitingRoom() {
         const cfg = JSON.parse(cfgRaw);
         if (cfg.started) {
           stopPolling();
-          state = Object.assign({ screen: 'studentRoom' }, s.pending, { studentName: s.nickname, currentIndex: cfg.currentIndex || 0, revealed: cfg.revealed });
+          const extra = { studentName: s.nickname, currentIndex: cfg.currentIndex || 0, revealed: cfg.revealed };
+          if (s.pending.type === 'quiz') {
+            Object.assign(extra, {
+              phase: cfg.phase, phaseStartedAt: cfg.phaseStartedAt, timerSeconds: cfg.timerSeconds || 0,
+              revealStats: cfg.revealStats || null, leaderboard: cfg.leaderboard || null, climber: cfg.climber || null,
+              hasAnsweredCurrent: false, myAnswerIndex: null, myRevealResult: null
+            });
+          }
+          state = Object.assign({ screen: 'studentRoom' }, s.pending, extra);
           render();
         }
       } catch (e) {}
@@ -5937,11 +6897,307 @@ function renderStudentRoom() {
     renderBlockedScreen();
     return;
   }
+  if (state.type === 'quiz') return renderStudentRoomQuiz();
   if (state.type === 'mc' || state.type === 'poll') return renderStudentRoomMC();
   if (state.type === 'brainstorm') return renderStudentRoomBrainstorm();
   if (state.type === 'sticky') return renderStudentRoomSticky();
   if (state.type === 'ranking') return renderStudentRoomRanking();
   return renderStudentRoomWordCloud();
+}
+
+// ---------------------------------------------------------------------------
+// Quiz live play (student side).
+// ---------------------------------------------------------------------------
+
+function ordinal(n) {
+  const rem100 = n % 100;
+  if (rem100 >= 11 && rem100 <= 13) return n + 'th';
+  switch (n % 10) {
+    case 1: return n + 'st';
+    case 2: return n + 'nd';
+    case 3: return n + 'rd';
+    default: return n + 'th';
+  }
+}
+
+// A tiny deterministic PRNG (mulberry32) seeded from a string hash, used to
+// shuffle each student's answer order per question. Not cryptographic —
+// same posture as sessionId elsewhere in this app (spoofable, but enough to
+// stop "psst, it's B" working across the room, since everyone sees a
+// different order).
+function seededShuffle(array, seedStr) {
+  let seed = 0;
+  for (let i = 0; i < seedStr.length; i++) seed = (Math.imul(seed, 31) + seedStr.charCodeAt(i)) | 0;
+  const rng = () => {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const arr = array.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Returns the canonical option indices in this student's display order.
+// Submissions always send the canonical index, never the display slot, so
+// the server-side answer key stays meaningful regardless of shuffle.
+function quizAnswerOrder(s) {
+  const question = s.questions[s.currentIndex];
+  const base = question.options.map((_, i) => i);
+  if (!s.shuffleAnswers) return base;
+  return seededShuffle(base, s.code + '|' + (s.studentName || '') + '|' + s.currentIndex);
+}
+
+function renderStudentRoomQuiz() {
+  const s = state;
+  if (!s.mySessionId) s.mySessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  if (s.phase === 'finished') return renderStudentRoomQuizFinished();
+
+  app.innerHTML = `
+    <div class="student-wrap">
+      <div class="student-header">
+        <div class="student-room-code sans">Room ${s.code} · Question ${s.currentIndex + 1} of ${s.questions.length}</div>
+      </div>
+      <button class="btn-leave-room sans" id="btn-leave-room">🔁 Join a different bower</button>
+      <div id="quiz-student-stage" style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:0.6rem;align-items:center;"></div>
+    </div>`;
+  wireLeaveRoomBtn();
+  renderQuizStudentStage();
+
+  const tick = async () => {
+    const cfgRaw = await kvGet('room:' + s.code + ':config');
+    if (cfgRaw) {
+      try {
+        const cfg = JSON.parse(cfgRaw);
+        const indexChanged = cfg.currentIndex !== s.currentIndex;
+        s.phase = cfg.phase;
+        s.currentIndex = cfg.currentIndex;
+        s.phaseStartedAt = cfg.phaseStartedAt;
+        s.revealStats = cfg.revealStats || null;
+        s.leaderboard = cfg.leaderboard || null;
+        s.climber = cfg.climber || null;
+        if (indexChanged) { s.hasAnsweredCurrent = false; s.myAnswerIndex = null; s.myRevealResult = null; s.quizSubmitError = null; }
+      } catch (e) {}
+    }
+    render();
+  };
+  // See the matching comment in renderQuizTeacherLive — tick() calls the
+  // top-level render(), which re-enters this function every cycle, so the
+  // (re)subscribe has to be guarded or it stacks up channels/intervals.
+  if (state.lastListenerCode !== s.code || state.lastListenerScreen !== 'studentRoomQuiz') {
+    stopPolling();
+    state.lastListenerCode = s.code;
+    state.lastListenerScreen = 'studentRoomQuiz';
+    pollTimer = setupRealtimeListener(s.code, tick);
+  }
+}
+
+function renderQuizStudentStage() {
+  const stage = document.getElementById('quiz-student-stage');
+  if (!stage) return;
+  const s = state;
+  if (s.phase === 'reveal') return renderQuizStudentReveal(stage);
+  if (s.phase === 'leaderboard') return renderQuizStudentLeaderboard(stage);
+  return renderQuizStudentAnswering(stage);
+}
+
+function renderQuizStudentAnswering(stage) {
+  const s = state;
+  const question = s.questions[s.currentIndex];
+  const order = quizAnswerOrder(s);
+  const remaining = quizTimeRemaining(s);
+  const timedOut = s.timerSeconds > 0 && remaining !== null && remaining <= 0;
+  const locked = s.hasAnsweredCurrent || timedOut;
+  stage.innerHTML = `
+    <div class="student-prompt" style="margin-bottom:0.2rem;">${escapeHtml(question.prompt)}</div>
+    ${s.timerSeconds > 0 ? `<div class="quiz-timer-badge sans ${remaining !== null && remaining <= 5 ? 'low' : ''}" id="quiz-student-timer">${remaining !== null ? remaining : s.timerSeconds}s</div>` : ''}
+    <div style="display:flex;flex-direction:column;gap:0.6rem;width:100%;" id="quiz-student-options"></div>
+    <button class="btn-submit sans" id="btn-quiz-submit" style="width:100%;" disabled>${s.hasAnsweredCurrent ? 'Submitted' : 'Submit'}</button>
+    <div class="flash-note sans show" id="quiz-status-note" style="height:auto;">${s.hasAnsweredCurrent ? 'Answer locked in — waiting for reveal…' : (s.quizSubmitError || (timedOut ? "Time's up!" : ''))}</div>`;
+  renderQuizStudentOptions(order, question, locked);
+  startQuizStudentTimerDisplay();
+}
+
+function renderQuizStudentOptions(order, question, locked) {
+  const s = state;
+  const wrap = document.getElementById('quiz-student-options');
+  if (!wrap) return;
+  wrap.innerHTML = order.map(canonicalIdx => `
+    <button class="mc-vote-btn sans ${s.myAnswerIndex === canonicalIdx ? 'selected' : ''}"
+      data-idx="${canonicalIdx}" ${locked ? 'disabled' : ''}>
+      <span class="mc-vote-marker">${s.myAnswerIndex === canonicalIdx ? '✓' : ''}</span>
+      <span>${escapeHtml(question.options[canonicalIdx])}</span>
+    </button>`).join('');
+  const submitBtn = document.getElementById('btn-quiz-submit');
+  if (submitBtn) submitBtn.disabled = locked || s.myAnswerIndex === null || s.myAnswerIndex === undefined;
+  if (locked) return;
+  wrap.querySelectorAll('.mc-vote-btn').forEach(btn => {
+    btn.onclick = () => {
+      s.myAnswerIndex = parseInt(btn.dataset.idx, 10);
+      renderQuizStudentOptions(order, question, locked);
+    };
+  });
+  if (submitBtn) submitBtn.onclick = submitQuizAnswerFromStudent;
+}
+
+async function submitQuizAnswerFromStudent() {
+  const s = state;
+  if (s.myAnswerIndex === null || s.myAnswerIndex === undefined) return;
+  const submitBtn = document.getElementById('btn-quiz-submit');
+  if (submitBtn) submitBtn.disabled = true;
+  const qIndex = s.currentIndex;
+  s.quizSubmitError = null;
+
+  let status = 'error';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    status = await submitQuizAnswerRPC(s.code, s.studentName, qIndex, s.myAnswerIndex, s.mySessionId);
+    if (status === 'ok' || isSoftFailStatus(status)) break;
+    await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+  }
+
+  // A realtime update for this very answer can land — and trigger its own
+  // full re-render — before this request's response does, since it rides
+  // an already-open connection while this is a fresh round trip. Re-render
+  // from state instead of poking specific DOM nodes, so the result always
+  // paints correctly regardless of what's currently in the DOM (or whether
+  // the question/phase has already moved on, in which case do nothing).
+  if (state.screen !== 'studentRoom' || state.type !== 'quiz' || state.currentIndex !== qIndex || state.phase !== 'answering') return;
+  if (status === 'ok' || status === 'already_answered') {
+    s.hasAnsweredCurrent = true;
+  } else {
+    s.quizSubmitError = submitStatusMessage(status);
+  }
+  renderQuizStudentStage();
+}
+
+function startQuizStudentTimerDisplay() {
+  stopQuizCountdown();
+  const s = state;
+  if (!s.timerSeconds || s.phase !== 'answering' || s.hasAnsweredCurrent) return;
+  quizCountdownHandle = setInterval(() => {
+    const badge = document.getElementById('quiz-student-timer');
+    if (!badge) { stopQuizCountdown(); return; }
+    const remaining = quizTimeRemaining(s);
+    badge.textContent = remaining + 's';
+    badge.classList.toggle('low', remaining <= 5);
+    if (remaining <= 0) {
+      stopQuizCountdown();
+      const submitBtn = document.getElementById('btn-quiz-submit');
+      if (submitBtn) submitBtn.disabled = true;
+      document.querySelectorAll('#quiz-student-options .mc-vote-btn').forEach(b => { b.disabled = true; });
+      const note = document.getElementById('quiz-status-note');
+      if (note && !s.hasAnsweredCurrent) note.textContent = "Time's up!";
+    }
+  }, 250);
+}
+
+async function renderQuizStudentReveal(stage) {
+  const s = state;
+  stopQuizCountdown();
+  if (!s.myRevealResult) {
+    stage.innerHTML = '<div class="hidden-note sans">Checking your answer…</div>';
+    const qIndexAsked = s.currentIndex;
+    const result = await getQuizRevealResultRPC(s.code, s.studentName, qIndexAsked, s.mySessionId);
+    // The phase or question may have already moved on while this was in
+    // flight — don't paint a stale result over whatever's showing now.
+    if (state.screen !== 'studentRoom' || state.type !== 'quiz' || state.currentIndex !== qIndexAsked || state.phase !== 'reveal') return;
+    s.myRevealResult = result || { unanswered: true };
+    renderQuizStudentStage();
+    return;
+  }
+  const r = s.myRevealResult;
+  const question = s.questions[s.currentIndex];
+  const correctIndex = s.revealStats ? s.revealStats.correctIndex : null;
+  const correctText = (correctIndex !== null && correctIndex !== undefined) ? question.options[correctIndex] : '';
+  if (r.unanswered || !r.perQuestion) {
+    stage.innerHTML = `
+      <div class="student-score-banner" style="box-shadow:6px 6px 0 var(--pink);">
+        <div class="student-score-number" style="font-size:1.5rem;">⏱️ No answer</div>
+        <div class="student-score-label sans">You didn't answer in time.</div>
+      </div>
+      ${correctText ? `<div class="footnote sans" style="color:var(--muted);margin-top:0.8rem;text-align:center;">Correct answer: <strong>${escapeHtml(correctText)}</strong></div>` : ''}`;
+    return;
+  }
+  const pq = r.perQuestion;
+  stage.innerHTML = `
+    <div class="student-score-banner" style="box-shadow:6px 6px 0 ${pq.correct ? 'var(--green)' : 'var(--pink)'};">
+      <div class="student-score-number">${pq.correct ? '✅ Correct!' : '❌ Not quite'}</div>
+      <div class="student-score-label sans">${pq.correct ? '+' + pq.pointsEarned + ' pts' : (correctText ? 'Answer was: ' + escapeHtml(correctText) : '')}</div>
+    </div>
+    <div class="footnote sans" style="color:var(--muted);margin-top:0.8rem;text-align:center;">
+      🔥 Streak: ${r.streak} · Total: ${r.totalScore} pts
+    </div>`;
+}
+
+function renderQuizStudentLeaderboard(stage) {
+  const s = state;
+  stopQuizCountdown();
+  const list = s.leaderboard || [];
+  const myIdx = list.findIndex(r => r.name.trim().toLowerCase() === (s.studentName || '').trim().toLowerCase());
+  if (myIdx === -1) {
+    stage.innerHTML = '<div class="empty-results sans">We couldn\'t find your score yet — hang tight.</div>';
+    return;
+  }
+  const me = list[myIdx];
+  const above = myIdx > 0 ? list[myIdx - 1] : null;
+  const gap = above ? Math.max(0, above.totalScore - me.totalScore) : 0;
+  stage.innerHTML = `
+    <div class="student-score-banner">
+      <div class="student-score-number">#${myIdx + 1}</div>
+      <div class="student-score-label sans">${me.totalScore} pts</div>
+    </div>
+    <div class="footnote sans" style="color:var(--muted);margin-top:0.8rem;text-align:center;">
+      ${above ? `You're ${ordinal(myIdx + 1)} — ${gap} pts behind ${escapeHtml(above.name)}` : "You're in the lead! 🏆"}
+    </div>`;
+}
+
+async function renderStudentRoomQuizFinished() {
+  const s = state;
+  stopPolling();
+  stopQuizCountdown();
+  app.innerHTML = `
+    <div class="results-wrap">
+      <div class="results-title display">Loading your results…</div>
+    </div>`;
+  const list = s.leaderboard || [];
+  const myIdx = list.findIndex(r => r.name.trim().toLowerCase() === (s.studentName || '').trim().toLowerCase());
+  const me = myIdx !== -1 ? list[myIdx] : null;
+  const result = await getQuizRevealResultRPC(s.code, s.studentName, -1, s.mySessionId);
+  const perQuestionAll = (result && result.perQuestionAll) || [];
+  const answerKeyVisible = (result && result.answerKeyVisible) || [];
+  const wrongOnes = s.questions
+    .map((q, i) => ({ q, i, pq: perQuestionAll[i], correctIdx: answerKeyVisible[i] }))
+    .filter(x => x.pq && x.pq.correct === false);
+
+  const wrap = document.querySelector('.results-wrap');
+  wrap.innerHTML = `
+    <div class="results-title display">🏁 Quiz over!</div>
+    <div class="student-score-banner">
+      <div class="student-score-number">${me ? me.totalScore : (result ? result.totalScore || 0 : 0)}</div>
+      <div class="student-score-label sans">points${myIdx !== -1 ? ' · #' + (myIdx + 1) + ' place' : ''}</div>
+    </div>
+    ${wrongOnes.length === 0 ? `
+      <div class="perfect-score-banner sans">🎉 Perfect run — every answer scored!</div>
+    ` : `
+      <div class="revision-heading">Worth another look</div>
+      <div class="revision-list">
+        ${wrongOnes.map(({ q, pq, correctIdx }) => `
+          <div class="revision-card">
+            <div class="revision-question">${escapeHtml(q.prompt)}</div>
+            <div class="revision-your-answer">Your answer: ${escapeHtml(typeof pq.selected === 'number' ? (q.options[pq.selected] || '') : '(no answer)')}</div>
+            ${(correctIdx !== null && correctIdx !== undefined) ? `<div class="revision-correct-answer">Correct answer: ${escapeHtml(q.options[correctIdx] || '')}</div>` : ''}
+          </div>`).join('')}
+      </div>
+    `}
+    <div class="results-actions">
+      <button class="btn-outline sans" id="btn-leave-quiz-final">🔁 Join a different bower</button>
+    </div>`;
+  const leaveBtn = document.getElementById('btn-leave-quiz-final');
+  if (leaveBtn) leaveBtn.onclick = () => { state = { screen: 'landing' }; render(); };
 }
 
 function renderStudentRoomRanking() {
@@ -6876,14 +8132,7 @@ async function exportBoard(format) {
       alert("No data to export yet.");
       return;
     }
-    const csvContent = rows.map(row => row.map(csvEscape).join(',')).join('\r\n');
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `bowerboard-${state.code}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadCsv(rows, `bowerboard-${state.code}.csv`);
     return;
   }
 
