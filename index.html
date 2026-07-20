@@ -4,16 +4,16 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>bowerboard — Gather the pieces. Build the picture.</title>
-<meta name="description" content="Free, no-login classroom tool for live word clouds, polls, sticky notes and rankings — students join in seconds, teachers moderate from any device." />
-<link rel="canonical" href="https://bowerboard.app" />
+<meta name="description" content="Free, no-login live tool for word clouds, polls, sticky notes, rankings and brainstorms. Built for classrooms, meetings, workshops and talks — your room joins in seconds, you approve what hits the big screen." />
+<link rel="canonical" href="https://bowerboard.app/" />
 <meta name="theme-color" content="#B9F6CA" />
 
 <!-- Open Graph -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="bowerboard" />
 <meta property="og:title" content="bowerboard — Gather the pieces. Build the picture." />
-<meta property="og:description" content="Free, no-login classroom tool for live word clouds, polls, sticky notes and rankings — students join in seconds, teachers moderate from any device." />
-<meta property="og:url" content="https://bowerboard.app" />
+<meta property="og:description" content="Free, no-login live tool for word clouds, polls, sticky notes, rankings and brainstorms. Built for classrooms, meetings, workshops and talks — your room joins in seconds, you approve what hits the big screen." />
+<meta property="og:url" content="https://bowerboard.app/" />
 <meta property="og:image" content="https://bowerboard.app/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
@@ -22,7 +22,7 @@
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="bowerboard — Gather the pieces. Build the picture." />
-<meta name="twitter:description" content="Free, no-login classroom tool for live word clouds, polls, sticky notes and rankings — students join in seconds, teachers moderate from any device." />
+<meta name="twitter:description" content="Free, no-login live tool for word clouds, polls, sticky notes, rankings and brainstorms. Built for classrooms, meetings, workshops and talks." />
 <meta name="twitter:image" content="https://bowerboard.app/og-image.png" />
 
 <!-- Favicons / manifest -->
@@ -80,51 +80,6 @@
     overflow-x: hidden;
   }
 
-  /* Background trinkets decoration */
-  .trinket {
-    position: absolute;
-    pointer-events: none;
-    opacity: 0.12;
-    z-index: 1;
-  }
-  .trinket.circle {
-    border-radius: 50%;
-    width: 14px;
-    height: 14px;
-  }
-  .trinket.square {
-    width: 12px;
-    height: 12px;
-  }
-  .trinket.triangle {
-    width: 0;
-    height: 0;
-    border-left: 7px solid transparent;
-    border-right: 7px solid transparent;
-    border-bottom: 12px solid transparent;
-  }
-  .trinket.coral {
-    background-color: var(--pink);
-  }
-  .trinket.triangle.coral {
-    background-color: transparent;
-    border-bottom-color: var(--pink);
-  }
-  .trinket.yellow {
-    background-color: var(--yellow);
-  }
-  .trinket.triangle.yellow {
-    background-color: transparent;
-    border-bottom-color: var(--yellow);
-  }
-  .trinket.purple {
-    background-color: #8c7ae6;
-  }
-  .trinket.triangle.purple {
-    background-color: transparent;
-    border-bottom-color: #8c7ae6;
-  }
-
   /* ---------- brand chrome shared across screens ---------- */
   .brand-bar {
     display: flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -135,29 +90,6 @@
     color: var(--ink); letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.4rem;
   }
   .brand-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--pink); display: inline-block; }
-
-  .bower-definition-box {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    max-width: 320px;
-    background: #fff;
-    border: 3.5px solid var(--ink);
-    border-radius: 12px;
-    box-shadow: 4px 4px 0 var(--shadow);
-    padding: 1.1rem;
-    text-align: left;
-    z-index: 100;
-  }
-  @media (max-width: 900px) {
-    .bower-definition-box {
-      position: static;
-      margin: 1.5rem auto 0;
-      max-width: 100%;
-      width: 100%;
-      box-sizing: border-box;
-    }
-  }
 
   .screen {
     flex: 1; display: flex; flex-direction: column; align-items: center;
@@ -820,148 +752,464 @@
   }
   .qr-modal-close:hover { transform: scale(1.1); }
 
-  /* Landing page container responsive layout */
-  .landing-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 3.5rem;
-    width: 100%;
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 3rem 1.5rem 1.5rem;
-    box-sizing: border-box;
-    text-align: left;
-    position: relative;
-    z-index: 10;
-  }
-  .hero-main {
-    flex: 1.25;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-  .hero-sidebar {
-    flex: 0.75;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-  }
+  /* ---------- MARKETING HOMEPAGE (renderLanding) ---------- */
+  .lp-display { font-family: 'Outfit', sans-serif; }
+  .lp-grotesk { font-family: 'Space Grotesk', sans-serif; }
+  .lp-wrap { max-width: 1160px; margin: 0 auto; padding: 0 1.5rem; }
 
-  /* Sticker logo shadow */
-  .sticker-logo {
-    max-width: 100%;
-    height: 290px;
-    width: auto;
-    filter: drop-shadow(6px 6px 0px var(--ink));
+  /* ---------- NAVBAR ---------- */
+  .lp-navbar {
+    position: sticky; top: 0; z-index: 50;
+    padding: 1rem 1.5rem 0;
+  }
+  .lp-navbar-inner {
+    max-width: 1160px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--paper);
+    border: 3px solid var(--ink);
+    border-radius: 16px;
+    box-shadow: 6px 6px 0 var(--shadow);
+    padding: 0.6rem 0.9rem 0.6rem 0.7rem;
+  }
+  .lp-navbar-logo { display: flex; align-items: center; text-decoration: none; }
+  .lp-navbar-logo img { height: 56px; width: auto; display: block; }
+  @media (min-width: 640px) {
+    .lp-navbar-logo img { height: 68px; }
+  }
+  .lp-btn-demo-nav {
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.9rem;
+    background: var(--ink); color: #fff;
+    border: 2.5px solid var(--ink); border-radius: 10px;
+    padding: 0.6rem 1.1rem;
+    box-shadow: 3px 3px 0 var(--yellow);
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    min-height: 44px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .lp-btn-demo-nav:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--yellow); }
+  .lp-btn-demo-nav:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--yellow); }
+
+  /* ---------- BRAND HERO ---------- */
+  .lp-brand-hero {
+    padding: 2.6rem 0 0.4rem;
+    display: flex; flex-direction: column; align-items: center; gap: 1rem;
+    text-align: center;
+  }
+  .lp-brand-hero img.lp-brand-logo {
+    height: 195px; width: auto;
+    filter: drop-shadow(7px 7px 0px var(--ink));
+    transform: rotate(-2deg);
     transition: transform 0.2s ease;
   }
-  .sticker-logo:hover {
-    transform: scale(1.03) rotate(-1deg);
+  .lp-brand-hero img.lp-brand-logo:hover { transform: rotate(0deg) scale(1.02); }
+  @media (min-width: 640px) {
+    .lp-brand-hero img.lp-brand-logo { height: 285px; }
   }
 
-  /* Responsive breakpoints */
-  @media (max-width: 900px) {
-    .landing-container {
-      flex-direction: column;
-      gap: 2.5rem;
-      padding: 2.5rem 1.5rem;
-      text-align: center;
-    }
-    .hero-main {
-      align-items: center;
-      width: 100%;
-    }
-    .hero-sidebar {
-      width: 100%;
-    }
-    .sticker-logo {
-      height: 220px;
-    }
+  /* ---------- HERO ---------- */
+  .lp-hero { padding: 1rem 0 2rem; text-align: center; }
+  .lp-hero h1 {
+    font-family: 'Outfit', sans-serif; font-weight: 900;
+    font-size: clamp(2rem, 5.5vw, 3.4rem);
+    line-height: 1.08; letter-spacing: -0.02em;
+    margin: 0;
   }
-  @media (max-width: 480px) {
-    .sticker-logo {
-      height: 160px;
-    }
+  .lp-hero h1 .lp-pink-line { color: var(--pink); }
+  .lp-hero .lp-sub {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 500;
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    color: rgba(20,17,31,0.78);
+    max-width: 640px; margin: 1rem auto 0;
+    line-height: 1.5;
   }
-  @keyframes floatArrow {
-    0%, 100% { transform: translateY(0) rotate(-1deg); }
-    50% { transform: translateY(-6px) rotate(1deg); }
-  }
-  .cartoon-arrow-tooltip {
+
+  /* ---------- HERO CANVAS ---------- */
+  .lp-hero-canvas-outer { padding: 2.5rem 0 0; }
+  .lp-hero-canvas {
     position: relative;
-    align-self: flex-start;
-    margin-bottom: 0.5rem;
-    background: var(--yellow);
-    color: var(--ink);
+    background: var(--paper);
     border: 3px solid var(--ink);
-    border-radius: 12px;
-    box-shadow: 4px 4px 0 var(--ink);
-    padding: 0.6rem 0.9rem;
-    font-size: 0.8rem;
-    font-weight: 800;
-    line-height: 1.25;
-    z-index: 100;
-    max-width: 220px;
+    border-radius: 22px;
+    box-shadow: 10px 10px 0 var(--shadow);
+    padding: 2.2rem 1.5rem 2.6rem;
+    overflow: visible;
+  }
+  .lp-hero-canvas-inner {
+    background: var(--paper-soft);
+    background-image: radial-gradient(rgba(20,17,31,0.08) 1.5px, transparent 1.5px);
+    background-size: 22px 22px;
+    border: 2.5px solid var(--ink);
+    border-radius: 14px;
+    padding: 2.4rem 1.4rem;
+    display: flex; flex-direction: column; gap: 1.6rem;
+    align-items: center;
+  }
+  .lp-hero-cards {
+    display: flex; flex-direction: column; gap: 1.6rem;
+    width: 100%; max-width: 460px;
+  }
+  .lp-hero-card {
+    border: 3px solid var(--ink);
+    border-radius: 16px;
+    box-shadow: 6px 6px 0 var(--shadow);
+    padding: 1.4rem 1.3rem 1.6rem;
     text-align: left;
-    animation: floatArrow 2s infinite ease-in-out;
-    box-sizing: border-box;
   }
-  .cartoon-arrow-tooltip::after {
-    content: '';
-    position: absolute;
-    bottom: -12px;
-    left: 40px;
-    width: 0;
-    height: 0;
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-top: 12px solid var(--ink);
+  .lp-hero-card .lp-pip { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid var(--ink); margin-bottom: 0.7rem; }
+  .lp-hero-card h2 { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.25rem; margin: 0 0 0.35rem; letter-spacing: -0.01em; }
+  .lp-hero-card p { font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 0.92rem; margin: 0 0 1rem; line-height: 1.4; }
+
+  .lp-join-card { background: var(--yellow); color: var(--ink); }
+  .lp-join-card .lp-pip { background: var(--pink); }
+  .lp-join-card p { color: rgba(20,17,31,0.82); }
+
+  .lp-join-form { display: flex; flex-direction: column; gap: 0.7rem; }
+  .lp-join-input {
+    width: 100%; font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: 1.2rem; letter-spacing: 0.12em; text-transform: uppercase;
+    text-align: center;
+    padding: 0.85rem 0.6rem;
+    border: 2.5px solid var(--ink); border-radius: 10px;
+    background: #fff; color: var(--ink);
+    min-height: 44px;
   }
-  .cartoon-arrow-tooltip::before {
-    content: '';
-    position: absolute;
-    bottom: -8px;
-    left: 41px;
-    width: 0;
-    height: 0;
-    border-left: 7px solid transparent;
-    border-right: 7px solid transparent;
-    border-top: 10px solid var(--yellow);
-    z-index: 1;
+  .lp-join-input::placeholder { color: var(--faint); letter-spacing: 0.12em; }
+  .lp-join-input:focus { outline: none; border-color: var(--pink); }
+  .lp-btn-join {
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1rem;
+    background: var(--ink); color: #fff;
+    border: 2.5px solid var(--ink); border-radius: 10px;
+    padding: 0.85rem 1rem; min-height: 44px;
+    box-shadow: 3px 3px 0 var(--pink);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
-  @media (prefers-reduced-motion: reduce) {
-    .cartoon-arrow-tooltip { animation: none; }
+  .lp-btn-join:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--pink); }
+  .lp-btn-join:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--pink); }
+  .lp-join-error {
+    font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.8rem;
+    color: #C0004A; min-height: 1.1em;
   }
 
-  @media (max-width: 900px) {
-    .cartoon-arrow-tooltip {
-      align-self: stretch !important;
-      margin: 0.5rem 0 1.5rem 0 !important;
-      max-width: 100% !important;
-      width: 100% !important;
-      transform: none !important;
-      animation: none !important;
-      text-align: center !important;
-      box-sizing: border-box !important;
+  .lp-host-card { background: var(--pink); color: #fff; }
+  .lp-host-card .lp-pip { background: var(--blue); }
+  .lp-host-card p { color: rgba(255,255,255,0.92); }
+  .lp-chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
+  .lp-chip {
+    font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.78rem;
+    background: rgba(255,255,255,0.22); color: #fff;
+    border-radius: 6px;
+    padding: 0.35rem 0.65rem;
+  }
+  .lp-approve-banner {
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.75rem;
+    background: var(--yellow); color: var(--ink);
+    border: 2px solid var(--ink); border-radius: 20px;
+    padding: 0.5rem 0.8rem; text-align: center;
+    margin-bottom: 1.1rem;
+  }
+  .lp-btn-build {
+    display: block; width: 100%; text-align: center; text-decoration: none;
+    font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.05rem;
+    background: var(--ink); color: #fff;
+    border: 2.5px solid var(--ink); border-radius: 10px;
+    padding: 0.9rem 1rem; min-height: 44px;
+    box-shadow: 3px 3px 0 var(--yellow);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .lp-btn-build:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--yellow); }
+  .lp-btn-build:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--yellow); }
+
+  /* Phone remote overlay */
+  .lp-phone-mock {
+    width: 100%; max-width: 260px;
+    background: #1B263B;
+    border: 3px solid var(--ink);
+    border-radius: 26px;
+    box-shadow: 8px 8px 0 var(--shadow);
+    padding: 10px;
+  }
+  .lp-phone-mock-screen {
+    background: #fff; border: 2px solid var(--ink); border-radius: 18px;
+    padding: 0.9rem 0.9rem 1.1rem;
+  }
+  .lp-phone-notch { width: 46px; height: 5px; border-radius: 3px; background: #1B263B; margin: 0 auto 0.7rem; }
+  .lp-phone-mock-title {
+    font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 0.78rem;
+    color: var(--pink); margin-bottom: 0.4rem;
+    display: flex; align-items: center; gap: 0.3rem;
+  }
+  .lp-phone-mock hr { border: none; border-top: 2px solid var(--ink); margin: 0 0 0.7rem; }
+  .lp-pending-box {
+    background: var(--paper-soft); border: 2px solid var(--ink); border-radius: 10px;
+    padding: 0.7rem 0.7rem 0.9rem; margin-bottom: 0.8rem;
+  }
+  .lp-pending-label { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.65rem; color: var(--muted); margin-bottom: 0.3rem; }
+  .lp-pending-text { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.15rem; }
+  .lp-pending-from { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.7rem; color: var(--muted); margin-bottom: 0.7rem; }
+  .lp-pending-actions { display: flex; gap: 0.5rem; }
+  .lp-pending-btn {
+    flex: 1; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.7rem;
+    border: 2px solid var(--ink); border-radius: 8px; padding: 0.5rem 0.3rem; text-align: center; color: #fff;
+  }
+  .lp-pending-btn.lp-dismiss { background: #FF4D4D; }
+  .lp-pending-btn.lp-approve { background: var(--green); }
+  .lp-phone-caption {
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.68rem; text-align: center;
+    background: var(--blue); color: #fff;
+    border: 2px solid var(--ink); border-radius: 14px; padding: 0.5rem 0.6rem; line-height: 1.3;
+  }
+
+  @media (min-width: 900px) {
+    .lp-hero-cards { flex-direction: row; align-items: flex-start; max-width: none; gap: 2.2rem; justify-content: center; }
+    .lp-hero-card { flex: 0 0 300px; }
+    .lp-join-card { transform: rotate(-3deg); }
+    .lp-host-card { transform: rotate(2deg); }
+    .lp-hero-canvas-inner { position: relative; padding-right: 15rem; }
+    .lp-phone-mock-wrap {
+      position: absolute; right: 1.2rem; top: 3.5rem;
+      transform: rotate(-6deg);
     }
-    .cartoon-arrow-tooltip::after,
-    .cartoon-arrow-tooltip::before {
-      display: none !important;
-    }
-    .flow-diagram-container {
-      flex-direction: column !important;
-      gap: 0.5rem !important;
-      align-items: stretch !important;
-    }
-    .flow-diagram-container > div {
-      max-width: none !important;
-    }
-    .flow-arrow {
-      transform: rotate(90deg) !important;
-      margin: 0.25rem 0 !important;
-    }
+    .lp-phone-mock-wrap-mobile { display: none; }
+  }
+  @media (max-width: 899px) {
+    .lp-phone-mock-wrap { display: none; }
+    .lp-phone-mock-wrap-mobile { display: flex; justify-content: center; margin-top: 0.4rem; }
+  }
+
+  /* ---------- TRUST RIBBON ---------- */
+  .lp-trust-ribbon-outer { display: flex; justify-content: center; padding: 2.4rem 1.5rem 0; }
+  .lp-trust-ribbon {
+    background: #fff; border: 2.5px solid var(--ink); border-radius: 24px;
+    box-shadow: 5px 5px 0 var(--shadow);
+    padding: 0.8rem 1.4rem;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.85rem;
+    text-align: center; max-width: 640px;
+  }
+
+  /* ---------- SHOWCASE ---------- */
+  .lp-showcase { padding: 4rem 0 1rem; }
+  .lp-showcase h2 {
+    font-family: 'Outfit', sans-serif; font-weight: 900;
+    font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+    text-align: center; margin: 0 0 0.4rem;
+  }
+  .lp-showcase .lp-showcase-sub {
+    text-align: center; font-family: 'Space Grotesk', sans-serif; font-weight: 500;
+    color: rgba(20,17,31,0.72); margin: 0 0 2rem;
+  }
+  .lp-tab-list {
+    display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 1.8rem;
+  }
+  .lp-tab-btn {
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.85rem;
+    background: #fff; color: var(--ink);
+    border: 2.5px solid var(--ink); border-radius: 12px;
+    padding: 0.7rem 1.1rem; min-height: 44px;
+    box-shadow: 3px 3px 0 var(--shadow);
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease, color 0.15s ease;
+  }
+  .lp-tab-btn:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--shadow); }
+  .lp-tab-btn[aria-selected="true"] {
+    background: var(--pink); color: #fff;
+    transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--shadow);
+  }
+
+  .lp-mockup-window {
+    background: #fff; border: 3px solid var(--ink); border-radius: 18px;
+    box-shadow: 8px 8px 0 var(--shadow);
+    padding: 1.6rem;
+    min-height: 340px;
+    position: relative;
+    overflow: hidden;
+  }
+  .lp-mockup-panel { display: none; }
+  .lp-mockup-panel.lp-active { display: block; }
+  .lp-mockup-panel.lp-fade-in { animation: mockupFade 0.28s ease; }
+  @media (prefers-reduced-motion: reduce) {
+    .lp-mockup-panel.lp-fade-in { animation: none; }
+  }
+  @keyframes mockupFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .lp-mockup-heading {
+    font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.05rem; margin: 0 0 0.2rem;
+  }
+  .lp-mockup-prompt {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 0.9rem;
+    color: var(--muted); margin: 0 0 1.2rem;
+  }
+
+  /* Sticky notes mockup */
+  .lp-cork-board {
+    background: #C9A87C; border: 2.5px solid var(--ink); border-radius: 12px;
+    padding: 1.6rem 1.2rem; display: flex; flex-wrap: wrap; gap: 1.1rem; justify-content: center;
+  }
+  .lp-sticky-note {
+    width: 150px; min-height: 110px; padding: 0.7rem;
+    border: 2.5px solid var(--ink); border-radius: 4px;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.25);
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.8rem; line-height: 1.3;
+  }
+  .lp-sticky-note:nth-child(1) { background: var(--yellow); transform: rotate(-4deg); }
+  .lp-sticky-note:nth-child(2) { background: #FFB1C8; transform: rotate(3deg); }
+  .lp-sticky-note:nth-child(3) { background: #A9DBFF; transform: rotate(-2deg); }
+  .lp-sticky-note:nth-child(4) { background: #B7F5CE; transform: rotate(5deg); }
+
+  /* Word cloud mockup */
+  .lp-cloud-box {
+    background: var(--paper-soft); border: 2.5px solid var(--ink); border-radius: 12px;
+    padding: 2rem 1.5rem; display: flex; flex-wrap: wrap; gap: 0.6rem 1rem;
+    align-items: center; justify-content: center; min-height: 200px;
+  }
+  .lp-cloud-word { font-family: 'Outfit', sans-serif; font-weight: 900; line-height: 1; }
+
+  /* Poll mockup */
+  .lp-poll-list { display: flex; flex-direction: column; gap: 0.8rem; }
+  .lp-poll-row { display: flex; align-items: center; gap: 0.8rem; }
+  .lp-poll-label { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.85rem; width: 40%; flex-shrink: 0; }
+  .lp-poll-bar-track { flex: 1; background: var(--line); border: 2px solid var(--ink); border-radius: 8px; height: 30px; position: relative; overflow: hidden; }
+  .lp-poll-bar-fill { height: 100%; display: flex; align-items: center; justify-content: flex-end; padding-right: 0.5rem; }
+  .lp-poll-bar-fill span { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.75rem; color: var(--ink); }
+
+  /* Ranking mockup */
+  .lp-rank-list { display: flex; flex-direction: column; gap: 0.7rem; }
+  .lp-rank-row { display: flex; align-items: center; gap: 0.7rem; }
+  .lp-rank-badge {
+    width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 0.8rem; flex-shrink: 0; background: #fff;
+  }
+  .lp-rank-bar-track { flex: 1; background: var(--line); border: 2px solid var(--ink); border-radius: 8px; height: 34px; position: relative; overflow: hidden; }
+  .lp-rank-bar-fill { height: 100%; background: var(--green); display: flex; align-items: center; padding-left: 0.7rem; }
+  .lp-rank-bar-fill span { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.8rem; color: var(--ink); }
+  .lp-rank-locked {
+    flex: 1; height: 34px; border: 2px dashed var(--ink); border-radius: 8px;
+    display: flex; align-items: center; gap: 0.5rem; padding-left: 0.7rem;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.8rem; color: var(--muted);
+    background: repeating-linear-gradient(135deg, rgba(20,17,31,0.05) 0 8px, transparent 8px 16px);
+  }
+
+  /* Brainstorm mockup */
+  .lp-brainstorm-hub { position: relative; min-height: 300px; display: flex; align-items: center; justify-content: center; }
+  .lp-hub-center {
+    width: 150px; height: 150px; border-radius: 50%;
+    background: var(--pink); color: #fff; border: 3px solid var(--ink);
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.78rem; padding: 0.8rem;
+    box-shadow: 5px 5px 0 var(--shadow); z-index: 2;
+  }
+  .lp-hub-bubble {
+    position: absolute; background: #fff; border: 2.5px solid var(--ink); border-radius: 14px;
+    box-shadow: 3px 3px 0 var(--shadow); padding: 0.55rem 0.8rem; max-width: 160px;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.72rem; line-height: 1.3;
+  }
+  .lp-hub-bubble.lp-b1 { top: 4%; left: 2%; background: var(--yellow); }
+  .lp-hub-bubble.lp-b2 { top: 8%; right: 0%; background: #A9DBFF; }
+  .lp-hub-bubble.lp-b3 { bottom: 6%; left: 6%; background: #B7F5CE; }
+  .lp-hub-bubble.lp-b4 { bottom: 2%; right: 4%; background: #FFB1C8; }
+
+  @media (max-width: 640px) {
+    .lp-brainstorm-hub { min-height: 460px; flex-direction: column; gap: 0.8rem; }
+    .lp-hub-bubble { position: static; max-width: 220px; margin: 0 auto; }
+    .lp-hub-center { order: -1; }
+  }
+
+  /* ---------- MADE FOR ---------- */
+  .lp-made-for { padding: 4rem 0 1rem; }
+  .lp-made-for h2 {
+    font-family: 'Outfit', sans-serif; font-weight: 900;
+    font-size: clamp(1.4rem, 3vw, 1.9rem); text-align: center; margin: 0 0 2rem;
+  }
+  .lp-made-for-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; }
+  @media (max-width: 800px) { .lp-made-for-grid { grid-template-columns: 1fr; } }
+  .lp-made-for-card {
+    background: #fff; border: 2.5px solid var(--ink); border-radius: 14px;
+    box-shadow: 5px 5px 0 var(--shadow); padding: 1.4rem 1.3rem;
+  }
+  .lp-made-for-card .lp-icon { font-size: 1.6rem; margin-bottom: 0.5rem; display: block; }
+  .lp-made-for-card h3 { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.05rem; margin: 0 0 0.5rem; }
+  .lp-made-for-card p { font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 0.88rem; line-height: 1.45; margin: 0; color: rgba(20,17,31,0.82); }
+
+  /* ---------- DICTIONARY DEFINITION ---------- */
+  .lp-dictionary-section { padding: 3.5rem 0 1rem; display: flex; justify-content: center; }
+  .lp-definition-box {
+    max-width: 320px; width: 100%;
+    background: #fff; border: 3px solid var(--ink); border-radius: 12px;
+    box-shadow: 5px 5px 0 var(--shadow);
+    padding: 1.2rem 1.3rem;
+    color: var(--ink);
+    transform: rotate(-2deg);
+    transition: transform 0.2s ease;
+  }
+  .lp-definition-box:hover { transform: rotate(0deg); }
+  .lp-definition-box .lp-entry + .lp-entry { margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1.5px dashed var(--ink); }
+  .lp-definition-box .lp-entry-head {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem;
+    margin-bottom: 0.3rem;
+  }
+  .lp-definition-box .lp-entry-word {
+    font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.2rem;
+  }
+  .lp-definition-box .lp-entry-phonetic { font-size: 0.78rem; color: var(--muted); font-style: italic; }
+  .lp-definition-box .lp-entry-pos { font-size: 0.78rem; color: var(--muted); font-weight: 700; }
+  .lp-definition-box .lp-entry-def {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 500;
+    font-size: 0.9rem; line-height: 1.45; margin: 0;
+  }
+
+  /* ---------- CONTACT ---------- */
+  .lp-contact-section {
+    display: none; padding: 3rem 0 1rem; justify-content: center; scroll-margin-top: 6rem;
+  }
+  .lp-contact-section.lp-is-open { display: flex; }
+  .lp-contact-card {
+    max-width: 460px; width: 100%;
+    background: #fff; border: 3px solid var(--ink); border-radius: 16px;
+    box-shadow: 6px 6px 0 var(--shadow);
+    padding: 1.8rem 1.6rem;
+    position: relative;
+  }
+  .lp-contact-close {
+    position: absolute; top: 0.9rem; right: 0.9rem;
+    width: 32px; height: 32px; border-radius: 8px;
+    background: #fff; border: 2px solid var(--ink); font-weight: 800;
+    font-size: 0.95rem; line-height: 1; cursor: pointer;
+  }
+  .lp-contact-card h2 { font-size: 1.4rem; margin: 0 0 0.4rem; padding-right: 2rem; }
+  .lp-contact-card .lp-contact-sub { font-size: 0.9rem; color: rgba(20,17,31,0.75); margin: 0 0 1.3rem; line-height: 1.45; }
+  .lp-contact-form { display: flex; flex-direction: column; gap: 0.35rem; }
+  .lp-contact-label { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.8rem; margin-top: 0.7rem; }
+  .lp-contact-input {
+    font-family: 'Inter', sans-serif; font-size: 0.95rem;
+    border: 2.5px solid var(--ink); border-radius: 10px; padding: 0.65rem 0.8rem;
+    background: #fff; color: var(--ink); width: 100%;
+  }
+  .lp-contact-input:focus { outline: none; border-color: var(--pink); }
+  .lp-contact-textarea { resize: vertical; min-height: 100px; font-family: inherit; }
+  .lp-contact-honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .lp-contact-submit {
+    margin-top: 1.1rem; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.95rem;
+    background: var(--ink); color: #fff; border: 2.5px solid var(--ink); border-radius: 10px;
+    padding: 0.8rem 1rem; min-height: 44px; cursor: pointer;
+    box-shadow: 3px 3px 0 var(--pink);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .lp-contact-submit:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--pink); }
+  .lp-contact-submit:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--pink); }
+  .lp-contact-submit:disabled { opacity: 0.65; cursor: default; transform: none; box-shadow: 3px 3px 0 var(--pink); }
+  .lp-contact-status { margin-top: 0.9rem; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.9rem; }
+  .lp-contact-status.lp-success { color: #15803D; }
+  .lp-contact-status.lp-error { color: #C0004A; }
+
+  footer { margin-top: 5rem; }
+
+  .lp-btn-demo-nav:focus-visible, .lp-join-input:focus-visible,
+  .lp-btn-join:focus-visible, .lp-tab-btn:focus-visible, .lp-btn-build:focus-visible,
+  .lp-contact-input:focus-visible, .lp-contact-submit:focus-visible, .lp-contact-close:focus-visible {
+    outline: 3px auto var(--yellow); outline-offset: 3px;
   }
 </style>
 </head>
@@ -2191,7 +2439,7 @@ function emptyVotesStructure(s) {
 }
 
 const app = document.getElementById('app');
-let state = { screen: 'landing' };
+let state = { screen: 'landing', showContact: window.location.hash === '#contact' };
 let pollTimer = null;
 let shadowTimer = null;
 let quizCountdownHandle = null;
@@ -2271,184 +2519,407 @@ function render() {
 
 function renderLanding() {
   stopPolling();
+  const s = state;
   app.innerHTML = `
-    <!-- Background Trinkets -->
-    <div class="trinket circle coral" style="top: 15%; left: 8%;"></div>
-    <div class="trinket square yellow" style="top: 25%; right: 12%; transform: rotate(15deg);"></div>
-    <div class="trinket triangle purple" style="top: 60%; left: 15%; transform: rotate(-10deg);"></div>
-    <div class="trinket circle yellow" style="top: 75%; right: 8%;"></div>
-    <div class="trinket square coral" style="top: 45%; left: 22%; transform: rotate(25deg);"></div>
-    <div class="trinket triangle yellow" style="top: 12%; right: 25%; transform: rotate(35deg);"></div>
-    <div class="trinket circle purple" style="top: 85%; left: 35%;"></div>
-
-    <!-- Centered / Two-Column Hero Stage -->
-    <div class="landing-container">
-      <!-- Left Column: Main Copy & CTAs -->
-      <div class="hero-main">
-        <div class="hero-logo-wrap">
-          <img src="logo.png" class="sticker-logo" alt="bowerboard logo" />
+    <nav class="lp-navbar" aria-label="Primary">
+      <div class="lp-navbar-inner">
+        <div class="lp-navbar-logo">
+          <img src="logo.png" alt="bowerboard — a bird collecting pieces to build its bower" width="1024" height="560" loading="lazy" />
         </div>
-        
-        <h1 style="font-family:'Outfit', sans-serif; font-size:2.8rem; font-weight:900; line-height:1.15; color:var(--ink); margin:0; letter-spacing:-0.02em;">
-          Gather the pieces. Build the picture.
+        <a class="lp-btn-demo-nav" href="try-demo.html">✨ Try Demo</a>
+      </div>
+    </nav>
+
+    <main>
+      <section class="lp-brand-hero lp-wrap">
+        <img class="lp-brand-logo" src="logo.png" alt="bowerboard — a bird collecting pieces to build its bower" width="1024" height="560" />
+      </section>
+
+      <section class="lp-hero lp-wrap">
+        <h1 class="lp-display">
+          GATHER THE PIECES.<br />
+          <span class="lp-pink-line">BUILD THE PICTURE.</span>
         </h1>
+        <p class="lp-sub">Live word clouds, polls, sticky notes, rankings &amp; brainstorms for classrooms, meetings, workshops and talks — no logins, no apps.</p>
+      </section>
 
-        <p style="font-family:'Space Grotesk', sans-serif; font-size:1.15rem; line-height:1.55; color:rgba(20,17,31,0.8); margin:0; font-weight:500;">
-          Word clouds, polls, sticky notes and rankings your class joins in seconds — no logins, no installs.
-        </p>
-        
-        <div class="cta-section" style="display:flex; flex-direction:column; gap:16px;">
-          <!-- Cartoon Arrow Tooltip: sits in normal flow above the buttons now,
-               instead of floating absolutely and reserving space above itself. -->
-          <div class="cartoon-arrow-tooltip sans">
-            👉 Want a demo? Click through, choose a bower and try demo mode!
-          </div>
+      <section class="lp-hero-canvas-outer lp-wrap">
+        <div class="lp-hero-canvas">
+          <div class="lp-hero-canvas-inner">
+            <div class="lp-hero-cards">
 
-          <div class="btn-row" style="display:flex; gap:16px; flex-wrap:wrap; justify-content:flex-start; margin-bottom:0.5rem;">
-            <button class="btn-primary" id="btn-teacher">Build a bower</button>
-            <button class="btn-outline" id="btn-student">Join a bower</button>
-          </div>
-          <div class="footnote" style="font-size:0.85rem; color:rgba(20,17,31,0.65); font-weight:500;">
-            Answers are anonymous — nothing is linked to a name.
-          </div>
+              <div class="lp-hero-card lp-join-card">
+                <div class="lp-pip"></div>
+                <h2 class="lp-display">Got a room code?</h2>
+                <p class="lp-grotesk">Jump into whatever's live on the big screen — no app, no account.</p>
+                <form class="lp-join-form" id="lp-join-form" novalidate>
+                  <label for="lp-join-code" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Room code</label>
+                  <input class="lp-join-input" id="lp-join-code" type="text" placeholder="e.g. AB3XZ" maxlength="12" autocomplete="off" autocapitalize="characters" />
+                  <button class="lp-btn-join lp-display" type="submit">Join bower →</button>
+                  <div class="lp-join-error" id="lp-join-error" role="alert"></div>
+                </form>
+              </div>
 
-          <!-- Expandable USP Post-It -->
-          <div class="usp-postit sans" data-expanded="false" onclick="const postit = this; const content = postit.querySelector('.usp-content'); const icon = postit.querySelector('.toggle-icon'); const expanded = postit.getAttribute('data-expanded') === 'true'; if (expanded) { content.style.maxHeight = '0px'; icon.textContent = '+'; postit.setAttribute('data-expanded', 'false'); } else { content.style.maxHeight = content.scrollHeight + 'px'; icon.textContent = '−'; postit.setAttribute('data-expanded', 'true'); }" style="background:#FFD180; border:2.5px solid var(--ink); border-radius:12px; box-shadow:3px 3px 0 var(--ink); padding:0.75rem 0.9rem; margin-top:1.5rem; text-align:left; cursor:pointer; position:relative; box-sizing:border-box; transition: transform 0.15s ease;">
-            <div style="display:flex; justify-content:space-between; align-items:center; font-family:'Outfit', sans-serif; font-size:0.95rem; font-weight:900; color:var(--ink);">
-              <span>📌 What makes bowerboard different?</span>
-              <span class="toggle-icon" style="font-size:1.1rem; font-weight:900;">+</span>
-            </div>
-            <div class="usp-content" style="max-height:0; overflow:hidden; transition: max-height 0.25s ease-out; margin-top:0;">
-              <ul style="margin:0.6rem 0 0 0; padding-left:1.1rem; font-size:0.75rem; font-weight:700; line-height:1.4; color:var(--ink); display:flex; flex-direction:column; gap:0.4rem; list-style-type:square;">
-                <li>📱 <strong>Moderate from your phone:</strong> Approve — or quietly edit — student posts before they hit the big screen. No app or login needed.</li>
-                <li>🤝 <strong>Merge responses:</strong> Group similar ideas into one, so the board shows what the room thinks — not thirty versions of the same thought.</li>
-                <li>🏆 <strong>Build a consensus:</strong> Ranking tasks combine everyone's votes into one fair, collective answer. Not just collected opinions — a decision.</li>
-                <li>📊 <strong>Your data, yours:</strong> Export results as CSV, PDF or image — every class's work, ready for your spreadsheets and reports.</li>
-                <li>⚡ <strong>Running in 10 seconds:</strong> No sign-ups, passwords or installs to get started.</li>
-              </ul>
-            </div>
-          </div>
+              <div class="lp-hero-card lp-host-card">
+                <div class="lp-pip"></div>
+                <h2 class="lp-display">Running the show?</h2>
+                <p class="lp-grotesk">Spin up a live board in about ten seconds.</p>
+                <div class="lp-chip-row">
+                  <span class="lp-chip">☁️ Word Cloud</span>
+                  <span class="lp-chip">📌 Sticky Notes</span>
+                  <span class="lp-chip">📊 Live Polls</span>
+                  <span class="lp-chip">🏆 Ranking</span>
+                  <span class="lp-chip">💡 Brainstorm</span>
+                </div>
+                <div class="lp-approve-banner">📱 Approve from your phone</div>
+                <button class="lp-btn-build lp-display" type="button" id="lp-btn-build">Build a bower ✨</button>
+              </div>
 
-          <!-- Fun Flow Diagram -->
-          <div class="flow-diagram-container sans" style="display:flex; gap:0.5rem; align-items:center; margin-top:1.5rem; width:100%; justify-content:space-between; flex-wrap:wrap;">
-            <!-- Step 1 -->
-            <div style="flex:1; min-width:130px; max-width:230px; background:#FFE57F; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
-              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 1</div>
-              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Build a Bower</div>
-              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Choose room type & write topic.</div>
-            </div>
+              <div class="lp-phone-mock-wrap-mobile">
+                <div class="lp-phone-mock" aria-hidden="true">
+                  <div class="lp-phone-mock-screen">
+                    <div class="lp-phone-notch"></div>
+                    <div class="lp-phone-mock-title">📱 YOUR PHONE, YOUR CALL</div>
+                    <hr />
+                    <div class="lp-pending-box">
+                      <div class="lp-pending-label">PENDING POST</div>
+                      <div class="lp-pending-text">"What's one thing we should stop doing?"</div>
+                      <div class="lp-pending-from">— Anonymous</div>
+                      <div class="lp-pending-actions">
+                        <span class="lp-pending-btn lp-dismiss">✕ Dismiss</span>
+                        <span class="lp-pending-btn lp-approve">✓ Approve</span>
+                      </div>
+                    </div>
+                    <div class="lp-phone-caption">Nothing hits the big screen until you approve it — from your phone.</div>
+                  </div>
+                </div>
+              </div>
 
-            <!-- Arrow -->
-            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
-
-            <!-- Step 2 -->
-            <div style="flex:1; min-width:130px; max-width:230px; background:#FF8A80; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
-              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 2</div>
-              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Share QR/Code</div>
-              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Students scan or join. Zero logins!</div>
-            </div>
-
-            <!-- Arrow -->
-            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
-
-            <!-- Step 3 -->
-            <div style="flex:1; min-width:130px; max-width:230px; background:#80D8FF; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
-              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 3</div>
-              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Gather & Build</div>
-              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Moderate, group posts, show feedback!</div>
             </div>
 
-            <!-- Arrow -->
-            <div class="flow-arrow" style="font-size:1.15rem; color:var(--ink); font-weight:900; text-align:center;">➔</div>
-
-            <!-- Step 4 -->
-            <div style="flex:1; min-width:130px; max-width:230px; background:#B388FF; border:2.5px solid var(--ink); border-radius:10px; padding:0.6rem 0.8rem; box-shadow:3px 3px 0 var(--ink); box-sizing:border-box;">
-              <div style="font-family:'Outfit', sans-serif; font-size:0.65rem; font-weight:900; text-transform:uppercase; color:var(--muted); margin-bottom:0.15rem;">Step 4</div>
-              <div style="font-family:'Outfit', sans-serif; font-size:0.85rem; font-weight:900; color:var(--ink); margin-bottom:0.25rem;">Download Your Bower</div>
-              <div style="font-size:0.7rem; font-weight:700; line-height:1.25; color:var(--ink);">Export as CSV, PDF or JPEG.</div>
+            <div class="lp-phone-mock-wrap">
+              <div class="lp-phone-mock" aria-hidden="true">
+                <div class="lp-phone-mock-screen">
+                  <div class="lp-phone-notch"></div>
+                  <div class="lp-phone-mock-title">📱 YOUR PHONE, YOUR CALL</div>
+                  <hr />
+                  <div class="lp-pending-box">
+                    <div class="lp-pending-label">PENDING POST</div>
+                    <div class="lp-pending-text">"What's one thing we should stop doing?"</div>
+                    <div class="lp-pending-from">— Anonymous</div>
+                    <div class="lp-pending-actions">
+                      <span class="lp-pending-btn lp-dismiss">✕ Dismiss</span>
+                      <span class="lp-pending-btn lp-approve">✓ Approve</span>
+                    </div>
+                  </div>
+                  <div class="lp-phone-caption">Nothing hits the big screen until you approve it — from your phone.</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      
-      <!-- Right Column: Integrated Definition Card -->
-      <div class="hero-sidebar">
-        <div class="bower-definition-box sans" style="max-width:270px; font-size:0.8rem; padding:0.95rem; border:3px solid var(--ink); box-shadow:4px 4px 0 var(--shadow); background:#fff; border-radius:12px; color:var(--ink); transform: rotate(-2.5deg); transition: transform 0.2s ease;">
-          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.25rem;">
-            <span style="font-weight:900; font-size:1.15rem; color:var(--ink); font-family:'Outfit', sans-serif;">bower</span>
-            <span style="font-size:0.75rem; color:var(--muted); font-style:italic; font-family:sans-serif;">/ˈbaʊ.ə/</span>
-            <span style="font-size:0.75rem; color:var(--muted); font-weight:700;">n.</span>
+      </section>
+
+      <section class="lp-trust-ribbon-outer lp-wrap">
+        <div class="lp-trust-ribbon">
+          🔒 Anonymous by design • No accounts, no installs • You approve what the room sees
+        </div>
+      </section>
+
+      <section class="lp-showcase lp-wrap">
+        <h2 class="lp-display">Five ways to get everyone talking</h2>
+        <p class="lp-showcase-sub lp-grotesk">Pick a tab to see it in action.</p>
+
+        <div class="lp-tab-list" role="tablist" aria-label="Activity types" id="lp-tab-list">
+          <button class="lp-tab-btn" role="tab" id="lp-tab-sticky" aria-controls="lp-panel-sticky" aria-selected="true" tabindex="0" data-tab="sticky">📌 Sticky Notes</button>
+          <button class="lp-tab-btn" role="tab" id="lp-tab-wordcloud" aria-controls="lp-panel-wordcloud" aria-selected="false" tabindex="-1" data-tab="wordcloud">☁️ Word Cloud</button>
+          <button class="lp-tab-btn" role="tab" id="lp-tab-poll" aria-controls="lp-panel-poll" aria-selected="false" tabindex="-1" data-tab="poll">📊 Live Polls</button>
+          <button class="lp-tab-btn" role="tab" id="lp-tab-ranking" aria-controls="lp-panel-ranking" aria-selected="false" tabindex="-1" data-tab="ranking">🏆 Ranking</button>
+          <button class="lp-tab-btn" role="tab" id="lp-tab-brainstorm" aria-controls="lp-panel-brainstorm" aria-selected="false" tabindex="-1" data-tab="brainstorm">💡 Brainstorm</button>
+        </div>
+
+        <div class="lp-mockup-window">
+
+          <div class="lp-mockup-panel lp-active" role="tabpanel" id="lp-panel-sticky" aria-labelledby="lp-tab-sticky" tabindex="0">
+            <div class="lp-mockup-heading lp-display">Sticky Notes — team retro</div>
+            <p class="lp-mockup-prompt">Prompt: "What should we keep doing next sprint?"</p>
+            <div class="lp-cork-board">
+              <div class="lp-sticky-note">Async standups — nobody's stuck waiting for 9am</div>
+              <div class="lp-sticky-note">Demo Fridays. Please don't cancel these again.</div>
+              <div class="lp-sticky-note">Pairing up before big releases really helped</div>
+              <div class="lp-sticky-note">More heads-down time, fewer meetings</div>
+            </div>
           </div>
-          <div style="font-size:0.8rem; line-height:1.4; color:var(--ink); margin-bottom:0.8rem; border-bottom:1.5px dashed var(--ink); padding-bottom:0.5rem;">
-            the stage a bowerbird builds from everything it collects.
+
+          <div class="lp-mockup-panel" role="tabpanel" id="lp-panel-wordcloud" aria-labelledby="lp-tab-wordcloud" tabindex="0" hidden>
+            <div class="lp-mockup-heading lp-display">Word Cloud — quick check</div>
+            <p class="lp-mockup-prompt">Prompt: "Describe photosynthesis in one word"</p>
+            <div class="lp-cloud-box">
+              <span class="lp-cloud-word" style="font-size:2.6rem;color:var(--pink);">sunlight</span>
+              <span class="lp-cloud-word" style="font-size:2rem;color:var(--ink);">energy</span>
+              <span class="lp-cloud-word" style="font-size:1.5rem;color:var(--blue);">chlorophyll</span>
+              <span class="lp-cloud-word" style="font-size:1.6rem;color:var(--green);">oxygen</span>
+              <span class="lp-cloud-word" style="font-size:1.1rem;color:var(--muted);">glucose</span>
+              <span class="lp-cloud-word" style="font-size:1.3rem;color:var(--ink);">plants</span>
+              <span class="lp-cloud-word" style="font-size:1rem;color:var(--muted);">green</span>
+              <span class="lp-cloud-word" style="font-size:1.15rem;color:var(--pink);">leaves</span>
+            </div>
           </div>
-          
-          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.25rem;">
-            <span style="font-weight:900; font-size:1.15rem; color:var(--ink); font-family:'Outfit', sans-serif;">bowerboard</span>
-            <span style="font-size:0.75rem; color:var(--muted); font-style:italic; font-family:sans-serif;">/ˈbaʊ.ə.bɔːd/</span>
-            <span style="font-size:0.75rem; color:var(--muted); font-weight:700;">n.</span>
+
+          <div class="lp-mockup-panel" role="tabpanel" id="lp-panel-poll" aria-labelledby="lp-tab-poll" tabindex="0" hidden>
+            <div class="lp-mockup-heading lp-display">Live Poll — conference vote</div>
+            <p class="lp-mockup-prompt">Prompt: "Which session are you most excited for?"</p>
+            <div class="lp-poll-list">
+              <div class="lp-poll-row">
+                <div class="lp-poll-label">AI &amp; Automation Tools</div>
+                <div class="lp-poll-bar-track"><div class="lp-poll-bar-fill" style="width:84%;background:var(--pink);"><span>42%</span></div></div>
+              </div>
+              <div class="lp-poll-row">
+                <div class="lp-poll-label">Designing for Accessibility</div>
+                <div class="lp-poll-bar-track"><div class="lp-poll-bar-fill" style="width:54%;background:var(--yellow);"><span>27%</span></div></div>
+              </div>
+              <div class="lp-poll-row">
+                <div class="lp-poll-label">Career Growth Panel</div>
+                <div class="lp-poll-bar-track"><div class="lp-poll-bar-fill" style="width:38%;background:var(--blue);"><span>19%</span></div></div>
+              </div>
+              <div class="lp-poll-row">
+                <div class="lp-poll-label">Live Product Demos</div>
+                <div class="lp-poll-bar-track"><div class="lp-poll-bar-fill" style="width:24%;background:var(--green);"><span>12%</span></div></div>
+              </div>
+            </div>
           </div>
-          <div style="font-size:0.8rem; line-height:1.4; color:var(--ink);">
-            the stage your room builds from everything it thinks.
+
+          <div class="lp-mockup-panel" role="tabpanel" id="lp-panel-ranking" aria-labelledby="lp-tab-ranking" tabindex="0" hidden>
+            <div class="lp-mockup-heading lp-display">Ranking — team priorities</div>
+            <p class="lp-mockup-prompt">Prompt: "Rank our Q3 priorities"</p>
+            <div class="lp-rank-list">
+              <div class="lp-rank-row">
+                <div class="lp-rank-badge">1</div>
+                <div class="lp-rank-bar-track"><div class="lp-rank-bar-fill" style="width:92%;"><span>Ship the new onboarding flow</span></div></div>
+              </div>
+              <div class="lp-rank-row">
+                <div class="lp-rank-badge">2</div>
+                <div class="lp-rank-bar-track"><div class="lp-rank-bar-fill" style="width:70%;background:var(--yellow);"><span>Fix the top 3 mobile bugs</span></div></div>
+              </div>
+              <div class="lp-rank-row">
+                <div class="lp-rank-badge">3</div>
+                <div class="lp-rank-locked">🔒 Locked until the host reveals it</div>
+              </div>
+              <div class="lp-rank-row">
+                <div class="lp-rank-badge">4</div>
+                <div class="lp-rank-bar-track"><div class="lp-rank-bar-fill" style="width:40%;background:var(--blue);"><span>Speed up page load</span></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lp-mockup-panel" role="tabpanel" id="lp-panel-brainstorm" aria-labelledby="lp-tab-brainstorm" tabindex="0" hidden>
+            <div class="lp-mockup-heading lp-display">Brainstorm — ideas hub</div>
+            <p class="lp-mockup-prompt">Prompt: "How can we cut waste around school?"</p>
+            <div class="lp-brainstorm-hub">
+              <div class="lp-hub-center">How can we cut waste around school?</div>
+              <div class="lp-hub-bubble lp-b1">Compost bin in the canteen ♻️</div>
+              <div class="lp-hub-bubble lp-b2">Reusable water bottles for every year group</div>
+              <div class="lp-hub-bubble lp-b3">Paper-free homework where we can</div>
+              <div class="lp-hub-bubble lp-b4">Bike &amp; scoot to school day</div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <section class="lp-made-for lp-wrap">
+        <h2 class="lp-display">Made for...</h2>
+        <div class="lp-made-for-grid">
+          <div class="lp-made-for-card">
+            <span class="lp-icon">🍎</span>
+            <h3 class="lp-display">Teachers</h3>
+            <p class="lp-grotesk">Moderate every post from your phone — no student accounts, no surprises on the big screen.</p>
+          </div>
+          <div class="lp-made-for-card">
+            <span class="lp-icon">🤝</span>
+            <h3 class="lp-display">Teams &amp; meetings</h3>
+            <p class="lp-grotesk">Honest, anonymous input — plus a CSV export so it doesn't vanish the moment the meeting ends.</p>
+          </div>
+          <div class="lp-made-for-card">
+            <span class="lp-icon">🎤</span>
+            <h3 class="lp-display">Speakers &amp; events</h3>
+            <p class="lp-grotesk">Your audience scans a QR and they're in — no app, no login, no dead air waiting for people to join.</p>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- Product Preview Tiles (Below the fold) -->
-    <div class="preview-tiles-row" style="display:flex; gap:1.8rem; width:100%; max-width:1100px; margin:4.5rem auto 2rem; padding:0 1.5rem; box-sizing:border-box; z-index:10; position:relative; justify-content:center; flex-wrap:wrap;">
-      
-      <!-- Card 1: Sticky Notes -->
-      <div class="preview-tile-card" style="flex:1; min-width:280px; max-width:340px; background:#fff; border:3.5px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; color:var(--ink); text-align:left;">
-        <div style="background:#F1EDFA; border-bottom:3.5px solid var(--ink); padding:0.65rem 0.95rem; font-family:'Outfit', sans-serif; font-size:0.9rem; font-weight:900; display:flex; align-items:center; gap:8px;">
-          <span style="width:10px; height:10px; border-radius:50%; background:#FF5F56; border:1.5px solid var(--ink); display:inline-block;"></span>
-          Sticky Notes
+      <section class="lp-dictionary-section lp-wrap">
+        <div class="lp-definition-box lp-grotesk">
+          <div class="lp-entry">
+            <div class="lp-entry-head">
+              <span class="lp-entry-word">bower</span>
+              <span class="lp-entry-phonetic">/ˈbaʊ.ə/</span>
+              <span class="lp-entry-pos">n.</span>
+            </div>
+            <p class="lp-entry-def">the stage a bowerbird builds from everything it collects.</p>
+          </div>
+          <div class="lp-entry">
+            <div class="lp-entry-head">
+              <span class="lp-entry-word">bowerboard</span>
+              <span class="lp-entry-phonetic">/ˈbaʊ.ə.bɔːd/</span>
+              <span class="lp-entry-pos">n.</span>
+            </div>
+            <p class="lp-entry-def">the stage your room builds from everything it thinks.</p>
+          </div>
         </div>
-        <div style="background:#DCC3AD; position:relative; overflow:hidden; box-sizing:border-box;">
-          <img src="sticky_preview.png" loading="lazy" width="1254" height="644" style="width:100%; height:auto; aspect-ratio:1254/644; display:block;" alt="Sticky Notes Corkboard Preview" />
-        </div>
-      </div>
+      </section>
 
-      <!-- Card 2: Live Poll Results -->
-      <div class="preview-tile-card" style="flex:1; min-width:280px; max-width:340px; background:#fff; border:3.5px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; color:var(--ink); text-align:left;">
-        <div style="background:#F1EDFA; border-bottom:3.5px solid var(--ink); padding:0.65rem 0.95rem; font-family:'Outfit', sans-serif; font-size:0.9rem; font-weight:900; display:flex; align-items:center; gap:8px;">
-          <span style="width:10px; height:10px; border-radius:50%; background:#FFBD2E; border:1.5px solid var(--ink); display:inline-block;"></span>
-          Live Poll Results
+      <section class="lp-contact-section lp-wrap ${s.showContact ? 'lp-is-open' : ''}" id="contact">
+        <div class="lp-contact-card">
+          <button class="lp-contact-close" id="contact-close-btn" type="button" aria-label="Close contact form">✕</button>
+          <h2 class="lp-display">Get in touch</h2>
+          <p class="lp-contact-sub lp-grotesk">Got a question, a bug, or an idea? Send it over — we read every message.</p>
+          <form id="contact-form" class="lp-contact-form" action="https://formspree.io/f/xpqvrrzn" method="POST">
+            <input type="text" name="_gotcha" class="lp-contact-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+            <input type="hidden" name="_subject" value="New message from bowerboard.app" />
+            <label class="lp-contact-label" for="contact-email">Your email</label>
+            <input class="lp-contact-input" type="email" id="contact-email" name="email" required />
+            <label class="lp-contact-label" for="contact-message">Message</label>
+            <textarea class="lp-contact-input lp-contact-textarea" id="contact-message" name="message" rows="5" required></textarea>
+            <button class="lp-contact-submit" id="contact-submit-btn" type="submit">Send message</button>
+          </form>
+          <div class="lp-contact-status" id="contact-status" role="status" aria-live="polite"></div>
         </div>
-        <div style="background:#FBF9FF; position:relative; overflow:hidden; box-sizing:border-box;">
-          <img src="poll_preview.png" loading="lazy" width="1254" height="644" style="width:100%; height:auto; aspect-ratio:1254/644; display:block;" alt="Live Poll Results Preview" />
-        </div>
-      </div>
+      </section>
+    </main>
 
-      <!-- Card 3: Ranking Task -->
-      <div class="preview-tile-card" style="flex:1; min-width:280px; max-width:340px; background:#fff; border:3.5px solid var(--ink); box-shadow:6px 6px 0 var(--shadow); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; color:var(--ink); text-align:left;">
-        <div style="background:#F1EDFA; border-bottom:3.5px solid var(--ink); padding:0.65rem 0.95rem; font-family:'Outfit', sans-serif; font-size:0.9rem; font-weight:900; display:flex; align-items:center; gap:8px;">
-          <span style="width:10px; height:10px; border-radius:50%; background:#27C93F; border:1.5px solid var(--ink); display:inline-block;"></span>
-          Ranking Task
-        </div>
-        <div style="background:var(--stage); position:relative; overflow:hidden; box-sizing:border-box;">
-          <img src="ranking_preview.png" loading="lazy" width="1254" height="644" style="width:100%; height:auto; aspect-ratio:1254/644; display:block;" alt="Ranking Task Preview" />
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Footer Section -->
-    <footer style="width:100%; border-top:3px solid var(--ink); background:#1F1833; padding:2rem 1.5rem; margin-top:5rem; box-sizing:border-box; position:relative; z-index:10;">
+    <footer style="width:100%; border-top:3px solid var(--ink); background:#1F1833; padding:2rem 1.5rem; box-sizing:border-box;">
       <div style="max-width:1000px; margin:0 auto; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:1.5rem; font-family:'Space Grotesk', sans-serif; font-size:0.9rem; color:#AFA5C7;">
         <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
           <span style="font-family:'Outfit', sans-serif; font-weight:900; font-size:1.15rem; color:#fff; letter-spacing:-0.01em;">bowerboard</span>
           <span>© 2026. Gather the pieces. Build the picture.</span>
         </div>
         <div style="display:flex; gap:1.5rem; font-weight:500;">
-          <a href="mailto:support@bowerboard.app" style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">Contact Support</a>
+          <a href="#contact" style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">Contact Support</a>
           <a href="bowerboard-powerpoint-addin.zip" download style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">PowerPoint Add-in</a>
         </div>
       </div>
     </footer>
+
   `;
-  document.getElementById('btn-teacher').onclick = () => { state = { screen: 'activityPicker' }; render(); };
-  document.getElementById('btn-student').onclick = () => { state = { screen: 'studentJoin', codeInput: '', error: '' }; render(); };
+
+  document.getElementById('lp-join-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const codeInput = document.getElementById('lp-join-code');
+    const errorEl = document.getElementById('lp-join-error');
+    const code = (codeInput.value || '').trim().toUpperCase();
+    if (!code) {
+      errorEl.textContent = 'Enter a room code first.';
+      codeInput.focus();
+      return;
+    }
+    state = { screen: 'studentJoin', codeInput: code, error: '' };
+    render();
+    document.getElementById('btn-join').click();
+  });
+  document.getElementById('lp-join-code').addEventListener('input', function () {
+    const pos = this.selectionStart;
+    this.value = this.value.toUpperCase();
+    this.setSelectionRange(pos, pos);
+  });
+
+  document.getElementById('lp-btn-build').onclick = () => { state = { screen: 'activityPicker' }; render(); };
+
+  // Accessible tabs: click + arrow-key roving tabindex
+  const lpTabList = document.getElementById('lp-tab-list');
+  const lpTabs = Array.prototype.slice.call(lpTabList.querySelectorAll('[role="tab"]'));
+  const lpPanels = {};
+  lpTabs.forEach(tab => { lpPanels[tab.dataset.tab] = document.getElementById(tab.getAttribute('aria-controls')); });
+
+  function lpActivateTab(tab, focus) {
+    lpTabs.forEach(t => {
+      const selected = t === tab;
+      t.setAttribute('aria-selected', selected ? 'true' : 'false');
+      t.tabIndex = selected ? 0 : -1;
+      const panel = lpPanels[t.dataset.tab];
+      if (selected) {
+        panel.hidden = false;
+        panel.classList.add('lp-active');
+        panel.classList.remove('lp-fade-in');
+        void panel.offsetWidth;
+        panel.classList.add('lp-fade-in');
+      } else {
+        panel.hidden = true;
+        panel.classList.remove('lp-active');
+      }
+    });
+    if (focus) tab.focus();
+  }
+
+  lpTabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => lpActivateTab(tab, false));
+    tab.addEventListener('keydown', (e) => {
+      let newIndex = null;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') newIndex = (i + 1) % lpTabs.length;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') newIndex = (i - 1 + lpTabs.length) % lpTabs.length;
+      else if (e.key === 'Home') newIndex = 0;
+      else if (e.key === 'End') newIndex = lpTabs.length - 1;
+      if (newIndex !== null) {
+        e.preventDefault();
+        lpActivateTab(lpTabs[newIndex], true);
+      }
+    });
+  });
+
+  // Contact section: hidden by default (state.showContact), revealed by the
+  // footer's "Contact Support" link (and by landing directly on a #contact
+  // URL — see the initial `state` declaration).
+  const lpReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelectorAll('a[href="#contact"]').forEach(trigger => {
+    trigger.onclick = (e) => {
+      e.preventDefault();
+      state.showContact = true;
+      render();
+      document.getElementById('contact').scrollIntoView({ behavior: lpReducedMotion ? 'auto' : 'smooth', block: 'start' });
+      const firstField = document.getElementById('contact-email');
+      if (firstField) firstField.focus({ preventScroll: true });
+    };
+  });
+  const lpContactCloseBtn = document.getElementById('contact-close-btn');
+  if (lpContactCloseBtn) lpContactCloseBtn.onclick = () => { state.showContact = false; render(); };
+
+  // Contact form -> Formspree, submitted via fetch so it can show a status
+  // message in place instead of navigating away to Formspree's own page.
+  const lpContactForm = document.getElementById('contact-form');
+  if (lpContactForm) {
+    const lpContactStatus = document.getElementById('contact-status');
+    const lpContactSubmitBtn = document.getElementById('contact-submit-btn');
+    lpContactForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      lpContactSubmitBtn.disabled = true;
+      lpContactSubmitBtn.textContent = 'Sending…';
+      lpContactStatus.textContent = '';
+      lpContactStatus.className = 'lp-contact-status';
+
+      fetch(lpContactForm.action, {
+        method: 'POST',
+        body: new FormData(lpContactForm),
+        headers: { 'Accept': 'application/json' }
+      }).then(response => {
+        if (response.ok) {
+          lpContactForm.reset();
+          lpContactForm.style.display = 'none';
+          lpContactStatus.textContent = "Thanks — that's on its way. We'll get back to you soon.";
+          lpContactStatus.className = 'lp-contact-status lp-success';
+        } else {
+          return response.json().then(data => {
+            const msg = (data && data.errors && data.errors.map(er => er.message).join(', ')) || 'Something went wrong.';
+            throw new Error(msg);
+          });
+        }
+      }).catch(() => {
+        lpContactStatus.textContent = 'Something went wrong — please try again in a moment.';
+        lpContactStatus.className = 'lp-contact-status lp-error';
+        lpContactSubmitBtn.disabled = false;
+        lpContactSubmitBtn.textContent = 'Send message';
+      });
+    });
+  }
 }
 
 function renderActivityPicker() {
