@@ -45,11 +45,11 @@ Whenever changes are committed and pushed to a branch, always open a pull reques
 them — don't wait to be asked. This overrides any default elsewhere that says to only
 create a PR on explicit request.
 
-Never merge a pull request yourself. When a PR is ready to merge (CI green, no
-unresolved conflicts or review comments), tell the user explicitly and give the exact
-URL — e.g. "PR #9 is ready to merge: https://github.com/KAG111/blurt/pull/9" — and wait
-for them to merge it themselves. Don't just mention that a PR exists or is "ready";
-call out clearly that merging is the next step and it's on them to do it.
+Once a PR is ready to merge (CI green, no unresolved conflicts or review comments), merge
+it — don't wait for the user to do it manually. Tell the user explicitly that you merged
+it and give the exact URL — e.g. "Merged PR #9: https://github.com/KAG111/blurt/pull/9".
+If CI is red, there are unresolved review comments, or a merge conflict exists, fix it
+first (or ask the user, if the fix isn't obvious) rather than merging regardless.
 
 ## Architecture
 
