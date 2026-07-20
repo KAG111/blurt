@@ -451,6 +451,33 @@
   .made-for-card h3 { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.05rem; margin: 0 0 0.5rem; }
   .made-for-card p { font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 0.88rem; line-height: 1.45; margin: 0; color: rgba(20,17,31,0.82); }
 
+  /* ---------- DICTIONARY DEFINITION ---------- */
+  .dictionary-section { padding: 3.5rem 0 1rem; display: flex; justify-content: center; }
+  .definition-box {
+    max-width: 320px; width: 100%;
+    background: #fff; border: 3px solid var(--ink); border-radius: 12px;
+    box-shadow: 5px 5px 0 var(--shadow);
+    padding: 1.2rem 1.3rem;
+    color: var(--ink);
+    transform: rotate(-2deg);
+    transition: transform 0.2s ease;
+  }
+  .definition-box:hover { transform: rotate(0deg); }
+  .definition-box .entry + .entry { margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1.5px dashed var(--ink); }
+  .definition-box .entry-head {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem;
+    margin-bottom: 0.3rem;
+  }
+  .definition-box .entry-word {
+    font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.2rem;
+  }
+  .definition-box .entry-phonetic { font-size: 0.78rem; color: var(--muted); font-style: italic; }
+  .definition-box .entry-pos { font-size: 0.78rem; color: var(--muted); font-weight: 700; }
+  .definition-box .entry-def {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 500;
+    font-size: 0.9rem; line-height: 1.45; margin: 0;
+  }
+
   footer { margin-top: 5rem; }
 </style>
 </head>
@@ -679,6 +706,27 @@
         <span class="icon">🎤</span>
         <h3 class="display">Speakers &amp; events</h3>
         <p class="grotesk">Your audience scans a QR and they're in — no app, no login, no dead air waiting for people to join.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="dictionary-section wrap">
+    <div class="definition-box grotesk">
+      <div class="entry">
+        <div class="entry-head">
+          <span class="entry-word">bower</span>
+          <span class="entry-phonetic">/ˈbaʊ.ə/</span>
+          <span class="entry-pos">n.</span>
+        </div>
+        <p class="entry-def">the stage a bowerbird builds from everything it collects.</p>
+      </div>
+      <div class="entry">
+        <div class="entry-head">
+          <span class="entry-word">bowerboard</span>
+          <span class="entry-phonetic">/ˈbaʊ.ə.bɔːd/</span>
+          <span class="entry-pos">n.</span>
+        </div>
+        <p class="entry-def">the stage your room builds from everything it thinks.</p>
       </div>
     </div>
   </section>
