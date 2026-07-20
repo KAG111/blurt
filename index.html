@@ -8251,10 +8251,17 @@ async function exportBoard(format) {
   const remoteToken = params.get('token');
   const demoTypes = ['wordcloud', 'mc', 'poll', 'brainstorm', 'sticky', 'ranking', 'quiz'];
   const demoType = demoTypes.includes(params.get('demo')) ? params.get('demo') : null;
+  const goToBuild = params.get('build') === '1';
 
-  // The plain landing page doesn't touch Supabase at all — render it
-  // immediately rather than waiting on supabaseReady, so deferring the
-  // Supabase script doesn't add latency to the common case.
+  // Neither the plain landing page nor the activity picker touch Supabase,
+  // so both can render immediately rather than waiting on supabaseReady —
+  // used by the "Build a bower" link on the marketing homepage to skip
+  // straight past this app's own landing screen.
+  if (goToBuild) {
+    state = { screen: 'activityPicker' };
+    render();
+    return;
+  }
   if (!joinCode && !displayCode && !remoteCode && !demoType) {
     render();
     return;
