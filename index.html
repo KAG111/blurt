@@ -2112,6 +2112,58 @@ async function startDemoSession(type) {
     }
     await kvSet('room:' + code + ':votes', JSON.stringify(mockRankings));
     state = { screen: 'teacherLive', type, code, revealed: true, revealMode, prompt, options, rankingRevealedPlaces: [0, 1, 2, 3, 4, 5], votes: mockRankings };
+  } else if (type === 'quiz') {
+    // Quiz's live state is phase-driven (answering -> reveal -> leaderboard,
+    // per question) rather than a single static snapshot like the other
+    // types above, and its per-participant answers live in the MOD- shadow
+    // row rather than the main config — so this rewrites the config already
+    // written above with the real quiz shape, and seeds that shadow row too,
+    // so the host can click through Reveal / Leaderboard / Next exactly like
+    // a real quiz.
+    const rosterNames = ['Alex', 'Priya', 'Jordan', 'Sam', 'Kai', 'Robin', 'Dana'];
+    const demoQuestions = [
+      { prompt: "What's the fastest way to join a bowerboard room?", options: ["Scan a QR code", "Download an app", "Create an account", "Email the host"], correctIndex: 0 },
+      { prompt: "Which of these is NOT a bowerboard activity?", options: ["Word Cloud", "Sticky Notes", "Video Call", "Ranking"], correctIndex: 2 },
+      { prompt: "How does the host keep posts appropriate?", options: ["Approves them from their phone", "Doesn't — anything goes", "Requires ID verification", "Filters out rude words"], correctIndex: 0 },
+      { prompt: "What do participants need to join a room?", options: ["Just the room code", "A username and password", "The host's email", "A school ID"], correctIndex: 0 },
+      { prompt: "What's a 'bower' in the wild?", options: ["A structure a bowerbird builds to attract a mate", "A type of tree", "A nickname for a desk", "A card game"], correctIndex: 0 }
+    ];
+    const answerKey = demoQuestions.map(q => q.correctIndex);
+    const cleanQuestions = demoQuestions.map(q => ({ prompt: q.prompt, options: q.options }));
+
+    const quizResponses = rosterNames.map(name => {
+      const perQuestion = demoQuestions.map(q => {
+        const isCorrect = Math.random() < 0.7;
+        const wrongOptions = q.options.map((o, i) => i).filter(i => i !== q.correctIndex);
+        const selected = isCorrect ? q.correctIndex : wrongOptions[Math.floor(Math.random() * wrongOptions.length)];
+        const pointsEarned = isCorrect ? 60 + Math.floor(Math.random() * 40) : 0;
+        return { selected, correct: isCorrect, pointsEarned };
+      });
+      let streak = 0;
+      for (let i = perQuestion.length - 1; i >= 0 && perQuestion[i].correct; i--) streak++;
+      const totalScore = perQuestion.reduce((sum, pq) => sum + pq.pointsEarned, 0);
+      return { name, totalScore, streak, perQuestion };
+    });
+
+    const answeredNames = rosterNames.slice(0, rosterNames.length - 1);
+    const phaseStartedAt = Date.now();
+    const quizConfig = {
+      type: 'quiz', questions: cleanQuestions, currentIndex: 0,
+      phase: 'answering', phaseStartedAt,
+      timerSeconds: 20, scoringEnabled: true, shuffleAnswers: true,
+      requireNames: true, started: true, answeredNames,
+      revealStats: null, leaderboard: null, climber: null, previousRanks: [],
+      createdAt: Date.now(), isDemo: true
+    };
+    await kvSet('room:' + code + ':config', JSON.stringify(quizConfig));
+    await kvSet('room:MOD-' + code + ':config', JSON.stringify({ answerKey, quizResponses }));
+    await kvSet('room:' + code + ':roster', JSON.stringify(rosterNames));
+    state = {
+      screen: 'teacherLive', type: 'quiz', code, questions: cleanQuestions,
+      currentIndex: 0, phase: 'answering', phaseStartedAt,
+      timerSeconds: 20, scoringEnabled: true, shuffleAnswers: true,
+      answeredNames, roster: rosterNames, remoteConnected: false, autoRevealTriggered: false
+    };
   }
 
   render();
@@ -8197,7 +8249,7 @@ async function exportBoard(format) {
   const displayCode = params.get('display');
   const remoteCode = params.get('remote');
   const remoteToken = params.get('token');
-  const demoTypes = ['wordcloud', 'mc', 'poll', 'brainstorm', 'sticky', 'ranking'];
+  const demoTypes = ['wordcloud', 'mc', 'poll', 'brainstorm', 'sticky', 'ranking', 'quiz'];
   const demoType = demoTypes.includes(params.get('demo')) ? params.get('demo') : null;
 
   // The plain landing page doesn't touch Supabase at all — render it
