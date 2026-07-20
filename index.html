@@ -1952,19 +1952,57 @@ async function likePostRPC(code, postId, sessionId) {
   }
 }
 
-async function recordStudentResponseRPC(code, name, qIndex, selected) {
+async function recordStudentResponseRPC(code, name, qIndex, selected, sessionId) {
   if (!supabaseClient) return 'error';
   try {
     const { data, error } = await supabaseClient.rpc('record_student_response', {
       p_code: baseRoomCode(code),
       p_name: name,
       p_qindex: qIndex,
-      p_selected: selected
+      p_selected: selected,
+      p_session_id: sessionId
     });
     if (error) { console.error("record_student_response error:", error); return 'error'; }
     return data;
   } catch (e) {
     console.error("record_student_response Exception:", e);
+    return 'error';
+  }
+}
+
+// Teacher-side moderation (approve/dismiss/approve-all) — see moderate_item
+// and moderate_all in supabase/migrations. Unlike the student-write RPCs
+// above, these need the room's host_secret to authorize, so they go through
+// clientFor(code) (which attaches it as an x-host-secret header) rather than
+// the header-less global supabaseClient.
+async function moderateItemRPC(code, itemId, action) {
+  const client = clientFor(code);
+  if (!client) return 'error';
+  try {
+    const { data, error } = await client.rpc('moderate_item', {
+      p_code: baseRoomCode(code),
+      p_item_id: itemId,
+      p_action: action
+    });
+    if (error) { console.error("moderate_item error:", error); return 'error'; }
+    return data;
+  } catch (e) {
+    console.error("moderate_item Exception:", e);
+    return 'error';
+  }
+}
+
+async function moderateAllRPC(code) {
+  const client = clientFor(code);
+  if (!client) return 'error';
+  try {
+    const { data, error } = await client.rpc('moderate_all', {
+      p_code: baseRoomCode(code)
+    });
+    if (error) { console.error("moderate_all error:", error); return 'error'; }
+    return data;
+  } catch (e) {
+    console.error("moderate_all Exception:", e);
     return 'error';
   }
 }
@@ -2041,7 +2079,16 @@ async function getQuizRevealResultRPC(code, name, qIndex, sessionId) {
 // soft-fail, but keep retrying on 'error'.
 function isSoftFailStatus(status) {
   return status === 'blocked_word' || status === 'rate_limited' || status === 'room_full' || status === 'taken' || status === 'room_not_found'
-    || status === 'not_answering_phase' || status === 'time_expired' || status === 'already_answered';
+    || status === 'not_answering_phase' || status === 'time_expired' || status === 'already_answered'
+    // 'not_found'/'unauthorized' are moderate_item/moderate_all's rejections
+    // (item already handled by another moderator, or a stale host_secret) —
+    // retrying won't help either, same as the statuses above.
+    || status === 'not_found' || status === 'unauthorized'
+    // 'blocked': this session id is on the room's blockedSessions list —
+    // enforced server-side now (see session_is_blocked in supabase/migrations),
+    // so a refresh/new tab can't slip past it the way the old client-only
+    // check could.
+    || status === 'blocked';
 }
 function submitStatusMessage(status) {
   if (status === 'blocked_word') return "That can't be posted here. Try another.";
@@ -2052,6 +2099,7 @@ function submitStatusMessage(status) {
   if (status === 'not_answering_phase') return "Time's up for this question — wait for the next one.";
   if (status === 'time_expired') return "Just missed it — the timer ran out.";
   if (status === 'already_answered') return "You've already answered this one.";
+  if (status === 'blocked') return "You've been muted in this room.";
   return "Couldn't post that — check your connection and try again.";
 }
 
@@ -2148,11 +2196,53 @@ function sanitizeImageSrc(src) {
 function sanitizeColor(color) {
   return (typeof color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(color)) ? color : '#FFE57F';
 }
-function generateCode() {
+function generateCode(length = 4) {
   const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   let c = '';
-  for (let i = 0; i < 4; i++) c += letters[Math.floor(Math.random() * letters.length)];
+  for (let i = 0; i < length; i++) c += letters[Math.floor(Math.random() * letters.length)];
   return c;
+}
+
+// A lightweight existence check for a candidate room code — scoped the same
+// way kvGet is (x-room-code header matching the row's code), so it can only
+// ever confirm/deny the one code it's asking about, not enumerate others.
+async function codeExists(code) {
+  if (!supabaseClient) return false;
+  try {
+    const client = clientFor(code);
+    if (!client) return false;
+    const { data, error } = await client
+      .from('rooms')
+      .select('code')
+      .eq('code', code)
+      .maybeSingle();
+    if (error) {
+      console.error("codeExists error:", error);
+      return false;
+    }
+    return !!data;
+  } catch (e) {
+    console.error("codeExists Exception:", e);
+    return false;
+  }
+}
+
+// generateCode()'s 4-letter space is ~331k combinations — a collision would
+// let kvSet's upsert silently overwrite a live room sharing that code. This
+// checks each candidate against the database before handing it back, and
+// widens to a 5-letter space (~7.9M combinations) if 4-letter tries keep
+// colliding. `prefix` lets callers (e.g. demo rooms) check uniqueness of the
+// code they'll actually write, not just the random suffix.
+async function generateUniqueCode(prefix = '') {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = prefix + generateCode();
+    if (!(await codeExists(candidate))) return candidate;
+  }
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = prefix + generateCode(5);
+    if (!(await codeExists(candidate))) return candidate;
+  }
+  return prefix + generateCode(5);
 }
 
 function saveRoomToHistory(code, type, prompt) {
@@ -2273,7 +2363,7 @@ async function startDemoSession(type) {
   }
 
   // Create unique room code
-  const code = "DEMO-" + generateCode();
+  const code = await generateUniqueCode('DEMO-');
   setHostSecret(code, generateHostSecret());
   const revealMode = s.revealMode || 'live';
   
@@ -2432,10 +2522,6 @@ function numQuestionsOf(s) { return s.type === 'poll' ? s.questions.length : 1; 
 function getCurrentVotes(s) {
   if (s.type === 'poll') return (s.votes && s.votes[s.currentIndex]) || currentOptions(s).map(() => 0);
   return s.votes || currentOptions(s).map(() => 0);
-}
-function emptyVotesStructure(s) {
-  if (s.type === 'poll') return s.questions.map(q => q.options.map(() => 0));
-  return (s.options || []).map(() => 0);
 }
 
 const app = document.getElementById('app');
@@ -3065,7 +3151,7 @@ function renderWordCloudSetup() {
     if (!state.prompt || !state.prompt.trim()) return;
     state.loading = true; render();
     await supabaseReady;
-    const code = generateCode();
+    const code = await generateUniqueCode();
     setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
     const config = { type: 'wordcloud', prompt: state.prompt.trim(), revealMode, revealed: revealMode === 'live', createdAt: Date.now() };
@@ -3118,7 +3204,7 @@ function renderBrainstormSetup() {
     if (!state.prompt || !state.prompt.trim()) return;
     state.loading = true; render();
     await supabaseReady;
-    const code = generateCode();
+    const code = await generateUniqueCode();
     setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
     const config = { type: 'brainstorm', prompt: state.prompt.trim(), revealMode, revealed: revealMode === 'live', likesEnabled: false, createdAt: Date.now() };
@@ -3171,7 +3257,7 @@ function renderStickySetup() {
     if (!state.prompt || !state.prompt.trim()) return;
     state.loading = true; render();
     await supabaseReady;
-    const code = generateCode();
+    const code = await generateUniqueCode();
     setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
     const config = { type: 'sticky', prompt: state.prompt.trim(), revealMode, revealed: revealMode === 'live', likesEnabled: false, stickyDensity: 0.5, createdAt: Date.now() };
@@ -3270,7 +3356,7 @@ function renderRankingSetup() {
     }
     state.loading = true; render();
     await supabaseReady;
-    const code = generateCode();
+    const code = await generateUniqueCode();
     setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
     const config = {
@@ -3401,7 +3487,7 @@ function renderMCSetup() {
     if (!canCreateMC(state)) return;
     state.loading = true; render();
     await supabaseReady;
-    const code = generateCode();
+    const code = await generateUniqueCode();
     setHostSecret(code, generateHostSecret());
     const revealMode = state.revealMode || 'live';
     const cleanOptions = state.options.map(o => o.trim()).filter(o => o.length > 0);
@@ -3742,7 +3828,7 @@ function renderPollBuildStage() {
     }
     s.loading = true; render();
     await supabaseReady;
-    const code = generateCode();
+    const code = await generateUniqueCode();
     setHostSecret(code, generateHostSecret());
     const cleanQuestions = s.questions.map(qq => ({
       prompt: qq.prompt.trim(),
@@ -4012,7 +4098,7 @@ function renderQuizReviewStage() {
     if (!allValid) return;
     s.loading = true; render();
     await supabaseReady;
-    const code = generateCode();
+    const code = await generateUniqueCode();
     setHostSecret(code, generateHostSecret());
     const cleanQuestions = s.questions.map(q => ({
       prompt: q.prompt.trim(),
@@ -4107,7 +4193,7 @@ function renderTeacherLobby() {
               Scan this QR code to review and remove nicknames from your phone — before you start and while the quiz is live. No login required.
             </div>
             <div style="display:flex; justify-content:center; margin-bottom:1.2rem;">
-              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code), 240)}
+              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '#token=' + getHostSecret(s.code), 240)}
             </div>
             <div style="display:flex; flex-direction:column; gap:0.6rem;">
               <button class="btn-nav sans" id="btn-copy-remote-link" style="width:100%; font-size:0.85rem; font-weight:700; border:2px solid var(--ink); padding:0.5rem; background:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">📋 Copy Remote Link</button>
@@ -4209,7 +4295,7 @@ function renderTeacherLobby() {
   const copyRemoteLinkBtn = document.getElementById('btn-copy-remote-link');
   if (copyRemoteLinkBtn) {
     copyRemoteLinkBtn.onclick = () => {
-      const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code);
+      const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '#token=' + getHostSecret(s.code);
       navigator.clipboard.writeText(link).then(() => {
         copyRemoteLinkBtn.textContent = '✓ Copied!';
         setTimeout(() => { copyRemoteLinkBtn.textContent = '📋 Copy Remote Link'; }, 2000);
@@ -4341,92 +4427,45 @@ async function mergeShadowIntoMain(code) {
   }
 }
 
+// Which MOD-<code> shadow column (and matching main-row column) a room type's
+// pending submissions live in — mirrors the column choice submitPendingItem
+// callers already make, and moderate_item/moderate_all derive server-side
+// from the room's own config.type.
+function moderationColumnFor(type) {
+  if (type === 'brainstorm' || type === 'sticky') return 'posts';
+  if (type === 'wordcloud') return 'words';
+  return 'votes';
+}
+function moderationPendingKeyFor(column) {
+  return 'pending' + column[0].toUpperCase() + column.slice(1);
+}
+
+// approveSubmission/dismissSubmission/approveAllSubmissions used to do
+// read-MOD-array -> modify -> write-MOD-array, then (on approve)
+// read-main-array -> merge -> write-main-array, entirely client-side — two
+// moderating devices open at once (e.g. a teacher's laptop and their own
+// phone remote) could race those reads and silently lose a submission.
+// moderate_item/moderate_all (supabase/migrations) now do the shadow-row
+// removal and the main-row merge atomically server-side; these just call
+// them and refresh local state. The pendingXxx lists themselves stay
+// optimistic/client-side, same as before.
 async function approveSubmission(item) {
   const s = state;
   const code = s.code;
-  
-  if (s.type === 'brainstorm' || s.type === 'sticky') {
-    s.pendingPosts = (s.pendingPosts || []).filter(p => p.id !== item.id);
-    await kvSet('room:MOD-' + code + ':posts', JSON.stringify(s.pendingPosts));
-    
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const raw = await kvGet('room:' + code + ':posts');
-      let mainList = [];
-      if (raw) { try { mainList = JSON.parse(raw); } catch (e) {} }
-      
-      // Sticky notes merge on identical text too, like brainstorm — except
-      // when the text is empty (a sticky note can be a photo with no text
-      // at all), since two different photo-only notes would otherwise both
-      // "match" on empty text and get merged, silently losing one photo.
-      const existing = item.text ? mainList.find(p => p.text && p.text.toLowerCase() === item.text.toLowerCase()) : null;
-      if (existing) {
-        existing.count = (existing.count || 1) + (item.count || 1);
-        existing.ownerSessionIds = existing.ownerSessionIds || [];
-        (item.ownerSessionIds || []).forEach(id => {
-          if (existing.ownerSessionIds.indexOf(id) === -1) existing.ownerSessionIds.push(id);
-        });
-      } else {
-        mainList.push(item);
-      }
-      
-      const ok = await kvSet('room:' + code + ':posts', JSON.stringify(mainList));
-      if (ok) { s.posts = mainList; break; }
-      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
-    }
-  } else if (s.type === 'wordcloud') {
-    s.pendingWords = (s.pendingWords || []).filter(w => w.id !== item.id);
-    await kvSet('room:MOD-' + code + ':words', JSON.stringify(s.pendingWords));
-    
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const raw = await kvGet('room:' + code + ':words');
-      let mainList = [];
-      if (raw) { try { mainList = JSON.parse(raw); } catch (e) {} }
-      
-      const lower = item.text.toLowerCase();
-      const existing = mainList.find(w => w.text.toLowerCase() === lower);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        mainList.push({ text: item.text, count: 1 });
-      }
-      
-      const ok = await kvSet('room:' + code + ':words', JSON.stringify(mainList));
-      if (ok) { s.words = mainList; break; }
-      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
-    }
-  } else {
-    s.pendingVotes = (s.pendingVotes || []).filter(v => v.id !== item.id);
-    await kvSet('room:MOD-' + code + ':votes', JSON.stringify(s.pendingVotes));
-    
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const raw = await kvGet('room:' + code + ':votes');
-      let votes = emptyVotesStructure(s);
-      if (raw) { try { votes = JSON.parse(raw); } catch (e) {} }
-      
-      if (s.type === 'ranking') {
-        votes.push(item.value);
-      } else if (s.type === 'poll') {
-        const qIdx = item.qIndex;
-        if (!votes[qIdx]) votes[qIdx] = s.questions[qIdx].options.map(() => 0);
-        item.value.forEach(idx => {
-          votes[qIdx][idx] = (votes[qIdx][idx] || 0) + 1;
-        });
-      } else {
-        item.value.forEach(idx => {
-          votes[idx] = (votes[idx] || 0) + 1;
-        });
-      }
-      
-      const ok = await kvSet('room:' + code + ':votes', JSON.stringify(votes));
-      if (ok) {
-        s.votes = votes;
-        if (s.type === 'poll' && item.studentName) {
-          await recordStudentResponse(s, item.qIndex, item.value);
-        }
-        break;
-      }
-      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
-    }
+  const column = moderationColumnFor(s.type);
+  const pendingKey = moderationPendingKeyFor(column);
+
+  s[pendingKey] = (s[pendingKey] || []).filter(x => x.id !== item.id);
+
+  let status = 'error';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    status = await moderateItemRPC(code, item.id, 'approve');
+    if (status === 'ok' || isSoftFailStatus(status)) break;
+    await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+  }
+  if (status === 'ok') {
+    const raw = await kvGet('room:' + code + ':' + column);
+    if (raw) { try { s[column] = JSON.parse(raw); } catch (e) {} }
   }
   render();
 }
@@ -4434,41 +4473,41 @@ async function approveSubmission(item) {
 async function dismissSubmission(item) {
   const s = state;
   const code = s.code;
-  
+  const column = moderationColumnFor(s.type);
+  const pendingKey = moderationPendingKeyFor(column);
+
   s.dismissedItems = s.dismissedItems || [];
   s.dismissedItems.push(item);
-  
-  if (s.type === 'brainstorm' || s.type === 'sticky') {
-    s.pendingPosts = (s.pendingPosts || []).filter(p => p.id !== item.id);
-    await kvSet('room:MOD-' + code + ':posts', JSON.stringify(s.pendingPosts));
-  } else if (s.type === 'wordcloud') {
-    s.pendingWords = (s.pendingWords || []).filter(w => w.id !== item.id);
-    await kvSet('room:MOD-' + code + ':words', JSON.stringify(s.pendingWords));
-  } else {
-    s.pendingVotes = (s.pendingVotes || []).filter(v => v.id !== item.id);
-    await kvSet('room:MOD-' + code + ':votes', JSON.stringify(s.pendingVotes));
+  s[pendingKey] = (s[pendingKey] || []).filter(x => x.id !== item.id);
+
+  let status = 'error';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    status = await moderateItemRPC(code, item.id, 'dismiss');
+    if (status === 'ok' || isSoftFailStatus(status)) break;
+    await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
   }
   render();
 }
 
+// Undo stays a plain re-submission through append_pending_item (the same
+// RPC students use to submit in the first place) rather than a dedicated
+// "unmoderate" RPC — the item goes back into the pending queue exactly like
+// a fresh submission would, which is all undo needs.
 async function undoDismiss(item) {
   const s = state;
   const code = s.code;
-  
+  const column = moderationColumnFor(s.type);
+  const pendingKey = moderationPendingKeyFor(column);
+
   s.dismissedItems = (s.dismissedItems || []).filter(i => i.id !== item.id);
-  
-  if (s.type === 'brainstorm' || s.type === 'sticky') {
-    s.pendingPosts = s.pendingPosts || [];
-    s.pendingPosts.push(item);
-    await kvSet('room:MOD-' + code + ':posts', JSON.stringify(s.pendingPosts));
-  } else if (s.type === 'wordcloud') {
-    s.pendingWords = s.pendingWords || [];
-    s.pendingWords.push(item);
-    await kvSet('room:MOD-' + code + ':words', JSON.stringify(s.pendingWords));
-  } else {
-    s.pendingVotes = s.pendingVotes || [];
-    s.pendingVotes.push(item);
-    await kvSet('room:MOD-' + code + ':votes', JSON.stringify(s.pendingVotes));
+  s[pendingKey] = s[pendingKey] || [];
+  s[pendingKey].push(item);
+
+  let status = 'error';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    status = await submitPendingItem(code, column, item);
+    if (status === 'ok' || isSoftFailStatus(status)) break;
+    await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
   }
   render();
 }
@@ -4476,101 +4515,22 @@ async function undoDismiss(item) {
 async function approveAllSubmissions() {
   const s = state;
   const code = s.code;
-  
-  if (s.type === 'brainstorm' || s.type === 'sticky') {
-    const pending = s.pendingPosts || [];
-    if (pending.length === 0) return;
-    
-    s.pendingPosts = [];
-    await kvSet('room:MOD-' + code + ':posts', JSON.stringify([]));
-    
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const raw = await kvGet('room:' + code + ':posts');
-      let mainList = [];
-      if (raw) { try { mainList = JSON.parse(raw); } catch (e) {} }
-      
-      pending.forEach(item => {
-        if (s.type === 'brainstorm') {
-          const existing = mainList.find(p => p.text.toLowerCase() === item.text.toLowerCase());
-          if (existing) {
-            existing.count = (existing.count || 1) + (item.count || 1);
-            existing.ownerSessionIds = existing.ownerSessionIds || [];
-            (item.ownerSessionIds || []).forEach(id => {
-              if (existing.ownerSessionIds.indexOf(id) === -1) existing.ownerSessionIds.push(id);
-            });
-          } else {
-            mainList.push(item);
-          }
-        } else {
-          mainList.push(item);
-        }
-      });
-      
-      const ok = await kvSet('room:' + code + ':posts', JSON.stringify(mainList));
-      if (ok) { s.posts = mainList; break; }
-      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
-    }
-  } else if (s.type === 'wordcloud') {
-    const pending = s.pendingWords || [];
-    if (pending.length === 0) return;
-    
-    s.pendingWords = [];
-    await kvSet('room:MOD-' + code + ':words', JSON.stringify([]));
-    
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const raw = await kvGet('room:' + code + ':words');
-      let mainList = [];
-      if (raw) { try { mainList = JSON.parse(raw); } catch (e) {} }
-      
-      pending.forEach(item => {
-        const lower = item.text.toLowerCase();
-        const existing = mainList.find(w => w.text.toLowerCase() === lower);
-        if (existing) {
-          existing.count += 1;
-        } else {
-          mainList.push({ text: item.text, count: 1 });
-        }
-      });
-      
-      const ok = await kvSet('room:' + code + ':words', JSON.stringify(mainList));
-      if (ok) { s.words = mainList; break; }
-      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
-    }
-  } else {
-    const pending = s.pendingVotes || [];
-    if (pending.length === 0) return;
-    
-    s.pendingVotes = [];
-    await kvSet('room:MOD-' + code + ':votes', JSON.stringify([]));
-    
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const raw = await kvGet('room:' + code + ':votes');
-      let votes = emptyVotesStructure(s);
-      if (raw) { try { votes = JSON.parse(raw); } catch (e) {} }
-      
-      for (const item of pending) {
-        if (s.type === 'ranking') {
-          votes.push(item.value);
-        } else if (s.type === 'poll') {
-          const qIdx = item.qIndex;
-          if (!votes[qIdx]) votes[qIdx] = s.questions[qIdx].options.map(() => 0);
-          item.value.forEach(idx => {
-            votes[qIdx][idx] = (votes[qIdx][idx] || 0) + 1;
-          });
-          if (item.studentName) {
-            await recordStudentResponse(s, item.qIndex, item.value);
-          }
-        } else {
-          item.value.forEach(idx => {
-            votes[idx] = (votes[idx] || 0) + 1;
-          });
-        }
-      }
-      
-      const ok = await kvSet('room:' + code + ':votes', JSON.stringify(votes));
-      if (ok) { s.votes = votes; break; }
-      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
-    }
+  const column = moderationColumnFor(s.type);
+  const pendingKey = moderationPendingKeyFor(column);
+  const pending = s[pendingKey] || [];
+  if (pending.length === 0) return;
+
+  s[pendingKey] = [];
+
+  let status = 'error';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    status = await moderateAllRPC(code);
+    if (status === 'ok' || isSoftFailStatus(status)) break;
+    await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+  }
+  if (status === 'ok') {
+    const raw = await kvGet('room:' + code + ':' + column);
+    if (raw) { try { s[column] = JSON.parse(raw); } catch (e) {} }
   }
   render();
 }
@@ -4580,7 +4540,7 @@ async function blockDevice(sessionId) {
   const code = s.code;
   if (!sessionId) return;
   
-  if (confirm("Block this device? All current and future submissions from this student will be deleted/blocked.")) {
+  if (confirm("Mute this device? All current and future submissions from this participant will be deleted/muted.")) {
     s.blockedSessions = s.blockedSessions || [];
     if (s.blockedSessions.indexOf(sessionId) === -1) {
       s.blockedSessions.push(sessionId);
@@ -4743,7 +4703,7 @@ function renderQuizTeacherLive() {
               Scan this QR code to reveal answers and move to the next question from your phone — handy if you're walking around the room. No login required.
             </div>
             <div style="display:flex; justify-content:center; margin-bottom:1.2rem;">
-              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code), 240)}
+              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '#token=' + getHostSecret(s.code), 240)}
             </div>
             <div style="display:flex; flex-direction:column; gap:0.6rem;">
               <button class="btn-nav sans" id="btn-copy-remote-link" style="width:100%; font-size:0.85rem; font-weight:700; border:2px solid var(--ink); padding:0.5rem; background:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">📋 Copy Remote Link</button>
@@ -4761,7 +4721,7 @@ function renderQuizTeacherLive() {
   if (closeRemoteBtn) closeRemoteBtn.onclick = () => { s.showRemoteQrModal = false; render(); };
   const copyRemoteBtn = document.getElementById('btn-copy-remote-link');
   if (copyRemoteBtn) copyRemoteBtn.onclick = () => {
-    const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code);
+    const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '#token=' + getHostSecret(s.code);
     navigator.clipboard.writeText(link).catch(() => {});
     copyRemoteBtn.textContent = '✅ Copied!';
     setTimeout(() => { copyRemoteBtn.textContent = '📋 Copy Remote Link'; }, 1500);
@@ -5256,7 +5216,7 @@ function renderTeacherLive() {
               Scan this QR code with your phone or tablet to moderate submissions on a second screen. No login required.
             </div>
             <div style="display:flex; justify-content:center; margin-bottom:1.2rem;">
-              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code), 240)}
+              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '#token=' + getHostSecret(s.code), 240)}
             </div>
             <div style="display:flex; flex-direction:column; gap:0.6rem;">
               <button class="btn-nav sans" id="btn-copy-remote-link" style="width:100%; font-size:0.85rem; font-weight:700; border:2px solid var(--ink); padding:0.5rem; background:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">📋 Copy Remote Link</button>
@@ -5513,7 +5473,7 @@ function renderTeacherLive() {
   const copyRemoteLinkBtn = document.getElementById('btn-copy-remote-link');
   if (copyRemoteLinkBtn) {
     copyRemoteLinkBtn.onclick = () => {
-      const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code);
+      const link = window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '#token=' + getHostSecret(s.code);
       navigator.clipboard.writeText(link).then(() => {
         copyRemoteLinkBtn.textContent = '✓ Copied!';
         setTimeout(() => { copyRemoteLinkBtn.textContent = '📋 Copy Remote Link'; }, 2000);
@@ -5747,7 +5707,7 @@ function renderDisplayView() {
               Scan this QR code with your phone or tablet to moderate submissions on a second screen. No login required.
             </div>
             <div style="display:flex; justify-content:center; margin-bottom:1.2rem;">
-              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '&token=' + getHostSecret(s.code), 240)}
+              ${qrToSVGString(window.location.href.split('#')[0].split('?')[0] + '?remote=' + s.code + '#token=' + getHostSecret(s.code), 240)}
             </div>
             <div style="display:flex; flex-direction:column; gap:0.6rem;">
               <button class="btn-nav sans" id="btn-copy-remote-link" style="width:100%; font-size:0.85rem; font-weight:700; border:2px solid var(--ink); padding:0.5rem; background:#fff; cursor:pointer; border-radius:6px; box-shadow:2px 2px 0 var(--shadow);">📋 Copy Remote Link</button>
@@ -5779,6 +5739,15 @@ async function startRemoteControlView(code, token) {
   // x-host-secret header, then prove authorization with a real DB round-trip
   // (reading the MOD- row) instead of trusting a value from public config.
   setHostSecret(code, token);
+
+  // Strip the secret from the address bar immediately — both the fragment
+  // (#token=...) and any legacy ?token= query param — so it doesn't linger
+  // in browser history a moment longer than it takes to read it. ?remote=
+  // (no secret) is left in place so the URL stays meaningful.
+  const cleanUrl = new URL(window.location.href);
+  cleanUrl.searchParams.delete('token');
+  cleanUrl.hash = '';
+  history.replaceState(null, '', cleanUrl.toString());
 
   const configRaw = await kvGet('room:' + code + ':config');
   if (configRaw) {
@@ -6064,7 +6033,7 @@ function renderPhoneRemote() {
                   ${item.sessionId ? `
                     <div style="font-size:0.7rem; color:var(--muted); margin-top:0.15rem; display:flex; gap:0.5rem;">
                       <span>Student: ${item.sessionId.slice(0, 5)}</span>
-                      <button class="block-dev-btn" data-session="${escapeHtml(item.sessionId)}" style="border:none; background:none; color:var(--pink); cursor:pointer; padding:0; font-size:0.7rem; text-decoration:underline; font-weight:700;">Block</button>
+                      <button class="block-dev-btn" data-session="${escapeHtml(item.sessionId)}" style="border:none; background:none; color:var(--pink); cursor:pointer; padding:0; font-size:0.7rem; text-decoration:underline; font-weight:700;">Mute</button>
                     </div>
                   ` : ''}
                 </div>
@@ -6516,7 +6485,7 @@ function renderSplitModerationDashboard() {
                     ${item.sessionId ? `
                       <div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem;display:flex;gap:0.5rem;align-items:center;">
                         <span>Session: ${item.sessionId.slice(0, 6)}</span>
-                        <button class="block-dev-btn" data-session="${escapeHtml(item.sessionId)}" style="border:none;background:none;color:var(--pink);cursor:pointer;padding:0;font-size:0.75rem;text-decoration:underline;font-weight:700;">Block student</button>
+                        <button class="block-dev-btn" data-session="${escapeHtml(item.sessionId)}" style="border:none;background:none;color:var(--pink);cursor:pointer;padding:0;font-size:0.75rem;text-decoration:underline;font-weight:700;">Mute participant</button>
                       </div>
                     ` : ''}
                   </div>
@@ -8524,7 +8493,7 @@ async function recordStudentResponse(s, qIndex, selectedIndices) {
   const targetRoom = getTargetRoom(s);
   let status = 'error';
   for (let attempt = 0; attempt < 3; attempt++) {
-    status = await recordStudentResponseRPC(targetRoom, s.studentName.trim(), qIndex, selectedIndices);
+    status = await recordStudentResponseRPC(targetRoom, s.studentName.trim(), qIndex, selectedIndices, s.mySessionId);
     if (status === 'ok' || isSoftFailStatus(status)) return;
     await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
   }
@@ -8731,7 +8700,13 @@ async function exportBoard(format) {
   const joinCode = params.get('join');
   const displayCode = params.get('display');
   const remoteCode = params.get('remote');
-  const remoteToken = params.get('token');
+  // The host secret travels in the URL fragment (#token=...) rather than the
+  // query string, so it never lands in browser history or server logs —
+  // fragments aren't sent in the HTTP request at all. Older printed/shared
+  // QR codes may still carry it as a ?token= query param, so that's kept as
+  // a fallback, but the fragment wins when both are present.
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const remoteToken = hashParams.get('token') || params.get('token');
   const demoTypes = ['wordcloud', 'mc', 'poll', 'brainstorm', 'sticky', 'ranking', 'quiz'];
   const demoType = demoTypes.includes(params.get('demo')) ? params.get('demo') : null;
   const goToBuild = params.get('build') === '1';
