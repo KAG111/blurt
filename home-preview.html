@@ -480,14 +480,24 @@
   }
 
   /* ---------- CONTACT ---------- */
-  .contact-section { padding: 3rem 0 1rem; display: flex; justify-content: center; scroll-margin-top: 6rem; }
+  .contact-section {
+    display: none; padding: 3rem 0 1rem; justify-content: center; scroll-margin-top: 6rem;
+  }
+  .contact-section:target, .contact-section.is-open { display: flex; }
   .contact-card {
     max-width: 460px; width: 100%;
     background: #fff; border: 3px solid var(--ink); border-radius: 16px;
     box-shadow: 6px 6px 0 var(--shadow);
     padding: 1.8rem 1.6rem;
+    position: relative;
   }
-  .contact-card h2 { font-size: 1.4rem; margin: 0 0 0.4rem; }
+  .contact-close {
+    position: absolute; top: 0.9rem; right: 0.9rem;
+    width: 32px; height: 32px; border-radius: 8px;
+    background: #fff; border: 2px solid var(--ink); font-weight: 800;
+    font-size: 0.95rem; line-height: 1; cursor: pointer;
+  }
+  .contact-card h2 { font-size: 1.4rem; margin: 0 0 0.4rem; padding-right: 2rem; }
   .contact-card .contact-sub { font-size: 0.9rem; color: rgba(20,17,31,0.75); margin: 0 0 1.3rem; line-height: 1.45; }
   .contact-form { display: flex; flex-direction: column; gap: 0.35rem; }
   .contact-label { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.8rem; margin-top: 0.7rem; }
@@ -768,6 +778,7 @@
 
   <section class="contact-section wrap" id="contact">
     <div class="contact-card">
+      <button class="contact-close" id="contact-close-btn" type="button" aria-label="Close contact form">✕</button>
       <h2 class="display">Get in touch</h2>
       <p class="contact-sub grotesk">Got a question, a bug, or an idea? Send it over — we read every message.</p>
       <form id="contact-form" class="contact-form" action="https://formspree.io/f/xpqvrrzn" method="POST">
@@ -865,6 +876,33 @@
       }
     });
   });
+
+  // Contact section stays hidden (see .contact-section CSS) until someone
+  // clicks a "Contact Support" link — the #contact anchor is a real link,
+  // so :target still reveals it with zero JS; this just adds a close button
+  // and a smooth scroll on top of that.
+  var contactSection = document.getElementById('contact');
+  var contactCloseBtn = document.getElementById('contact-close-btn');
+  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function openContactSection() {
+    contactSection.classList.add('is-open');
+    contactSection.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+    var firstField = document.getElementById('contact-email');
+    if (firstField) firstField.focus({ preventScroll: true });
+  }
+  function closeContactSection() {
+    contactSection.classList.remove('is-open');
+  }
+
+  document.querySelectorAll('a[href="#contact"]').forEach(function (trigger) {
+    trigger.addEventListener('click', function (e) {
+      e.preventDefault();
+      openContactSection();
+    });
+  });
+  if (contactCloseBtn) contactCloseBtn.addEventListener('click', closeContactSection);
+  if (window.location.hash === '#contact') openContactSection();
 
   // Contact form -> Formspree, submitted via fetch so it can show a status
   // message in place instead of navigating away to Formspree's own page.
