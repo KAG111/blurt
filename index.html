@@ -8197,11 +8197,13 @@ async function exportBoard(format) {
   const displayCode = params.get('display');
   const remoteCode = params.get('remote');
   const remoteToken = params.get('token');
+  const demoTypes = ['wordcloud', 'mc', 'poll', 'brainstorm', 'sticky', 'ranking'];
+  const demoType = demoTypes.includes(params.get('demo')) ? params.get('demo') : null;
 
   // The plain landing page doesn't touch Supabase at all — render it
   // immediately rather than waiting on supabaseReady, so deferring the
   // Supabase script doesn't add latency to the common case.
-  if (!joinCode && !displayCode && !remoteCode) {
+  if (!joinCode && !displayCode && !remoteCode && !demoType) {
     render();
     return;
   }
@@ -8215,6 +8217,9 @@ async function exportBoard(format) {
       startDisplayOnlyView(displayCode.toUpperCase());
     } else if (remoteCode) {
       startRemoteControlView(remoteCode.toUpperCase(), remoteToken);
+    } else if (demoType) {
+      state = {};
+      startDemoSession(demoType);
     }
   });
 })();

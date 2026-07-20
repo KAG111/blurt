@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Try a bowerboard demo</title>
+<meta name="description" content="Jump straight into a live demo of any bowerboard activity — word cloud, sticky notes, polls, ranking or brainstorm — pre-loaded with sample responses, no sign-up needed." />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#B9F6CA" />
+
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+<link rel="icon" type="image/svg+xml" href="/icon.svg" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@800;900&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --stage: #B9F6CA;
+    --paper: #FFFFFF;
+    --paper-soft: #FBF9FF;
+    --ink: #14111F;
+    --muted: #6B6480;
+    --faint: #9992AD;
+    --pink: #FF3E7F;
+    --yellow: #FFD23F;
+    --blue: #3AA0FF;
+    --green: #21C48A;
+    --shadow: #14111F;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background-color: var(--stage);
+    background-image: radial-gradient(rgba(20,17,31,0.10) 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+  .display { font-family: 'Outfit', sans-serif; }
+  .grotesk { font-family: 'Space Grotesk', sans-serif; }
+  img { max-width: 100%; }
+  a { color: inherit; }
+  button { cursor: pointer; font-family: inherit; }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 1.5rem; }
+
+  .navbar { position: sticky; top: 0; z-index: 50; padding: 1rem 1.5rem 0; }
+  .navbar-inner {
+    max-width: 1000px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--paper); border: 3px solid var(--ink); border-radius: 16px;
+    box-shadow: 6px 6px 0 var(--shadow); padding: 0.6rem 0.9rem;
+  }
+  .navbar-logo { display: flex; align-items: center; text-decoration: none; }
+  .navbar-logo img { height: 56px; width: auto; display: block; }
+  @media (min-width: 640px) { .navbar-logo img { height: 68px; } }
+  .btn-back {
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.85rem;
+    background: #fff; color: var(--ink);
+    border: 2.5px solid var(--ink); border-radius: 10px;
+    padding: 0.6rem 1rem; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 0.4rem; min-height: 44px;
+    box-shadow: 3px 3px 0 var(--shadow);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .btn-back:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--shadow); }
+  .btn-back:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--shadow); }
+
+  .intro { text-align: center; padding: 2.6rem 0 1rem; }
+  .intro h1 {
+    font-family: 'Outfit', sans-serif; font-weight: 900;
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    line-height: 1.1; letter-spacing: -0.02em; margin: 0;
+  }
+  .intro p {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 500;
+    font-size: clamp(1rem, 2vw, 1.15rem);
+    color: rgba(20,17,31,0.78);
+    max-width: 560px; margin: 0.9rem auto 0; line-height: 1.5;
+  }
+  .intro .note {
+    display: inline-block; margin-top: 1.4rem;
+    background: #fff; border: 2px solid var(--ink); border-radius: 20px;
+    padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 700;
+    box-shadow: 3px 3px 0 var(--shadow);
+  }
+
+  .demo-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1.4rem; padding: 2.2rem 0 4rem;
+  }
+  .demo-card {
+    background: #fff; border: 3px solid var(--ink); border-radius: 16px;
+    box-shadow: 6px 6px 0 var(--shadow);
+    padding: 1.5rem 1.4rem;
+    display: flex; flex-direction: column; gap: 0.7rem;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .demo-card .badge {
+    width: 46px; height: 46px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; border: 2.5px solid var(--ink);
+  }
+  .demo-card h2 { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.2rem; margin: 0; }
+  .demo-card p {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 0.9rem;
+    color: rgba(20,17,31,0.78); margin: 0; line-height: 1.4; flex: 1;
+  }
+  .demo-card .btn-try {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.95rem;
+    background: var(--ink); color: #fff;
+    border: 2.5px solid var(--ink); border-radius: 10px;
+    padding: 0.7rem 1rem; min-height: 44px; text-decoration: none;
+    box-shadow: 3px 3px 0 var(--pink);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .demo-card .btn-try:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--pink); }
+  .demo-card .btn-try:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--pink); }
+
+  footer { margin-top: 2rem; }
+</style>
+</head>
+<body>
+
+<nav class="navbar" aria-label="Primary">
+  <div class="navbar-inner">
+    <a class="navbar-logo" href="home-preview.html">
+      <img src="logo.png" alt="bowerboard — a bird collecting pieces to build its bower" width="1024" height="560" loading="lazy" />
+    </a>
+    <a class="btn-back" href="home-preview.html">← Back</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <section class="intro">
+    <h1 class="display">Pick a bower, see it live</h1>
+    <p class="grotesk">Every demo below drops you straight into a real, running board — pre-loaded with sample responses so you can see exactly how it looks with a full room.</p>
+    <div class="note grotesk">✨ No sign-up. Nothing saved. Just click and explore.</div>
+  </section>
+
+  <section class="demo-grid">
+
+    <div class="demo-card">
+      <div class="badge" style="background:var(--yellow);">☁️</div>
+      <h2 class="display">Word Cloud</h2>
+      <p class="grotesk">Everyone types a word or phrase — answers grow bigger the more people say the same thing.</p>
+      <a class="btn-try" href="index.html?demo=wordcloud">▶ Try this demo</a>
+    </div>
+
+    <div class="demo-card">
+      <div class="badge" style="background:#FFB1C8;">📌</div>
+      <h2 class="display">Sticky Notes</h2>
+      <p class="grotesk">People write notes — and optionally add photos — onto a shared virtual cork board.</p>
+      <a class="btn-try" href="index.html?demo=sticky">▶ Try this demo</a>
+    </div>
+
+    <div class="demo-card">
+      <div class="badge" style="background:#A9DBFF;">📊</div>
+      <h2 class="display">Live Polls</h2>
+      <p class="grotesk">Run a set of questions in one room and flick through live results as bar charts.</p>
+      <a class="btn-try" href="index.html?demo=poll">▶ Try this demo</a>
+    </div>
+
+    <div class="demo-card">
+      <div class="badge" style="background:#B7F5CE;">🏆</div>
+      <h2 class="display">Ranking</h2>
+      <p class="grotesk">Everyone ranks the same list of options — the board reveals the room's honest consensus.</p>
+      <a class="btn-try" href="index.html?demo=ranking">▶ Try this demo</a>
+    </div>
+
+    <div class="demo-card">
+      <div class="badge" style="background:var(--pink); color:#fff;">💡</div>
+      <h2 class="display">Brainstorm</h2>
+      <p class="grotesk">People post ideas around one central question, then like their favourites.</p>
+      <a class="btn-try" href="index.html?demo=brainstorm">▶ Try this demo</a>
+    </div>
+
+  </section>
+</main>
+
+<footer style="width:100%; border-top:3px solid var(--ink); background:#1F1833; padding:2rem 1.5rem; box-sizing:border-box;">
+  <div style="max-width:1000px; margin:0 auto; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:1.5rem; font-family:'Space Grotesk', sans-serif; font-size:0.9rem; color:#AFA5C7;">
+    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+      <span style="font-family:'Outfit', sans-serif; font-weight:900; font-size:1.15rem; color:#fff; letter-spacing:-0.01em;">bowerboard</span>
+      <span>© 2026. Gather the pieces. Build the picture.</span>
+    </div>
+    <div style="display:flex; gap:1.5rem; font-weight:500;">
+      <a href="mailto:support@bowerboard.app" style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">Contact Support</a>
+      <a href="bowerboard-powerpoint-addin.zip" download style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">PowerPoint Add-in</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
