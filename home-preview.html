@@ -97,17 +97,17 @@
   }
   .btn-demo-nav {
     font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.9rem;
-    background: var(--yellow); color: var(--ink);
+    background: var(--ink); color: #fff;
     border: 2.5px solid var(--ink); border-radius: 10px;
     padding: 0.6rem 1.1rem;
-    box-shadow: 3px 3px 0 var(--shadow);
+    box-shadow: 3px 3px 0 var(--yellow);
     text-decoration: none;
     display: inline-flex; align-items: center; gap: 0.4rem;
     min-height: 44px;
     transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
-  .btn-demo-nav:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--shadow); }
-  .btn-demo-nav:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--shadow); }
+  .btn-demo-nav:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--yellow); }
+  .btn-demo-nav:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--yellow); }
 
   /* ---------- BRAND HERO ---------- */
   .brand-hero {
@@ -216,9 +216,9 @@
   .chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
   .chip {
     font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.78rem;
-    background: #fff; color: var(--ink);
-    border: 2px solid var(--ink); border-radius: 20px;
-    padding: 0.4rem 0.75rem;
+    background: rgba(255,255,255,0.22); color: #fff;
+    border-radius: 6px;
+    padding: 0.35rem 0.65rem;
   }
   .approve-banner {
     font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.75rem;
@@ -230,14 +230,14 @@
   .btn-build {
     display: block; width: 100%; text-align: center; text-decoration: none;
     font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.05rem;
-    background: #fff; color: var(--ink);
+    background: var(--ink); color: #fff;
     border: 2.5px solid var(--ink); border-radius: 10px;
     padding: 0.9rem 1rem; min-height: 44px;
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: 3px 3px 0 var(--yellow);
     transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
-  .btn-build:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--ink); }
-  .btn-build:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--ink); }
+  .btn-build:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--yellow); }
+  .btn-build:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--yellow); }
 
   /* Phone remote overlay */
   .phone-mock {
