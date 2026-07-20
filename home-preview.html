@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>bowerboard — Gather the pieces. Build the picture.</title>
+<meta name="description" content="Free, no-login live tool for word clouds, polls, sticky notes, rankings and brainstorms. Built for classrooms, meetings, workshops and talks — your room joins in seconds, you approve what hits the big screen." />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#B9F6CA" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="bowerboard" />
+<meta property="og:title" content="bowerboard — Gather the pieces. Build the picture." />
+<meta property="og:description" content="Free, no-login live tool for word clouds, polls, sticky notes, rankings and brainstorms. Built for classrooms, meetings, workshops and talks — your room joins in seconds, you approve what hits the big screen." />
+<meta property="og:image" content="og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="bowerboard — Gather the pieces. Build the picture." />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="bowerboard — Gather the pieces. Build the picture." />
+<meta name="twitter:description" content="Free, no-login live tool for word clouds, polls, sticky notes, rankings and brainstorms. Built for classrooms, meetings, workshops and talks." />
+<meta name="twitter:image" content="og-image.png" />
+
+<!-- Favicons -->
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+<link rel="icon" type="image/svg+xml" href="/icon.svg" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@800;900&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --stage: #B9F6CA;
+    --paper: #FFFFFF;
+    --paper-soft: #FBF9FF;
+    --ink: #14111F;
+    --muted: #6B6480;
+    --faint: #9992AD;
+    --line: #E4DFF2;
+    --pink: #FF3E7F;
+    --yellow: #FFD23F;
+    --blue: #3AA0FF;
+    --green: #21C48A;
+    --shadow: #14111F;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; padding: 0;
+    background-color: var(--stage);
+    background-image: radial-gradient(rgba(20,17,31,0.10) 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+  .display { font-family: 'Outfit', sans-serif; }
+  .grotesk { font-family: 'Space Grotesk', sans-serif; }
+  img { max-width: 100%; }
+  a { color: inherit; }
+  button { cursor: pointer; font-family: inherit; }
+
+  :focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 2px;
+  }
+
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* ---------- NAVBAR ---------- */
+  .navbar {
+    position: sticky; top: 0; z-index: 50;
+    padding: 1rem 1.5rem 0;
+  }
+  .navbar-inner {
+    max-width: 1160px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--paper);
+    border: 3px solid var(--ink);
+    border-radius: 16px;
+    box-shadow: 6px 6px 0 var(--shadow);
+    padding: 0.6rem 0.9rem 0.6rem 0.7rem;
+  }
+  .navbar-logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+  .navbar-logo img { height: 40px; width: auto; display: block; }
+  .navbar-logo span { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.15rem; letter-spacing: -0.02em; color: var(--ink); }
+  .btn-demo-nav {
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.9rem;
+    background: var(--yellow); color: var(--ink);
+    border: 2.5px solid var(--ink); border-radius: 10px;
+    padding: 0.6rem 1.1rem;
+    box-shadow: 3px 3px 0 var(--shadow);
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    min-height: 44px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .btn-demo-nav:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--shadow); }
+  .btn-demo-nav:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--shadow); }
+
+  /* ---------- HERO ---------- */
+  .hero { padding: 3rem 0 2rem; text-align: center; }
+  .hero h1 {
+    font-family: 'Outfit', sans-serif; font-weight: 900;
+    font-size: clamp(2rem, 5.5vw, 3.4rem);
+    line-height: 1.08; letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .hero h1 .pink-line { color: var(--pink); }
+  .hero .sub {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 500;
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    color: rgba(20,17,31,0.78);
+    max-width: 640px; margin: 1rem auto 0;
+    line-height: 1.5;
+  }
+
+  /* ---------- HERO CANVAS ---------- */
+  .hero-canvas-outer { padding: 2.5rem 0 0; }
+  .hero-canvas {
+    position: relative;
+    background: var(--paper);
+    border: 3px solid var(--ink);
+    border-radius: 22px;
+    box-shadow: 10px 10px 0 var(--shadow);
+    padding: 2.2rem 1.5rem 2.6rem;
+    overflow: visible;
+  }
+  .hero-canvas-inner {
+    background: var(--paper-soft);
+    background-image: radial-gradient(rgba(20,17,31,0.08) 1.5px, transparent 1.5px);
+    background-size: 22px 22px;
+    border: 2.5px solid var(--ink);
+    border-radius: 14px;
+    padding: 2.4rem 1.4rem;
+    display: flex; flex-direction: column; gap: 1.6rem;
+    align-items: center;
+  }
+  .hero-cards {
+    display: flex; flex-direction: column; gap: 1.6rem;
+    width: 100%; max-width: 460px;
+  }
+  .hero-card {
+    border: 3px solid var(--ink);
+    border-radius: 16px;
+    box-shadow: 6px 6px 0 var(--shadow);
+    padding: 1.4rem 1.3rem 1.6rem;
+    text-align: left;
+  }
+  .hero-card .pip { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid var(--ink); margin-bottom: 0.7rem; }
+  .hero-card h2 { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.25rem; margin: 0 0 0.35rem; letter-spacing: -0.01em; }
+  .hero-card p { font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 0.92rem; margin: 0 0 1rem; line-height: 1.4; }
+
+  .join-card { background: var(--yellow); color: var(--ink); }
+  .join-card .pip { background: var(--pink); }
+  .join-card p { color: rgba(20,17,31,0.82); }
+
+  .join-form { display: flex; flex-direction: column; gap: 0.7rem; }
+  .join-input {
+    width: 100%; font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: 1.2rem; letter-spacing: 0.12em; text-transform: uppercase;
+    text-align: center;
+    padding: 0.85rem 0.6rem;
+    border: 2.5px solid var(--ink); border-radius: 10px;
+    background: #fff; color: var(--ink);
+    min-height: 44px;
+  }
+  .join-input::placeholder { color: var(--faint); letter-spacing: 0.12em; }
+  .join-input:focus { outline: none; border-color: var(--pink); }
+  .btn-join {
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1rem;
+    background: var(--ink); color: #fff;
+    border: 2.5px solid var(--ink); border-radius: 10px;
+    padding: 0.85rem 1rem; min-height: 44px;
+    box-shadow: 3px 3px 0 var(--pink);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .btn-join:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--pink); }
+  .btn-join:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--pink); }
+  .join-error {
+    font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.8rem;
+    color: #C0004A; min-height: 1.1em;
+  }
+
+  .host-card { background: var(--pink); color: #fff; }
+  .host-card .pip { background: var(--blue); }
+  .host-card p { color: rgba(255,255,255,0.92); }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
+  .chip {
+    font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.78rem;
+    background: #fff; color: var(--ink);
+    border: 2px solid var(--ink); border-radius: 20px;
+    padding: 0.4rem 0.75rem;
+  }
+  .approve-banner {
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.75rem;
+    background: var(--yellow); color: var(--ink);
+    border: 2px solid var(--ink); border-radius: 20px;
+    padding: 0.5rem 0.8rem; text-align: center;
+    margin-bottom: 1.1rem;
+  }
+  .btn-build {
+    display: block; width: 100%; text-align: center; text-decoration: none;
+    font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.05rem;
+    background: #fff; color: var(--ink);
+    border: 2.5px solid var(--ink); border-radius: 10px;
+    padding: 0.9rem 1rem; min-height: 44px;
+    box-shadow: 3px 3px 0 var(--ink);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .btn-build:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--ink); }
+  .btn-build:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--ink); }
+
+  /* Phone remote overlay */
+  .phone-mock {
+    width: 100%; max-width: 260px;
+    background: #1B263B;
+    border: 3px solid var(--ink);
+    border-radius: 26px;
+    box-shadow: 8px 8px 0 var(--shadow);
+    padding: 10px;
+  }
+  .phone-mock-screen {
+    background: #fff; border: 2px solid var(--ink); border-radius: 18px;
+    padding: 0.9rem 0.9rem 1.1rem;
+  }
+  .phone-notch { width: 46px; height: 5px; border-radius: 3px; background: #1B263B; margin: 0 auto 0.7rem; }
+  .phone-mock-title {
+    font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 0.78rem;
+    color: var(--pink); margin-bottom: 0.4rem;
+    display: flex; align-items: center; gap: 0.3rem;
+  }
+  .phone-mock hr { border: none; border-top: 2px solid var(--ink); margin: 0 0 0.7rem; }
+  .pending-box {
+    background: var(--paper-soft); border: 2px solid var(--ink); border-radius: 10px;
+    padding: 0.7rem 0.7rem 0.9rem; margin-bottom: 0.8rem;
+  }
+  .pending-label { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.65rem; color: var(--muted); margin-bottom: 0.3rem; }
+  .pending-text { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.15rem; }
+  .pending-from { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.7rem; color: var(--muted); margin-bottom: 0.7rem; }
+  .pending-actions { display: flex; gap: 0.5rem; }
+  .pending-btn {
+    flex: 1; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.7rem;
+    border: 2px solid var(--ink); border-radius: 8px; padding: 0.5rem 0.3rem; text-align: center; color: #fff;
+  }
+  .pending-btn.dismiss { background: #FF4D4D; }
+  .pending-btn.approve { background: var(--green); }
+  .phone-caption {
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.68rem; text-align: center;
+    background: var(--blue); color: #fff;
+    border: 2px solid var(--ink); border-radius: 14px; padding: 0.5rem 0.6rem; line-height: 1.3;
+  }
+
+  @media (min-width: 900px) {
+    .hero-cards { flex-direction: row; align-items: flex-start; max-width: none; gap: 2.2rem; justify-content: center; }
+    .hero-card { flex: 0 0 300px; }
+    .join-card { transform: rotate(-3deg); }
+    .host-card { transform: rotate(2deg); }
+    .hero-canvas-inner { position: relative; padding-right: 15rem; }
+    .phone-mock-wrap {
+      position: absolute; right: 1.2rem; top: 3.5rem;
+      transform: rotate(-6deg);
+    }
+    .phone-mock-wrap-mobile { display: none; }
+  }
+  @media (max-width: 899px) {
+    .phone-mock-wrap { display: none; }
+    .phone-mock-wrap-mobile { display: flex; justify-content: center; margin-top: 0.4rem; }
+  }
+
+  /* ---------- TRUST RIBBON ---------- */
+  .trust-ribbon-outer { display: flex; justify-content: center; padding: 2.4rem 1.5rem 0; }
+  .trust-ribbon {
+    background: #fff; border: 2.5px solid var(--ink); border-radius: 24px;
+    box-shadow: 5px 5px 0 var(--shadow);
+    padding: 0.8rem 1.4rem;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.85rem;
+    text-align: center; max-width: 640px;
+  }
+
+  /* ---------- SHOWCASE ---------- */
+  .showcase { padding: 4rem 0 1rem; }
+  .showcase h2 {
+    font-family: 'Outfit', sans-serif; font-weight: 900;
+    font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+    text-align: center; margin: 0 0 0.4rem;
+  }
+  .showcase .showcase-sub {
+    text-align: center; font-family: 'Space Grotesk', sans-serif; font-weight: 500;
+    color: rgba(20,17,31,0.72); margin: 0 0 2rem;
+  }
+  .tab-list {
+    display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 1.8rem;
+  }
+  .tab-btn {
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.85rem;
+    background: #fff; color: var(--ink);
+    border: 2.5px solid var(--ink); border-radius: 12px;
+    padding: 0.7rem 1.1rem; min-height: 44px;
+    box-shadow: 3px 3px 0 var(--shadow);
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease, color 0.15s ease;
+  }
+  .tab-btn:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--shadow); }
+  .tab-btn[aria-selected="true"] {
+    background: var(--pink); color: #fff;
+    transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--shadow);
+  }
+
+  .mockup-window {
+    background: #fff; border: 3px solid var(--ink); border-radius: 18px;
+    box-shadow: 8px 8px 0 var(--shadow);
+    padding: 1.6rem;
+    min-height: 340px;
+    position: relative;
+    overflow: hidden;
+  }
+  .mockup-panel { display: none; }
+  .mockup-panel.active { display: block; }
+  .mockup-panel.fade-in { animation: mockupFade 0.28s ease; }
+  @media (prefers-reduced-motion: reduce) {
+    .mockup-panel.fade-in { animation: none; }
+  }
+  @keyframes mockupFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .mockup-heading {
+    font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.05rem; margin: 0 0 0.2rem;
+  }
+  .mockup-prompt {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 0.9rem;
+    color: var(--muted); margin: 0 0 1.2rem;
+  }
+
+  /* Sticky notes mockup */
+  .cork-board {
+    background: #C9A87C; border: 2.5px solid var(--ink); border-radius: 12px;
+    padding: 1.6rem 1.2rem; display: flex; flex-wrap: wrap; gap: 1.1rem; justify-content: center;
+  }
+  .sticky-note {
+    width: 150px; min-height: 110px; padding: 0.7rem;
+    border: 2.5px solid var(--ink); border-radius: 4px;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.25);
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.8rem; line-height: 1.3;
+  }
+  .sticky-note:nth-child(1) { background: var(--yellow); transform: rotate(-4deg); }
+  .sticky-note:nth-child(2) { background: #FFB1C8; transform: rotate(3deg); }
+  .sticky-note:nth-child(3) { background: #A9DBFF; transform: rotate(-2deg); }
+  .sticky-note:nth-child(4) { background: #B7F5CE; transform: rotate(5deg); }
+
+  /* Word cloud mockup */
+  .cloud-box {
+    background: var(--paper-soft); border: 2.5px solid var(--ink); border-radius: 12px;
+    padding: 2rem 1.5rem; display: flex; flex-wrap: wrap; gap: 0.6rem 1rem;
+    align-items: center; justify-content: center; min-height: 200px;
+  }
+  .cloud-word { font-family: 'Outfit', sans-serif; font-weight: 900; line-height: 1; }
+
+  /* Poll mockup */
+  .poll-list { display: flex; flex-direction: column; gap: 0.8rem; }
+  .poll-row { display: flex; align-items: center; gap: 0.8rem; }
+  .poll-label { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.85rem; width: 40%; flex-shrink: 0; }
+  .poll-bar-track { flex: 1; background: var(--line); border: 2px solid var(--ink); border-radius: 8px; height: 30px; position: relative; overflow: hidden; }
+  .poll-bar-fill { height: 100%; display: flex; align-items: center; justify-content: flex-end; padding-right: 0.5rem; }
+  .poll-bar-fill span { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.75rem; color: var(--ink); }
+
+  /* Ranking mockup */
+  .rank-list { display: flex; flex-direction: column; gap: 0.7rem; }
+  .rank-row { display: flex; align-items: center; gap: 0.7rem; }
+  .rank-badge {
+    width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 0.8rem; flex-shrink: 0; background: #fff;
+  }
+  .rank-bar-track { flex: 1; background: var(--line); border: 2px solid var(--ink); border-radius: 8px; height: 34px; position: relative; overflow: hidden; }
+  .rank-bar-fill { height: 100%; background: var(--green); display: flex; align-items: center; padding-left: 0.7rem; }
+  .rank-bar-fill span { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.8rem; color: var(--ink); }
+  .rank-locked {
+    flex: 1; height: 34px; border: 2px dashed var(--ink); border-radius: 8px;
+    display: flex; align-items: center; gap: 0.5rem; padding-left: 0.7rem;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.8rem; color: var(--muted);
+    background: repeating-linear-gradient(135deg, rgba(20,17,31,0.05) 0 8px, transparent 8px 16px);
+  }
+
+  /* Brainstorm mockup */
+  .brainstorm-hub { position: relative; min-height: 300px; display: flex; align-items: center; justify-content: center; }
+  .hub-center {
+    width: 150px; height: 150px; border-radius: 50%;
+    background: var(--pink); color: #fff; border: 3px solid var(--ink);
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.78rem; padding: 0.8rem;
+    box-shadow: 5px 5px 0 var(--shadow); z-index: 2;
+  }
+  .hub-bubble {
+    position: absolute; background: #fff; border: 2.5px solid var(--ink); border-radius: 14px;
+    box-shadow: 3px 3px 0 var(--shadow); padding: 0.55rem 0.8rem; max-width: 160px;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.72rem; line-height: 1.3;
+  }
+  .hub-bubble.b1 { top: 4%; left: 2%; background: var(--yellow); }
+  .hub-bubble.b2 { top: 8%; right: 0%; background: #A9DBFF; }
+  .hub-bubble.b3 { bottom: 6%; left: 6%; background: #B7F5CE; }
+  .hub-bubble.b4 { bottom: 2%; right: 4%; background: #FFB1C8; }
+
+  @media (max-width: 640px) {
+    .brainstorm-hub { min-height: 460px; flex-direction: column; gap: 0.8rem; }
+    .hub-bubble { position: static; max-width: 220px; margin: 0 auto; }
+    .hub-center { order: -1; }
+  }
+
+  /* ---------- MADE FOR ---------- */
+  .made-for { padding: 4rem 0 1rem; }
+  .made-for h2 {
+    font-family: 'Outfit', sans-serif; font-weight: 900;
+    font-size: clamp(1.4rem, 3vw, 1.9rem); text-align: center; margin: 0 0 2rem;
+  }
+  .made-for-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; }
+  @media (max-width: 800px) { .made-for-grid { grid-template-columns: 1fr; } }
+  .made-for-card {
+    background: #fff; border: 2.5px solid var(--ink); border-radius: 14px;
+    box-shadow: 5px 5px 0 var(--shadow); padding: 1.4rem 1.3rem;
+  }
+  .made-for-card .icon { font-size: 1.6rem; margin-bottom: 0.5rem; display: block; }
+  .made-for-card h3 { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.05rem; margin: 0 0 0.5rem; }
+  .made-for-card p { font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 0.88rem; line-height: 1.45; margin: 0; color: rgba(20,17,31,0.82); }
+
+  footer { margin-top: 5rem; }
+</style>
+</head>
+<body>
+
+<nav class="navbar" aria-label="Primary">
+  <div class="navbar-inner">
+    <a class="navbar-logo" href="index.html">
+      <img src="logo.png" alt="bowerboard logo" width="40" height="40" loading="lazy" />
+      <span>bowerboard</span>
+    </a>
+    <a class="btn-demo-nav" href="index.html">✨ Try Demo</a>
+  </div>
+</nav>
+
+<main>
+  <section class="hero wrap">
+    <h1 class="display">
+      PUT UP A CODE.<br />
+      <span class="pink-line">EVERYONE'S IN, INSTANTLY.</span>
+    </h1>
+    <p class="sub">Live word clouds, polls, sticky notes, rankings &amp; brainstorms for classrooms, meetings, workshops and talks — no logins, no apps.</p>
+  </section>
+
+  <section class="hero-canvas-outer wrap">
+    <div class="hero-canvas">
+      <div class="hero-canvas-inner">
+        <div class="hero-cards">
+
+          <div class="hero-card join-card">
+            <div class="pip"></div>
+            <h2 class="display">Got a room code?</h2>
+            <p class="grotesk">Jump into whatever's live on the big screen — no app, no account.</p>
+            <form class="join-form" id="preview-join-form" novalidate>
+              <label for="preview-join-code" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Room code</label>
+              <input class="join-input" id="preview-join-code" type="text" placeholder="e.g. AB3XZ" maxlength="12" autocomplete="off" autocapitalize="characters" />
+              <button class="btn-join display" type="submit">Join bower →</button>
+              <div class="join-error" id="preview-join-error" role="alert"></div>
+            </form>
+          </div>
+
+          <div class="hero-card host-card">
+            <div class="pip"></div>
+            <h2 class="display">Running the show?</h2>
+            <p class="grotesk">Spin up a live board in about ten seconds.</p>
+            <div class="chip-row">
+              <span class="chip">☁️ Word Cloud</span>
+              <span class="chip">📌 Sticky Notes</span>
+              <span class="chip">📊 Live Polls</span>
+              <span class="chip">🏆 Ranking</span>
+              <span class="chip">💡 Brainstorm</span>
+            </div>
+            <div class="approve-banner">📱 Approve from your phone</div>
+            <a class="btn-build display" href="index.html">Build a bower ✨</a>
+          </div>
+
+          <div class="phone-mock-wrap-mobile">
+            <div class="phone-mock" aria-hidden="true">
+              <div class="phone-mock-screen">
+                <div class="phone-notch"></div>
+                <div class="phone-mock-title">📱 YOUR PHONE, YOUR CALL</div>
+                <hr />
+                <div class="pending-box">
+                  <div class="pending-label">PENDING POST</div>
+                  <div class="pending-text">"What's one thing we should stop doing?"</div>
+                  <div class="pending-from">— Anonymous</div>
+                  <div class="pending-actions">
+                    <span class="pending-btn dismiss">✕ Dismiss</span>
+                    <span class="pending-btn approve">✓ Approve</span>
+                  </div>
+                </div>
+                <div class="phone-caption">Nothing hits the big screen until you approve it — from your phone.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="phone-mock-wrap">
+          <div class="phone-mock" aria-hidden="true">
+            <div class="phone-mock-screen">
+              <div class="phone-notch"></div>
+              <div class="phone-mock-title">📱 YOUR PHONE, YOUR CALL</div>
+              <hr />
+              <div class="pending-box">
+                <div class="pending-label">PENDING POST</div>
+                <div class="pending-text">"What's one thing we should stop doing?"</div>
+                <div class="pending-from">— Anonymous</div>
+                <div class="pending-actions">
+                  <span class="pending-btn dismiss">✕ Dismiss</span>
+                  <span class="pending-btn approve">✓ Approve</span>
+                </div>
+              </div>
+              <div class="phone-caption">Nothing hits the big screen until you approve it — from your phone.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="trust-ribbon-outer wrap">
+    <div class="trust-ribbon">
+      🔒 Anonymous by design • No accounts, no installs • You approve what the room sees
+    </div>
+  </section>
+
+  <section class="showcase wrap">
+    <h2 class="display">Five ways to get everyone talking</h2>
+    <p class="showcase-sub grotesk">Pick a tab to see it in action.</p>
+
+    <div class="tab-list" role="tablist" aria-label="Activity types" id="tab-list">
+      <button class="tab-btn" role="tab" id="tab-sticky" aria-controls="panel-sticky" aria-selected="true" tabindex="0" data-tab="sticky">📌 Sticky Notes</button>
+      <button class="tab-btn" role="tab" id="tab-wordcloud" aria-controls="panel-wordcloud" aria-selected="false" tabindex="-1" data-tab="wordcloud">☁️ Word Cloud</button>
+      <button class="tab-btn" role="tab" id="tab-poll" aria-controls="panel-poll" aria-selected="false" tabindex="-1" data-tab="poll">📊 Live Polls</button>
+      <button class="tab-btn" role="tab" id="tab-ranking" aria-controls="panel-ranking" aria-selected="false" tabindex="-1" data-tab="ranking">🏆 Ranking</button>
+      <button class="tab-btn" role="tab" id="tab-brainstorm" aria-controls="panel-brainstorm" aria-selected="false" tabindex="-1" data-tab="brainstorm">💡 Brainstorm</button>
+    </div>
+
+    <div class="mockup-window">
+
+      <div class="mockup-panel active" role="tabpanel" id="panel-sticky" aria-labelledby="tab-sticky" tabindex="0">
+        <div class="mockup-heading display">Sticky Notes — team retro</div>
+        <p class="mockup-prompt">Prompt: "What should we keep doing next sprint?"</p>
+        <div class="cork-board">
+          <div class="sticky-note">Async standups — nobody's stuck waiting for 9am</div>
+          <div class="sticky-note">Demo Fridays. Please don't cancel these again.</div>
+          <div class="sticky-note">Pairing up before big releases really helped</div>
+          <div class="sticky-note">More heads-down time, fewer meetings</div>
+        </div>
+      </div>
+
+      <div class="mockup-panel" role="tabpanel" id="panel-wordcloud" aria-labelledby="tab-wordcloud" tabindex="0" hidden>
+        <div class="mockup-heading display">Word Cloud — quick check</div>
+        <p class="mockup-prompt">Prompt: "Describe photosynthesis in one word"</p>
+        <div class="cloud-box">
+          <span class="cloud-word" style="font-size:2.6rem;color:var(--pink);">sunlight</span>
+          <span class="cloud-word" style="font-size:2rem;color:var(--ink);">energy</span>
+          <span class="cloud-word" style="font-size:1.5rem;color:var(--blue);">chlorophyll</span>
+          <span class="cloud-word" style="font-size:1.6rem;color:var(--green);">oxygen</span>
+          <span class="cloud-word" style="font-size:1.1rem;color:var(--muted);">glucose</span>
+          <span class="cloud-word" style="font-size:1.3rem;color:var(--ink);">plants</span>
+          <span class="cloud-word" style="font-size:1rem;color:var(--muted);">green</span>
+          <span class="cloud-word" style="font-size:1.15rem;color:var(--pink);">leaves</span>
+        </div>
+      </div>
+
+      <div class="mockup-panel" role="tabpanel" id="panel-poll" aria-labelledby="tab-poll" tabindex="0" hidden>
+        <div class="mockup-heading display">Live Poll — conference vote</div>
+        <p class="mockup-prompt">Prompt: "Which session are you most excited for?"</p>
+        <div class="poll-list">
+          <div class="poll-row">
+            <div class="poll-label">AI &amp; Automation Tools</div>
+            <div class="poll-bar-track"><div class="poll-bar-fill" style="width:84%;background:var(--pink);"><span>42%</span></div></div>
+          </div>
+          <div class="poll-row">
+            <div class="poll-label">Designing for Accessibility</div>
+            <div class="poll-bar-track"><div class="poll-bar-fill" style="width:54%;background:var(--yellow);"><span>27%</span></div></div>
+          </div>
+          <div class="poll-row">
+            <div class="poll-label">Career Growth Panel</div>
+            <div class="poll-bar-track"><div class="poll-bar-fill" style="width:38%;background:var(--blue);"><span>19%</span></div></div>
+          </div>
+          <div class="poll-row">
+            <div class="poll-label">Live Product Demos</div>
+            <div class="poll-bar-track"><div class="poll-bar-fill" style="width:24%;background:var(--green);"><span>12%</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mockup-panel" role="tabpanel" id="panel-ranking" aria-labelledby="tab-ranking" tabindex="0" hidden>
+        <div class="mockup-heading display">Ranking — team priorities</div>
+        <p class="mockup-prompt">Prompt: "Rank our Q3 priorities"</p>
+        <div class="rank-list">
+          <div class="rank-row">
+            <div class="rank-badge">1</div>
+            <div class="rank-bar-track"><div class="rank-bar-fill" style="width:92%;"><span>Ship the new onboarding flow</span></div></div>
+          </div>
+          <div class="rank-row">
+            <div class="rank-badge">2</div>
+            <div class="rank-bar-track"><div class="rank-bar-fill" style="width:70%;background:var(--yellow);"><span>Fix the top 3 mobile bugs</span></div></div>
+          </div>
+          <div class="rank-row">
+            <div class="rank-badge">3</div>
+            <div class="rank-locked">🔒 Locked until the host reveals it</div>
+          </div>
+          <div class="rank-row">
+            <div class="rank-badge">4</div>
+            <div class="rank-bar-track"><div class="rank-bar-fill" style="width:40%;background:var(--blue);"><span>Speed up page load</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mockup-panel" role="tabpanel" id="panel-brainstorm" aria-labelledby="tab-brainstorm" tabindex="0" hidden>
+        <div class="mockup-heading display">Brainstorm — ideas hub</div>
+        <p class="mockup-prompt">Prompt: "How can we cut waste around school?"</p>
+        <div class="brainstorm-hub">
+          <div class="hub-center">How can we cut waste around school?</div>
+          <div class="hub-bubble b1">Compost bin in the canteen ♻️</div>
+          <div class="hub-bubble b2">Reusable water bottles for every year group</div>
+          <div class="hub-bubble b3">Paper-free homework where we can</div>
+          <div class="hub-bubble b4">Bike &amp; scoot to school day</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="made-for wrap">
+    <h2 class="display">Made for...</h2>
+    <div class="made-for-grid">
+      <div class="made-for-card">
+        <span class="icon">🍎</span>
+        <h3 class="display">Teachers</h3>
+        <p class="grotesk">Moderate every post from your phone — no student accounts, no surprises on the big screen.</p>
+      </div>
+      <div class="made-for-card">
+        <span class="icon">🤝</span>
+        <h3 class="display">Teams &amp; meetings</h3>
+        <p class="grotesk">Honest, anonymous input — plus a CSV export so it doesn't vanish the moment the meeting ends.</p>
+      </div>
+      <div class="made-for-card">
+        <span class="icon">🎤</span>
+        <h3 class="display">Speakers &amp; events</h3>
+        <p class="grotesk">Your audience scans a QR and they're in — no app, no login, no dead air waiting for people to join.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer style="width:100%; border-top:3px solid var(--ink); background:#1F1833; padding:2rem 1.5rem; box-sizing:border-box;">
+  <div style="max-width:1000px; margin:0 auto; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:1.5rem; font-family:'Space Grotesk', sans-serif; font-size:0.9rem; color:#AFA5C7;">
+    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+      <span style="font-family:'Outfit', sans-serif; font-weight:900; font-size:1.15rem; color:#fff; letter-spacing:-0.01em;">bowerboard</span>
+      <span>© 2026. Gather the pieces. Build the picture.</span>
+    </div>
+    <div style="display:flex; gap:1.5rem; font-weight:500;">
+      <a href="mailto:support@bowerboard.app" style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">Contact Support</a>
+      <a href="bowerboard-powerpoint-addin.zip" download style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">PowerPoint Add-in</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Join form -> index.html?join=CODE
+  var form = document.getElementById('preview-join-form');
+  var input = document.getElementById('preview-join-code');
+  var error = document.getElementById('preview-join-error');
+
+  input.addEventListener('input', function () {
+    var pos = this.selectionStart;
+    this.value = this.value.toUpperCase();
+    this.setSelectionRange(pos, pos);
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var code = (input.value || '').trim().toUpperCase();
+    if (!code) {
+      error.textContent = 'Enter a room code first.';
+      input.focus();
+      return;
+    }
+    error.textContent = '';
+    window.location.href = 'index.html?join=' + encodeURIComponent(code);
+  });
+
+  // Accessible tabs: click + arrow-key roving tabindex
+  var tabList = document.getElementById('tab-list');
+  var tabs = Array.prototype.slice.call(tabList.querySelectorAll('[role="tab"]'));
+  var panels = {};
+  tabs.forEach(function (tab) {
+    panels[tab.dataset.tab] = document.getElementById(tab.getAttribute('aria-controls'));
+  });
+
+  function activateTab(tab, focus) {
+    tabs.forEach(function (t) {
+      var selected = t === tab;
+      t.setAttribute('aria-selected', selected ? 'true' : 'false');
+      t.tabIndex = selected ? 0 : -1;
+      var panel = panels[t.dataset.tab];
+      if (selected) {
+        panel.hidden = false;
+        panel.classList.add('active');
+        panel.classList.remove('fade-in');
+        // restart animation
+        void panel.offsetWidth;
+        panel.classList.add('fade-in');
+      } else {
+        panel.hidden = true;
+        panel.classList.remove('active');
+      }
+    });
+    if (focus) tab.focus();
+  }
+
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function () { activateTab(tab, false); });
+    tab.addEventListener('keydown', function (e) {
+      var newIndex = null;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') newIndex = (i + 1) % tabs.length;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') newIndex = (i - 1 + tabs.length) % tabs.length;
+      else if (e.key === 'Home') newIndex = 0;
+      else if (e.key === 'End') newIndex = tabs.length - 1;
+      if (newIndex !== null) {
+        e.preventDefault();
+        activateTab(tabs[newIndex], true);
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
