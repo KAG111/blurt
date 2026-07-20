@@ -89,9 +89,11 @@
     box-shadow: 6px 6px 0 var(--shadow);
     padding: 0.6rem 0.9rem 0.6rem 0.7rem;
   }
-  .navbar-logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
-  .navbar-logo img { height: 40px; width: auto; display: block; }
-  .navbar-logo span { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.15rem; letter-spacing: -0.02em; color: var(--ink); }
+  .navbar-logo { display: flex; align-items: center; text-decoration: none; }
+  .navbar-logo img { height: 56px; width: auto; display: block; }
+  @media (min-width: 640px) {
+    .navbar-logo img { height: 68px; }
+  }
   .btn-demo-nav {
     font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.9rem;
     background: var(--yellow); color: var(--ink);
@@ -106,8 +108,40 @@
   .btn-demo-nav:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--shadow); }
   .btn-demo-nav:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--shadow); }
 
+  /* ---------- BRAND HERO ---------- */
+  .brand-hero {
+    padding: 2.6rem 0 0.4rem;
+    display: flex; flex-direction: column; align-items: center; gap: 1rem;
+    text-align: center;
+  }
+  .brand-hero img.brand-logo {
+    height: 130px; width: auto;
+    filter: drop-shadow(7px 7px 0px var(--ink));
+    transform: rotate(-2deg);
+    transition: transform 0.2s ease;
+  }
+  .brand-hero img.brand-logo:hover { transform: rotate(0deg) scale(1.02); }
+  .brand-hero .brand-tagline {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-style: italic;
+    font-size: clamp(1rem, 2.4vw, 1.3rem);
+    color: rgba(20,17,31,0.75);
+    margin: 0;
+    position: relative;
+    padding-bottom: 0.5rem;
+  }
+  .brand-tagline::after {
+    content: '';
+    display: block;
+    width: 64px; height: 4px; border-radius: 2px;
+    background: var(--pink);
+    margin: 0.6rem auto 0;
+  }
+  @media (min-width: 640px) {
+    .brand-hero img.brand-logo { height: 190px; }
+  }
+
   /* ---------- HERO ---------- */
-  .hero { padding: 3rem 0 2rem; text-align: center; }
+  .hero { padding: 1rem 0 2rem; text-align: center; }
   .hero h1 {
     font-family: 'Outfit', sans-serif; font-weight: 900;
     font-size: clamp(2rem, 5.5vw, 3.4rem);
@@ -440,14 +474,18 @@
 <nav class="navbar" aria-label="Primary">
   <div class="navbar-inner">
     <a class="navbar-logo" href="index.html">
-      <img src="logo.png" alt="bowerboard logo" width="40" height="40" loading="lazy" />
-      <span>bowerboard</span>
+      <img src="logo.png" alt="bowerboard — a bird collecting pieces to build its bower" width="1024" height="560" loading="lazy" />
     </a>
     <a class="btn-demo-nav" href="index.html">✨ Try Demo</a>
   </div>
 </nav>
 
 <main>
+  <section class="brand-hero wrap">
+    <img class="brand-logo" src="logo.png" alt="bowerboard — a bird collecting pieces to build its bower" width="1024" height="560" />
+    <p class="brand-tagline">Gather the pieces. Build the picture.</p>
+  </section>
+
   <section class="hero wrap">
     <h1 class="display">
       PUT UP A CODE.<br />
