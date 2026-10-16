@@ -99,6 +99,21 @@ thin wrapper functions:
   reliable given the header-based RLS scoping above, so don't remove the polling
   fallback.
 
+**Migrations auto-apply — there is no manual checkpoint.** This Supabase project is
+connected to this GitHub repo (KAG111/blurt, working directory `.`, production branch
+`main`) via Supabase's own GitHub integration. Any file added under
+`supabase/migrations/` is run against the live database automatically the moment it's
+merged into `main` — nobody pastes SQL into the Supabase SQL Editor by hand anymore.
+This means a migration file merging is equivalent to deploying it straight to
+production: there's no human re-checking it in the SQL Editor afterward as a safety
+net, so get it right before the PR merges, not after. Keep writing migrations
+idempotently (`create or replace function`, `create table if not exists`, etc. — every
+existing migration in this repo already follows this) since that's also what makes it
+safe for Supabase to (re-)run the full migration history if it ever needs to. Test
+locally against Postgres first (see prior sessions' scratchpad for the setup pattern)
+for anything touching security-sensitive logic (RLS, SECURITY DEFINER functions, rate
+limits) before merging.
+
 The Supabase client library loads from `cdn.jsdelivr.net` (deferred, with a
 `supabaseReady` promise gating anything that depends on it — see near the top of the
 inline script). If that's blocked (ad blockers, school firewalls, **or sandboxed dev
