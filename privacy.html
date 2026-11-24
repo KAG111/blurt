@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Privacy Policy — bowerboard</title>
+<meta name="description" content="How bowerboard handles data: no accounts, anonymous room content, and what little we do collect." />
+<meta name="robots" content="noindex, nofollow" />
+<link rel="canonical" href="https://bowerboard.app/privacy.html" />
+<meta name="theme-color" content="#B9F6CA" />
+
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+<link rel="icon" type="image/svg+xml" href="/icon.svg" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@800;900&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --stage: #B9F6CA;
+    --paper: #FFFFFF;
+    --paper-soft: #FBF9FF;
+    --ink: #14111F;
+    --muted: #6B6480;
+    --faint: #9992AD;
+    --pink: #FF3E7F;
+    --yellow: #FFD23F;
+    --blue: #3AA0FF;
+    --green: #21C48A;
+    --shadow: #14111F;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background-color: var(--stage);
+    background-image: radial-gradient(rgba(20,17,31,0.10) 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+  .display { font-family: 'Outfit', sans-serif; }
+  .grotesk { font-family: 'Space Grotesk', sans-serif; }
+  img { max-width: 100%; }
+  a { color: var(--pink); }
+  button { cursor: pointer; font-family: inherit; }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 1.5rem; }
+
+  .navbar { position: sticky; top: 0; z-index: 50; padding: 1rem 1.5rem 0; }
+  .navbar-inner {
+    max-width: 1000px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--paper); border: 3px solid var(--ink); border-radius: 16px;
+    box-shadow: 6px 6px 0 var(--shadow); padding: 0.6rem 0.9rem;
+  }
+  .navbar-logo { display: flex; align-items: center; text-decoration: none; }
+  .navbar-logo img { height: 56px; width: auto; display: block; }
+  @media (min-width: 640px) { .navbar-logo img { height: 68px; } }
+  .btn-back {
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.85rem;
+    background: #fff; color: var(--ink);
+    border: 2.5px solid var(--ink); border-radius: 10px;
+    padding: 0.6rem 1rem; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 0.4rem; min-height: 44px;
+    box-shadow: 3px 3px 0 var(--shadow);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .btn-back:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--shadow); }
+  .btn-back:active { transform: translate(0,0); box-shadow: 1px 1px 0 var(--shadow); }
+
+  .policy-card {
+    background: #fff; border: 3px solid var(--ink); border-radius: 18px;
+    box-shadow: 8px 8px 0 var(--shadow);
+    padding: 2rem 1.8rem; margin: 2.5rem 0 4rem;
+  }
+  .policy-card h1 {
+    font-family: 'Outfit', sans-serif; font-weight: 900;
+    font-size: clamp(1.6rem, 4vw, 2.2rem); margin: 0 0 0.3rem; letter-spacing: -0.01em;
+  }
+  .policy-card .updated {
+    font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; color: var(--muted);
+    margin: 0 0 1.8rem;
+  }
+  .policy-card h2 {
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.15rem;
+    margin: 2rem 0 0.6rem;
+  }
+  .policy-card h2:first-of-type { margin-top: 0; }
+  .policy-card p, .policy-card li {
+    font-family: 'Inter', sans-serif; font-size: 0.95rem; line-height: 1.6;
+    color: rgba(20,17,31,0.88);
+  }
+  .policy-card ul { margin: 0.5rem 0; padding-left: 1.3rem; }
+  .policy-card li { margin-bottom: 0.4rem; }
+  .policy-card a { font-weight: 700; text-decoration: underline; }
+  .short-version {
+    background: var(--paper-soft); border: 2px solid var(--ink); border-radius: 12px;
+    padding: 1rem 1.2rem; margin-bottom: 1.8rem;
+  }
+  .short-version p { margin: 0; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<nav class="navbar" aria-label="Primary">
+  <div class="navbar-inner">
+    <a class="navbar-logo" href="/">
+      <img src="logo.png" alt="bowerboard — a bird collecting pieces to build its bower" width="1024" height="560" loading="lazy" />
+    </a>
+    <a class="btn-back" href="/">← Back</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="policy-card grotesk">
+    <h1 class="display">Privacy Policy</h1>
+    <p class="updated">Last updated: 24 November 2026</p>
+
+    <div class="short-version">
+      <p>The short version: bowerboard doesn't need you to make an account, and joining a room never asks for your name or any personal details. Room content (words, notes, votes, rankings) is stored against an anonymous room code, not against you.</p>
+    </div>
+
+    <h2 class="display">No accounts, no sign-up</h2>
+    <p>You never need to register, log in, or hand over an email address to join or host a bower. There's nothing to remember and nothing we can match back to "you" as a person from normal use of the app.</p>
+
+    <h2 class="display">What happens when you join or host a room</h2>
+    <p>Everything you post to a room — a word, a sticky note, a vote, a ranking, a brainstorm idea — is stored against that room's code, not against any personal identity. We have no way of knowing who, specifically, posted a given item, unless you choose to type your own name into it.</p>
+    <p>If you host a room, your browser keeps a private key that proves the room is yours, so you can moderate it or come back to it later. That key stays on your own device and is only ever sent to our database to prove you created that specific room — we don't use it to identify you anywhere else.</p>
+
+    <h2 class="display">Nicknames (quizzes only)</h2>
+    <p>Quiz rooms ask participants to pick a nickname so scores and a leaderboard can work. A nickname is whatever the participant chooses to type — it isn't verified against a real name, email, or any other identity, and the host can remove or edit any nickname before or during the quiz.</p>
+
+    <h2 class="display">What's stored on your own device</h2>
+    <p>A small amount of information is kept only in your own browser's local storage, never sent to us beyond what's described above:</p>
+    <ul>
+      <li>A short list of bowers you've recently created, so you can find your way back to them.</li>
+      <li>The private "host key" mentioned above, for any room you've created on that device.</li>
+    </ul>
+    <p>Clearing your browser's site data for bowerboard.app removes all of this.</p>
+
+    <h2 class="display">The contact form</h2>
+    <p>If you choose to use the "Contact Support" form, the email address and message you type are sent to us via a third-party form service (Formspree) so we can reply to you. We only use this to respond to your message — nothing from the contact form is linked to any room you may have used.</p>
+
+    <h2 class="display">Hosting, and the basic logs that come with it</h2>
+    <p>Like almost any website, our hosting provider (Cloudflare) and database provider (Supabase) may automatically log standard technical details as part of normal operation — things like IP address, browser type, and request timestamps. We don't run any analytics, advertising, or tracking scripts of our own, and we don't use this information to build a profile of you.</p>
+
+    <h2 class="display">How long we keep room data</h2>
+    <p>Room content is deleted automatically once a room goes quiet: ordinary bowers after 48 hours of no activity, and demo rooms (the ones used to preview the app) after 2 hours. We don't keep an indefinite archive of what's been posted to a room.</p>
+
+    <h2 class="display">Classrooms and younger participants</h2>
+    <p>Because joining a bower never requires a name, email, or any other personal detail (nicknames aside, which participants make up themselves), it's designed so that students and other participants can take part without entering any personal information at all. If your school, workplace, or organisation has its own data policy requirements, it's worth checking those independently — this page describes what bowerboard itself does, not a certification against any particular law or standard.</p>
+
+    <h2 class="display">Changes to this policy</h2>
+    <p>If anything here changes, we'll update this page and the date at the top.</p>
+
+    <h2 class="display">Questions</h2>
+    <p>Reach us any time via the <a href="/#contact">contact form</a> on the homepage.</p>
+  </div>
+</main>
+
+<footer style="width:100%; border-top:3px solid var(--ink); background:#1F1833; padding:2rem 1.5rem; box-sizing:border-box;">
+  <div style="max-width:1000px; margin:0 auto; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:1.5rem; font-family:'Space Grotesk', sans-serif; font-size:0.9rem; color:#AFA5C7;">
+    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+      <span style="font-family:'Outfit', sans-serif; font-weight:900; font-size:1.15rem; color:#fff; letter-spacing:-0.01em;">bowerboard</span>
+      <span>© 2026. Gather the pieces. Build the picture.</span>
+    </div>
+    <div style="display:flex; gap:1.5rem; font-weight:500; flex-wrap:wrap;">
+      <a href="/#contact" style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">Contact Support</a>
+      <a href="bowerboard-powerpoint-addin.zip" download style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">PowerPoint Add-in</a>
+      <a href="privacy.html" style="color:#AFA5C7; text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#AFA5C7'">Privacy Policy</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
